@@ -1,0 +1,29 @@
+// Diese Datei muss im Hauptverzeichnis als daten.json gespeichert werden.
+// Achte darauf, dass der Dateiname exakt "daten.json" lautet.
+// Kommentare wie dieser sind nur in der Sample-Version (.jsonc) erlaubt – im echten JSON müssen sie entfernt werden.
+[
+  {
+    "name": "Herr Mustermann",
+    "firma": "Musterfirma GmbH",
+    "email": "kunde@example.com",
+    "strasse": "Musterstraße 1",
+    "plz": "12345",
+    "ort": "Musterstadt",
+    "webseite": "www.musterfirma.de",
+    "betrag": "49,99",
+    "rechnungsnummer": "MF",                 // Optionaler Präfix
+    "rechnungsdatum": "07.05.2025",          // Optional, sonst automatisch -> empfehlung: weglassen!
+    "faelligkeit": "14",                     // Optional (Tage), Standard: 14
+    "weitere_leistungen": [
+      {
+        "beschreibung": "Zusätzliche E-Mail-Adressen",
+        "preis": "9,99"
+      },
+      {
+        "beschreibung": "Support inklusive",
+        "preis": "Inklusive"
+      }
+    ],
+    "archiv_pfad": "C:/Users/DEINNAME/Desktop/test Archiv" //Speicherort für das generierte PDF
+  }
+]

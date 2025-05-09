@@ -1,0 +1,93 @@
+<!--
+Diese Datei ist ein Beispiel für das HTML-E-Mail-Template.
+Sie muss als mail_template.html im Ordner /vorlagen liegen und verwendet Jinja2-Variablen ({{ name }}, {{ rechnungsnummer }} etc.).
+Benenne sie entsprechend um und passe sie bei Bedarf an deinen Stil an.
+-->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Ihre Rechnung Nr. {{ rechnungsnummer }} – {{ monat_jahr }}</title>
+  </head>
+  <body style="color: #000000; background-color: #FFFFFF;">
+    <div style="max-width: 600px; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); margin: auto;">
+      <div style="background-color: #f4f4f4; padding: 15px; text-align: left;">
+        <h1 style="font-size: 28px; margin: 0; color: #1e3a70; font-weight: bold;">Max Mustermann</h1>
+        <h2 style="font-size: 22px; margin: 0; color: #222; font-weight: normal;">Mustermann <strong style="color: black;">GmbH</strong></h2>
+      </div>
+
+      <h2 style="color: #333;">📄 Ihre Rechnung Nr. {{ rechnungsnummer }}</h2>
+      <p>Sehr geehrte(r) <strong>{{ name }}</strong>,</p>
+      <p>anbei erhalten Sie Ihre Rechnung für die Leistungen im Zeitraum <strong>{{ monat_jahr }}</strong>.</p>
+
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <tbody>
+          <tr>
+            <td style="padding: 8px; background: #f8f8f8; border-bottom: 1px solid #ddd;"><strong>Rechnungsnummer:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ rechnungsnummer }}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; background: #f8f8f8; border-bottom: 1px solid #ddd;"><strong>Rechnungsdatum:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ rechnungsdatum }}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; background: #f8f8f8; border-bottom: 1px solid #ddd;"><strong>Fälligkeit:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ faelligkeit }}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; background: #f8f8f8; border-bottom: 1px solid #ddd;"><strong>Betrag:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>{{ betrag }} EUR</strong></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top: 30px;">💼 Leistungsübersicht</h3>
+      <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+        <thead>
+          <tr>
+            <th style="text-align: left; background: #f0f0f0; padding: 8px; border-bottom: 1px solid #ccc;">Leistung</th>
+            <th style="text-align: right; background: #f0f0f0; padding: 8px; border-bottom: 1px solid #ccc;">Preis</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for leistung in leistungen %}
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">{{ leistung.beschreibung }}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">{{ leistung.preis }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr style="background-color: #f8f8f8;">
+            <td style="padding: 10px; font-weight: bold;">Gesamtbetrag</td>
+            <td style="padding: 10px; text-align: right; font-weight: bold;">{{ gesamtpreis }} EUR</td>
+          </tr>
+        </tfoot>      
+      </table>      
+
+      <p>Bitte überweisen Sie den Rechnungsbetrag bis spätestens <strong>{{ faelligkeit }}</strong> auf das in der Rechnung angegebene Konto.</p>
+      <h3 style="color: #333;">🏦 Bankverbindung</h3>
+      <p> <strong>Kontoinhaber:</strong> Max Mustermann<br>
+        <strong>Bank:</strong> Sparkasse Musterstadt<br>
+        <strong>IBAN:</strong> DEXX XXXX XXXX XXXX XXXX XX<br>
+        <strong>BIC:</strong> DRESDEFFXXX </p>
+      
+      <p>📎 <strong>Die Rechnung ist als PDF im Anhang beigefügt.</strong></p>
+      <p>Sollten Sie Rückfragen haben oder weitere Informationen benötigen, stehe ich Ihnen jederzeit gerne zur Verfügung.</p>
+      <p>Vielen Dank für Ihr Vertrauen! Ich freue mich auf unsere weitere Zusammenarbeit.</p>
+
+      <p style="margin-top: 20px; font-size: 14px; color: #555;"><strong>Mit freundlichen Grüßen</strong>,<br>
+        <strong>Max Mustermann</strong></p>
+
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+      <p style="text-align: center; font-size: 12px; color: #777;">
+        <strong>Max Mustermann GmbH – Web Development</strong><br>
+        <strong>📍</strong>Musterstraße 5, 51234 Musterstadt<br>
+        📧 <a href="mailto:Mustermail@mail.de" style="color: #007BFF; text-decoration: none;">Mustermail@mail.de</a> |
+        📞 <a href="tel:0123 456789" style="color: #007BFF; text-decoration: none;">0123 456789</a> |
+        🌐 <a href="http://www.max-mustermann.de" style="color: #007BFF; text-decoration: none;">www.max-mustermann.de</a>
+      </p>
+    </div>
+  </body>
+</html>

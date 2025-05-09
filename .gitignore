@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+venv/
+
+# Eigene Templates
+vorlagen/mail_template.html
+vorlagen/rechnung_template.html
+img/logo.png
+
+# Editor/IDE specific
+.vscode/
+.idea/
+
+# PDF-Ausgaben
+*.pdf
+
+# Log-Dateien
+*.log
+
+# Sensible Daten
+environment.env
+daten.json
+
+# Temporäre Dateien
+*.tmp

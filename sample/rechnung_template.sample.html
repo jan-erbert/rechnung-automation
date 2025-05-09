@@ -1,0 +1,189 @@
+<!--
+Diese Datei ist eine Beispielvorlage für die PDF-Rechnung.
+Speichere sie als rechnung_template.html im Ordner /vorlagen.
+Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch die Rechnungsdaten ersetzt.
+-->
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Rechnung</title>
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        font-size: 12pt;
+        margin: 0;
+        padding: 0;
+        color: #000;
+    }
+    html, body {
+    height: 100%;
+    }
+    .page {
+        width: 100%;
+        height: 29.7cm;
+        padding: 0.5cm 0.5cm 0.5cm 0.5cm;
+        box-sizing: border-box;
+        min-height: 100%;
+        position: relative;
+        padding-bottom: 4cm;
+    }
+    .absender-oben {
+        font-size: 8pt;
+        color: #333;
+        margin-bottom: 0.2cm;
+        text-decoration: underline;
+    }
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f2f2f2;
+        padding: 1cm 1.5cm;
+        margin-top: 1cm;
+    }
+    h1 {
+        margin-top: 1.5cm;
+        font-size: 16pt;
+    }
+    .rechnungsinfo {
+        margin-top: 0.5cm;
+        font-size: 11pt;
+    }
+    .rechnungsinfo strong {
+        display: inline-block;
+        width: 140px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1cm;
+    }
+    th, td {
+        border: 1px solid #ccc;
+        padding: 8px;
+    }
+    th {
+        background: #e9eff8;
+        text-align: left;
+    }
+    tfoot td {
+        font-weight: bold;
+    }
+    .hinweise {
+        margin-top: 1cm;
+        font-size: 10pt;
+    }
+    .footer-fixed {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        font-size: 9pt;
+        padding-bottom: 0.1cm;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <table style="width: 100%; background: #2f3c50; padding: 0.8cm 1cm; margin-top: 1cm; border: none; border-collapse: collapse; color: #ffffff;">
+      <tr>
+        <td style="padding: 0.5cm 1cm; border: none;">
+          <div style="font-size: 20pt; font-weight: bold;">Max Mustermann</div>
+          <div style="font-size: 14pt; color: #dbe2ea;">Mustermann GmbH</div>
+        </td>
+        <td style="padding: 0.5cm 1cm; text-align: right; border: none;">
+          <img src="{{ logo_base64 }}" alt="Logo" style="height: 40px;">
+        </td>
+      </tr>
+    </table>
+
+    <table style="width: 100%; margin-top: 1.2cm; margin-bottom: 40px;">
+      <tr>
+        <td style="vertical-align: top; width: 60%; border: none;">
+          <div class="absender-oben">
+            Max Mustermann – Musterstraße 5 – 51234 Musterstadt
+          </div>
+          <div style="font-size: 14px; line-height: 1.6;">
+            <strong>{{ firma }}</strong><br>
+            {{ name }}<br>
+            {{ strasse }}<br>
+            {{ plz }} {{ ort }}<br>
+            {{ email }}
+          </div>
+        </td>
+        <td style="vertical-align: top; width: 40%; text-align: right; font-size: 13px; line-height: 1.6; border: none;">
+          <strong>Max Mustermann</strong><br>
+          Musterstraße 5<br>
+          51234 Musterstadt<br><br>
+          Tel.: 0123 456789<br>
+          E-Mail: Mustermail@mail.de<br>
+          Internet: www.max-mustermann.de<br><br>
+          Rechnungsdatum: {{ rechnungsdatum }}<br>
+        </td>
+      </tr>
+    </table>
+
+    <h1>Rechnung</h1>
+    <div class="rechnungsinfo">
+      <strong>Rechnung Nr.:</strong> {{ rechnungsnummer }}<br>
+      Bitte bei Zahlungen und Schriftverkehr angeben
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; margin-top: 1cm; font-size: 11pt;">
+      <thead>
+        <tr style="background-color: #f4f6f8; color: #374151;">
+          <th style="text-align: left; padding: 12px 16px;">Bezeichnung</th>
+          <th style="text-align: right; padding: 12px 16px;">Betrag</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for eintrag in leistungen %}
+        <tr style="background-color: #ffffff; color: #111827;">
+          <td style="padding: 12px 16px;">{{ eintrag.beschreibung }}</td>
+          <td style="padding: 12px 16px; text-align: right;">{{ eintrag.preis }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="background-color: #f9fafb;">
+          <td style="padding: 12px 16px;">Summe brutto</td>
+          <td style="padding: 12px 16px; text-align: right;">{{ gesamtpreis }} EUR</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="hinweise">
+      Es wird gemäß §19 Abs. 1 Umsatzsteuergesetz keine Umsatzsteuer erhoben.<br>
+      Bitte begleichen Sie den Rechnungsbetrag bis spätestens <strong>{{ faelligkeit }}</strong>.
+    </div>
+
+    <div class="footer-fixed">
+      <table style="width: 100%; font-size: 9pt; border-top: 1px solid black;">
+        <tr>
+          <td style="width: 25%; vertical-align: top;">
+            <strong>Kleinunternehmen</strong><br>
+            Inh. Max Mustermann<br>
+            Musterstraße 5<br>
+            51234 Musterstadt
+          </td>
+          <td style="width: 25%; vertical-align: top;">
+            <strong>Sparkasse Musterstadt</strong><br>
+            KTO Inh.: Max Mustermann
+          </td>
+          <td style="width: 25%; vertical-align: top;">
+            <strong>IBAN:</strong> DEXX XXXX XXXX<br>
+            XXXX XXXX XX<br>
+            <strong>BIC:</strong> DRESDEFFXXX
+          </td>
+          <td style="width: 25%; vertical-align: top;">
+            <strong>Steuer-Nr.:</strong> 00/000/00000<br>
+            Finanzamt: Musterstadt
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
