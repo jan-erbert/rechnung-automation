@@ -1,4 +1,4 @@
 @echo off
 echo Starte Rechnungsgenerierung...
-py mail_versenden.py
+py main.py
 pause

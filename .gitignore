@@ -26,7 +26,9 @@ img/logo.png
 environment.env
 daten.json
 verlauf*.json
+tools/build_release_zip.py
 stunden/
 
 # Temporäre Dateien
 *.tmp
+rechnung_automation_v*

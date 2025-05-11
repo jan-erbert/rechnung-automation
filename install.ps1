@@ -45,4 +45,4 @@ if (-Not (Test-Path "vorlagen\mail_template.html")) {
 }
 
 Write-Host ""
-Write-Host "✅ Projekt ist bereit! Du kannst jetzt 'mail_versenden.py' ausführen."
+Write-Host "✅ Projekt ist bereit! Du kannst jetzt 'main.py' ausführen."

@@ -110,10 +110,13 @@ rechnung-automation/
 │   ├── mail_template.html
 │   └── rechnung_template.html
 ├── stunden/                  # Stundenlisten pro Monat (stunden_2025_04.json etc.)
+├── tools/
+│   └── update_tool.py         #separates Update-Skript
+├── version.py                 #zentrale Versionsvariable
 ├── daten.json
 ├── environment.env
 ├── verlauf-2025.json         # Verlauf automatisch erstellt
-├── mail_versenden.py         # Hauptskript
+├── main.py                   # Hauptskript
 ├── install.ps1               # Einrichtungsskript (Windows)
 ├── requirements.txt
 └── .gitignore
@@ -138,6 +141,30 @@ Bearbeite die Templates direkt, um Texte, Farben oder Formatierungen zu ändern.
 - Rechnung mit Steuersatz und Mehrwertsteuer
 - Automatische Verarbeitung von Zahlungseingängen
 - Integration mit Zeiterfassung oder CRM
+
+---
+
+## 🔄 Update
+
+Um die Software auf die neueste Version zu aktualisieren, kannst du das integrierte **Update-Tool** verwenden. Es prüft automatisch, ob ein neuer [GitHub Release](https://github.com/jan-erbert/rechnung-automation/releases) verfügbar ist, und installiert bei Bedarf die aktualisierten Dateien.
+
+### 📥 Ausführen des Update-Tools
+
+```bash
+python tools/update_tool.py
+```
+Das Tool:
+
+- vergleicht die lokale Version mit der neuesten GitHub-Version,
+- lädt das Release-ZIP bei Bedarf herunter,
+- ersetzt nur freigegebene Dateien (z. B. main.py, vorlagen/*.html, requirements.txt),
+- lässt alle persönlichen Daten wie daten.json, stunden/, verlauf*.json unberührt.
+
+⚠️ Voraussetzung: Eine funktionierende Internetverbindung und ein installierter Python-Paketmanager (requests, packaging – bereits in requirements.txt enthalten).
+
+### 💡 Hinweis
+
+Wenn du selbst Änderungen an Systemdateien vorgenommen hast, könnten diese beim Update überschrieben werden. Persönliche Konfigurations- und Abrechnungsdaten bleiben jedoch erhalten.
 
 ---
 

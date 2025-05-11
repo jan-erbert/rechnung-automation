@@ -2,6 +2,19 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
+## [1.1.1] - 2025-05-11
+### Added
+- Neues Update-Tool tools/update_tool.py, das automatisch auf GitHub Releases prüft und bei Bedarf ein ZIP-Update installiert.
+- Zentrale Versionsverwaltung über version.py für konsistente Updatevergleiche.
+- Erweiterte requirements.txt um requests und packaging zur Unterstützung des Update-Tools.
+- Release-Vorlage für GitHub (Markdown) zur schnellen Veröffentlichung neuer Versionen.
+
+### Changed
+- Projektstruktur vereinheitlicht (z. B. Umbenennung von mail_versenden.py zu main.py).
+
+### Fixed
+- Fehlermeldung bei fehlendem requests oder packaging in VS Code durch klare requirements.txt.
+
 ## [1.1.0] - 2025-05-11
 ### Added
 - Unterstützung für stundengenaue Abrechnung auf Basis von monatlichen Stundenlisten (`stunden_YYYY_MM.json`).
