@@ -99,9 +99,6 @@ python mail_versenden.py
 rechnung-automation/
 ├── .venv/                     # Virtuelle Umgebung
 ├── bin/                      # wkhtmltopdf.exe
-├── doc/
-│   ├── CHANGELOG.md
-│   └── README.md
 ├── img/
 │   └── logo.png             # optional
 ├── sample/
@@ -120,6 +117,8 @@ rechnung-automation/
 ├── install.ps1               # Einrichtungsskript (Windows)
 ├── requirements.txt
 └── .gitignore
+├── CHANGELOG.md
+├── README.md
 ```
 
 ---
