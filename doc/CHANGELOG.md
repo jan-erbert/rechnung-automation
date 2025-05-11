@@ -2,6 +2,26 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
+## [1.1.0] - 2025-05-11
+### Added
+- Unterstützung für stundengenaue Abrechnung auf Basis von monatlichen Stundenlisten (`stunden_YYYY_MM.json`).
+- Automatische Rückfrage bei fehlenden Stundendaten.
+- Dynamischer Hinweis auf den Stundensatz im PDF und in der E-Mail (optional, nur wenn Stunden abgerechnet wurden).
+- Anzeige des Abrechnungszeitraums in PDF und E-Mail auch bei einstufiger Abrechnung (z. B. "Mai 2025").
+- Neue Sample-Dateien: `rechnung_template.sample.html`, `mail_template.sample.html`, `daten.sample.jsonc`.
+- Neue Markdown-Formatierungen in `README.md` mit besseren Beispielwerten.
+- Feld `letzte_rechnung` in `daten.json` zur Begrenzung der Abrechnungsdauer.
+- Automatisches Anlegen eines Kunden in der daten.json Datei mittels `kunden_anlegen.py`
+
+### Changed
+- Bei Stunden = 0 wird keine Rechnung mehr erstellt, aber ein Verlaufseintrag mit 0 Stunden erzeugt.
+- Konsolenausgabe zeigt Umlaute korrekt durch explizites UTF-8-Encoding in `print`.
+- Verbesserung der Template-Texte für korrekte Formulierungen abhängig vom Zeitraum.
+
+### Fixed
+- Fehlerhafte Anzeige von Umlauten wie "MÃ¤rz" im PDF und Mail.
+- Kontext-Fehler (`context not defined`) beim Setzen des `stundensatz_hinweis`.
+
 ## [1.0.0] - 2025-05-09
 ### Added
 - Vollständiger Rechnungsworkflow inklusive PDF-Generierung, E-Mail-Versand und Archivierung.

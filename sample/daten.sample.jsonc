@@ -10,10 +10,18 @@
     "plz": "12345",
     "ort": "Musterstadt",
     "webseite": "www.musterfirma.de",
-    "betrag": "49,99",
-    "rechnungsnummer": "MF",                 // Optionaler Präfix
-    "rechnungsdatum": "07.05.2025",          // Optional, sonst automatisch -> empfehlung: weglassen!
-    "faelligkeit": "14",                     // Optional (Tage), Standard: 14
+    "rechnungsnummer": "MF",                 // optionaler Präfix
+    "rechnungsdatum": "07.05.2025",          // optional, sonst automatisch -> empfehlung: weglassen!
+    "faelligkeit": "14",                     // optional (Tage), Standard: 14
+    "abrechnungszyklus": 6,                  // optional, in Monaten (Standard: 1)
+    "letzte_rechnung": "2026-12",            // optional, Datum der letzten Rechnung welche erstellt werden darf im Format YYYY-MM
+    // "einmalig": true,                     // optional – setzt den Modus auf „einmalige Rechnung“ Standard: false
+    "hauptleistung": {
+      "beschreibung": "Individuelle Beratung",
+      "einheit": "Stunde",                   // optional, "Stunde" oder "Monat" oder "pauschal" -> Standard: Monat
+      //                                     // Für Stundenabrechnung: erstelle Dateien im Format stunden_YYYY_MM.json (siehe README)
+      "betrag": "75,00"
+    },
     "weitere_leistungen": [
       {
         "beschreibung": "Zusätzliche E-Mail-Adressen",

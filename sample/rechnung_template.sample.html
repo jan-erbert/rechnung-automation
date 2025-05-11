@@ -7,7 +7,7 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
   <title>Rechnung</title>
   <style>
     body {
@@ -35,6 +35,10 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
         margin-bottom: 0.2cm;
         text-decoration: underline;
     }
+    .empfaenger {
+        margin-top: 5.5cm;
+        line-height: 1.4;
+    }
     .header {
         display: flex;
         justify-content: space-between;
@@ -43,6 +47,25 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
         padding: 1cm 1.5cm;
         margin-top: 1cm;
     }
+    .header .logo-text {
+        font-size: 20pt;
+        font-weight: bold;
+        color: #1d3e81;
+    }
+    .header .logo-sub {
+        font-size: 14pt;
+        color: #000;
+        font-weight: normal;
+    }
+    .header img {
+        height: 40px;
+    }
+    .kontaktblock {
+        text-align: right;
+        font-size: 10pt;
+        line-height: 1.4;
+        margin-top: 0.5cm;
+    }
     h1 {
         margin-top: 1.5cm;
         font-size: 16pt;
@@ -50,10 +73,6 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
     .rechnungsinfo {
         margin-top: 0.5cm;
         font-size: 11pt;
-    }
-    .rechnungsinfo strong {
-        display: inline-block;
-        width: 140px;
     }
     table {
         width: 100%;
@@ -75,6 +94,16 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
         margin-top: 1cm;
         font-size: 10pt;
     }
+    .fusszeile {
+        margin-top: 2cm;
+        font-size: 9pt;
+        display: flex;
+        justify-content: space-between;
+    }
+    .fusszeile > div {
+        width: 24%;
+        padding-top: 0.5cm;
+    }
     .footer-fixed {
         position: absolute;
         bottom: 0;
@@ -83,10 +112,12 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
         font-size: 9pt;
         padding-bottom: 0.1cm;
     }
-  </style>
+</style>
 </head>
 <body>
   <div class="page">
+
+    <!-- Blauer Balken mit Logo als Tabelle -->
     <table style="width: 100%; background: #2f3c50; padding: 0.8cm 1cm; margin-top: 1cm; border: none; border-collapse: collapse; color: #ffffff;">
       <tr>
         <td style="padding: 0.5cm 1cm; border: none;">
@@ -97,7 +128,7 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
           <img src="{{ logo_base64 }}" alt="Logo" style="height: 40px;">
         </td>
       </tr>
-    </table>
+    </table>     
 
     <table style="width: 100%; margin-top: 1.2cm; margin-bottom: 40px;">
       <tr>
@@ -128,31 +159,40 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
     <h1>Rechnung</h1>
     <div class="rechnungsinfo">
       <strong>Rechnung Nr.:</strong> {{ rechnungsnummer }}<br>
+      {% if abrechnungszeitraum %}
+      <strong>Abrechnungszeitraum:</strong> {{ abrechnungszeitraum }}<br>
+      {% endif %}
       Bitte bei Zahlungen und Schriftverkehr angeben
     </div>
 
     <table style="width: 100%; border-collapse: collapse; margin-top: 1cm; font-size: 11pt;">
       <thead>
         <tr style="background-color: #f4f6f8; color: #374151;">
-          <th style="text-align: left; padding: 12px 16px;">Bezeichnung</th>
-          <th style="text-align: right; padding: 12px 16px;">Betrag</th>
+          <th style="text-align: left; padding: 12px 16px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">Bezeichnung</th>
+          <th style="text-align: right; padding: 12px 16px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">Betrag</th>
         </tr>
       </thead>
       <tbody>
         {% for eintrag in leistungen %}
         <tr style="background-color: #ffffff; color: #111827;">
-          <td style="padding: 12px 16px;">{{ eintrag.beschreibung }}</td>
-          <td style="padding: 12px 16px; text-align: right;">{{ eintrag.preis }}</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">{{ eintrag.beschreibung }}</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">{{ eintrag.preis }}</td>
         </tr>
         {% endfor %}
       </tbody>
       <tfoot>
-        <tr style="background-color: #f9fafb;">
-          <td style="padding: 12px 16px;">Summe brutto</td>
-          <td style="padding: 12px 16px; text-align: right;">{{ gesamtpreis }} EUR</td>
+        <tr style="background-color: #f9fafb; font-weight: bold; color: #111827;">
+          <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb;">Summe brutto</td>
+          <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb; text-align: right;">{{ gesamtpreis }} EUR</td>
         </tr>
       </tfoot>
     </table>
+    
+    {% if stundensatz_hinweis %}
+    <div class="hinweise" style="margin-top: 0.5cm;">
+      {{ stundensatz_hinweis }}
+    </div>
+    {% endif %}
 
     <div class="hinweise">
       Es wird gemäß §19 Abs. 1 Umsatzsteuergesetz keine Umsatzsteuer erhoben.<br>
@@ -160,7 +200,7 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
     </div>
 
     <div class="footer-fixed">
-      <table style="width: 100%; font-size: 9pt; border-top: 1px solid black;">
+      <table style="width: 100%; font-size: 9pt; border-top: 1px solid black; padding-top: 0cm; margin-top: 0;">
         <tr>
           <td style="width: 25%; vertical-align: top;">
             <strong>Kleinunternehmen</strong><br>
@@ -173,8 +213,7 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
             KTO Inh.: Max Mustermann
           </td>
           <td style="width: 25%; vertical-align: top;">
-            <strong>IBAN:</strong> DEXX XXXX XXXX<br>
-            XXXX XXXX XX<br>
+            <strong>IBAN:</strong> DEXX XXXX XXXX XXXX XXXX XX<br>
             <strong>BIC:</strong> DRESDEFFXXX
           </td>
           <td style="width: 25%; vertical-align: top;">

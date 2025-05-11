@@ -25,6 +25,8 @@ img/logo.png
 # Sensible Daten
 environment.env
 daten.json
+verlauf*.json
+stunden/
 
 # Temporäre Dateien
 *.tmp
