@@ -1,0 +1,13 @@
+Verwendung von wkhtmltopdf
+===========================
+
+Dieses Projekt verwendet die Software **wkhtmltopdf** (https://wkhtmltopdf.org/) zur PDF-Erzeugung aus HTML.
+
+Lizenz: GNU Lesser General Public License (LGPL) Version 3  
+Copyright © 2007 Free Software Foundation, Inc.
+
+Die Datei `wkhtmltopdf.exe` wird im unveränderten Originalzustand mitgeliefert.  
+Der vollständige Quellcode sowie weitere Informationen sind verfügbar unter:  
+➡️ https://github.com/wkhtmltopdf/wkhtmltopdf
+
+Eine Kopie der LGPL v3 sowie der GPL v3 Lizenz ist dieser Anwendung unter `licenses/` beigefügt.
