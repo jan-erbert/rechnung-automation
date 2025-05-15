@@ -23,12 +23,13 @@ img/logo.png
 *.log
 
 # Sensible Daten
-environment.env
-daten.json
+data/
 verlauf*.json
 tools/build_release_zip.py
 stunden/
 
 # Temporäre Dateien
 *.tmp
+old/
 rechnung_automation_v*
+__pycache__

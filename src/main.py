@@ -14,18 +14,61 @@ from io import BytesIO
 from pathlib import Path
 from dateutil.relativedelta import relativedelta
 
-# 🔐 Lade Konfiguration aus environment.env
-load_dotenv("environment.env")
+# 📦 Abhängigkeiten importieren
+BASE_DIR = Path(__file__).resolve().parent.parent # .../rechnung-automation/
+DATA_DIR = BASE_DIR / "data"
+STUNDEN_DIR = BASE_DIR / "stunden"
+VORLAGEN_DIR = BASE_DIR / "vorlagen"
+IMG_DIR = BASE_DIR / "img"
+BIN_DIR = BASE_DIR / "bin"
+BACKUP_DIR = BASE_DIR / "backup"
 
+# 🔐 Lade Konfiguration aus environment.env
+load_dotenv(BASE_DIR / "data" / "environment.env")
+with open(DATA_DIR / "daten.json", 'r', encoding='utf-8') as f:
+    daten = json.load(f)
+
+# 📧 E-Mail Konfiguration
 MAIL_SERVER = os.getenv("MAIL_SERVER")
 MAIL_PORT = int(os.getenv("MAIL_PORT"))
 MAIL_USER = os.getenv("MAIL_USER")
 MAIL_PASS = os.getenv("MAIL_PASS")
-MAIL_BCC = os.getenv("MAIL_BCC")
 
-# 📄 JSON-Datei laden
-with open('daten.json', 'r', encoding='utf-8') as f:
-    daten = json.load(f)
+# 📄 Konfiguration JSON-Datei laden
+def lade_konfiguration(pfad: Path = BASE_DIR / "data" / "konfiguration.json") -> dict:
+    if not os.path.exists(pfad):
+        raise FileNotFoundError(f"Konfigurationsdatei '{pfad}' nicht gefunden.")
+
+    with open(pfad, "r", encoding="utf-8") as f:
+        config = json.load(f)
+
+    # Pflichtfelder prüfen
+    pflichtfelder = [
+        ("absender", "name"),
+        ("absender", "firma"),
+        ("absender", "email"),
+        ("bank", "iban"),
+        ("bank", "kontoinhaber"),
+        ("finanzen", "kleinunternehmer")
+    ]
+
+    for bereich, feld in pflichtfelder:
+        if feld not in config.get(bereich, {}):
+            raise ValueError(f"Pflichtfeld fehlt: '{bereich}.{feld}'")
+
+    # Prüfen: wenn kein Kleinunternehmer → Mehrwertsteuersatz muss gesetzt sein
+    if not config["finanzen"].get("kleinunternehmer", False):
+        if "mehrwertsteuer_prozent" not in config["finanzen"]:
+            raise ValueError("Mehrwertsteuersatz fehlt bei Nicht-Kleinunternehmern.")
+
+    return config
+
+# 📥 Konfiguration laden
+konfig = lade_konfiguration()
+
+absender = konfig["absender"]
+bank = konfig["bank"]
+finanzen = konfig["finanzen"]
 
 # 📁 Verlaufsdatei für das aktuelle Jahr laden oder neu anlegen (mit Fallback)
 def lade_verlauf_datei(dateiname, jahr):
@@ -45,8 +88,8 @@ def lade_verlauf_datei(dateiname, jahr):
             if entscheidung == "y":
                 backup_entscheidung = input("Willst du vorher eine Backup-Datei anlegen? (y/n): ").strip().lower()
                 if backup_entscheidung == "y":
-                    os.makedirs("backup", exist_ok=True)
-                    backup_path = f"backup/verlauf-{jahr}_backup.json"
+                    backup_path = BACKUP_DIR / f"verlauf-{jahr}_backup.json"
+                    os.makedirs(backup_path.parent, exist_ok=True)
                     try:
                         os.rename(dateiname, backup_path)
                         print(f"🛡️ Sicherung gespeichert unter: {backup_path}")
@@ -65,6 +108,9 @@ def lade_verlauf_datei(dateiname, jahr):
             else:
                 print("Bitte y oder n eingeben.")
 
+
+MAIL_BCC = konfig.get("mail", {}).get("bcc") or None
+
 def berechne_stundenleistung(firma: str, zyklus: int, stundensatz: float):
     heute = datetime.today()
     stunden_total = 0.0
@@ -76,7 +122,7 @@ def berechne_stundenleistung(firma: str, zyklus: int, stundensatz: float):
         monat_dt = heute - relativedelta(months=i+1)
         monat = monat_dt.month
         jahr = monat_dt.year
-        dateiname = f"stunden/stunden_{jahr}_{monat:02d}.json"
+        dateiname = STUNDEN_DIR / f"stunden_{jahr}_{monat:02d}.json"
 
         eintrag_gefunden = False
 
@@ -117,7 +163,7 @@ def berechne_stundenleistung(firma: str, zyklus: int, stundensatz: float):
 
 # ⏳ Verlauf laden
 jahr = datetime.today().year
-verlauf_dateiname = f"verlauf-{jahr}.json"
+verlauf_dateiname = BASE_DIR / "data" / f"verlauf-{jahr}.json"
 rechnungsverlauf = lade_verlauf_datei(verlauf_dateiname, jahr)
 
 
@@ -177,7 +223,7 @@ def rechnung_fällig(eintrag, verlauf_liste):
         return True  # Noch nie abgerechnet
 
 # 📩 Jinja2-Umgebung und Template laden
-env = Environment(loader=FileSystemLoader('vorlagen'))
+env = Environment(loader=FileSystemLoader(VORLAGEN_DIR))
 template = env.get_template('mail_template.html')
 template_pdf = env.get_template('rechnung_template.html')
 
@@ -260,7 +306,6 @@ for eintrag in daten:
             print("📝 Verlauf aktualisiert.")
             continue
 
-
         betrag = stundeninfo["gesamtbetrag"]
         gesamtpreis = betrag  # Direkt setzen, da es keine Multiplikation durch Zyklus gibt
 
@@ -277,7 +322,7 @@ for eintrag in daten:
             "beschreibung": f"{beschreibung} (pauschal)",
             "preis": f"{betrag:.2f}".replace(".", ",") + " EUR"
         })
-
+        
     else:
         # 📆 Standard: monatlich, multiplizieren mit Zyklus
         gesamtpreis = betrag * abrechnungszyklus
@@ -286,42 +331,67 @@ for eintrag in daten:
             "beschreibung": f"{beschreibung} für {zeitraum_text} ({eintrag.get('webseite', '')})",
             "preis": f"{gesamtpreis:.2f}".replace(".", ",") + " EUR"
         })
-
-
-
-    for leistung in eintrag.get("weitere_leistungen", []):
-        preis_raw = leistung.get("preis", "").replace(",", ".").replace(" EUR", "").strip()
+    # ➕ Zusätzliche Leistungen ergänzen (für alle Einheiten)
+    weitere = eintrag.get("weitere_leistungen", [])
+    for zusatz in weitere:
+        beschreibung = zusatz.get("beschreibung", "Zusatzleistung")
+        preis_str = zusatz.get("preis", "").strip()
 
         try:
-            preis_float = float(preis_raw)
-            gesamtpreis += preis_float
-            preis_formatiert = f"{preis_raw.replace('.', ',')} EUR"
+            preis_float = float(preis_str.replace(",", "."))
+            if einheit == "pauschal":
+                # Keine Multiplikation, keine Zusatzzeile
+                preis_text = f"{preis_float:.2f}".replace(".", ",") + " EUR"
+                zusatz_text = ""
+                betrag_gesamt = preis_float
+            else:
+                betrag_gesamt = preis_float * abrechnungszyklus
+                zusatz_text = f"({preis_float:.2f}".replace(".", ",") + f" EUR × {abrechnungszyklus} Monate)"
+                preis_text = f"{betrag_gesamt:.2f}".replace(".", ",") + " EUR"
         except ValueError:
-            preis_formatiert = preis_raw  # z. B. "Inklusive"
+            zusatz_text = ""
+            preis_text = preis_str  # z. B. „Inklusive“
+            betrag_gesamt = 0.0
 
         leistungs_liste.append({
-            "beschreibung": leistung.get("beschreibung", ""),
-            "preis": preis_formatiert
+            "beschreibung": beschreibung + (f"<br><small>{zusatz_text}</small>" if zusatz_text else ""),
+            "preis": preis_text
         })
 
-    gesamtpreis_str = f"{gesamtpreis:.2f}".replace(".", ",")
+        # Summe aufrechnen, nur wenn numerisch
+        if isinstance(betrag_gesamt, float) and betrag_gesamt > 0:
+            betrag_gesamt = preis_float * abrechnungszyklus
+            gesamtpreis += betrag_gesamt
 
-    with open("img/logo.png", "rb") as img_file:
-        logo_base64 = base64.b64encode(img_file.read()).decode("utf-8")
+    # Berechnung von Steuerbetrag, MwSt-Hinweis und Gesamtpreis
+    if finanzen["kleinunternehmer"]:
+        steuerbetrag = 0
+        mwst_hinweis = "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet."
+        gesamtpreis_mit_mwst = gesamtpreis  # Nettopreis = Bruttopreis
+    else:
+        steuerbetrag = round(gesamtpreis * finanzen["mehrwertsteuer_prozent"] / 100, 2)
+        mwst_hinweis = f"zzgl. {finanzen['mehrwertsteuer_prozent']}% MwSt ({steuerbetrag:.2f} EUR)"
+        gesamtpreis_mit_mwst = gesamtpreis + steuerbetrag
 
-    # 📆 Abrechnungszeitraum (nur bei monatlicher Abrechnung)
-    einheit = hauptleistung.get("einheit", "Monat").lower()
-    abrechnungszyklus = int(eintrag.get("abrechnungszyklus", 1)) if einheit == "monat" else 1
+    gesamtpreis_str = f"{gesamtpreis_mit_mwst:.2f}".replace(".", ",")
 
-    if einheit == "monat":
+    try:
+        with open(IMG_DIR / "logo.png", "rb") as img_file:
+            logo_base64 = base64.b64encode(img_file.read()).decode("utf-8")
+    except FileNotFoundError:
+        print("⚠️ Logo-Datei nicht gefunden. Logo wird in der Rechnung nicht angezeigt.")
+        logo_base64 = ""
+
+    # 📆 Abrechnungszeitraum (für alle Einheiten mit monatlichem Zyklus)
+    abrechnungszeitraum = ""
+    if abrechnungszyklus >= 1:
         zeitraum_start = heute.strftime("%B %Y")
         zeitraum_ende_dt = heute + relativedelta(months=abrechnungszyklus - 1)
         zeitraum_ende = zeitraum_ende_dt.strftime("%B %Y")
         abrechnungszeitraum = zeitraum_start if abrechnungszyklus == 1 else f"{zeitraum_start} – {zeitraum_ende}"
-    else:
-        abrechnungszeitraum = None  # Kein Zeitraum bei Stunde oder pauschal
 
-    # von daten.json übergeben
+
+    # Kontextdaten vorbereiten
     context = {
         'name': eintrag['name'],
         'firma': eintrag['firma'],
@@ -338,9 +408,17 @@ for eintrag in daten:
         'leistungen': leistungs_liste,
         'gesamtpreis': gesamtpreis_str,
         'logo_base64': f"data:image/png;base64,{logo_base64}",
-        'abrechnungszyklus': abrechnungszyklus
-
+        'abrechnungszyklus': abrechnungszyklus,
+        'absender': absender,
+        'bank': bank,
+        'finanzen': finanzen,
+        'mwst_hinweis': mwst_hinweis,
+        'steuerbetrag': f"{steuerbetrag:.2f}".replace(".", ","),
+        'mwst_prozent': finanzen.get("mehrwertsteuer_prozent", 0),
+        'brutto_betrag': f"{gesamtpreis_mit_mwst:.2f}".replace(".", ","),
+        'netto_betrag': f"{gesamtpreis:.2f}".replace(".", ",")
     }
+
     # Ergänzung: Stundensatzhinweis unten anzeigen
     if einheit == "stunde":
         context["stundensatz_hinweis"] = f"(Stundensatz: {stundeninfo['stundensatz']:.2f} EUR pro Stunde)"
@@ -351,7 +429,7 @@ for eintrag in daten:
     pdf_html = template_pdf.render(context)
 
     # Konfiguration mit Pfad zur wkhtmltopdf.exe (falls nicht im Systempfad)
-    config = pdfkit.configuration(wkhtmltopdf='bin/wkhtmltopdf.exe')
+    config = pdfkit.configuration(wkhtmltopdf=str(BIN_DIR / "wkhtmltopdf.exe"))
 
     # Optionen zur Qualitäts- und Formatkontrolle
     options = {
@@ -423,8 +501,9 @@ for eintrag in daten:
             archiv_pfad = eintrag.get('archiv_pfad')
             if archiv_pfad:
                 try:
-                    os.makedirs(archiv_pfad, exist_ok=True)
-                    archiv_datei = os.path.join(archiv_pfad, anhang_name)
+                    archiv_pfad_path = Path(archiv_pfad)
+                    archiv_datei = archiv_pfad_path / anhang_name
+                    archiv_pfad_path.mkdir(parents=True, exist_ok=True)
                     with open(archiv_datei, "wb") as f:
                         f.write(pdf_bytes)
                     print(f"🗂️ Archiviert unter: {archiv_datei}")
@@ -452,7 +531,7 @@ for eintrag in daten:
                         k.get("firma", "").strip().lower() == eintrag["firma"].strip().lower() and
                         k.get("name", "").strip().lower() == eintrag["name"].strip().lower()
                     )]
-                    with open('daten.json', 'w', encoding='utf-8') as f:
+                    with open(BASE_DIR / "data" / "daten.json", 'w', encoding='utf-8') as f:
                         json.dump(daten, f, indent=2, ensure_ascii=False)
                     print("🗑️ Kunde wurde aus daten.json entfernt.")
                 else:
@@ -461,3 +540,5 @@ for eintrag in daten:
     except Exception as e:
         print(f"❌ Fehler beim Senden an {eintrag['email']}: {e}")
 
+print("🏁 Alle Rechnungen wurden verarbeitet.")
+print("🔚 Skript beendet...")

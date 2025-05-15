@@ -1,4 +1,4 @@
 @echo off
 echo Starte Rechnungsgenerierung...
-py main.py
+py src/main.py
 pause

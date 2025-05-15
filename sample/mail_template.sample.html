@@ -1,13 +1,13 @@
-<!--
+<!-- 
 Diese Datei ist ein Beispiel für das HTML-E-Mail-Template.
-Sie muss als mail_template.html im Ordner /vorlagen liegen und verwendet Jinja2-Variablen ({{ name }}, {{ rechnungsnummer }} etc.).
-Benenne sie entsprechend um und passe sie bei Bedarf an deinen Stil an.
+Speichere sie als mail_template.html im Ordner /vorlagen.
+Die Platzhalter verwenden Jinja2-Syntax ({{ name }}, {{ rechnungsnummer }} etc.).
 -->
 
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Ihre Rechnung Nr. {{ rechnungsnummer }} – {{ monat_jahr }}</title>
   </head>
   <body style="color: #000000; background-color: #FFFFFF;">
@@ -19,7 +19,13 @@ Benenne sie entsprechend um und passe sie bei Bedarf an deinen Stil an.
 
       <h2 style="color: #333;">📄 Ihre Rechnung Nr. {{ rechnungsnummer }}</h2>
       <p>Sehr geehrte(r) <strong>{{ name }}</strong>,</p>
-      <p>anbei erhalten Sie Ihre Rechnung für die Leistungen im Zeitraum <strong>{{ monat_jahr }}</strong>.</p>
+      {% if abrechnungszyklus > 1 and abrechnungszeitraum %}
+        <p>anbei erhalten Sie Ihre Rechnung für die Leistungen im Zeitraum <strong>{{ abrechnungszeitraum }}</strong>.</p>
+      {% elif abrechnungszeitraum %}
+        <p>anbei erhalten Sie Ihre Rechnung für <strong>{{ abrechnungszeitraum }}</strong>.</p>
+      {% else %}
+        <p>anbei erhalten Sie Ihre Rechnung für <strong>{{ monat_jahr }}</strong>.</p>
+      {% endif %}
 
       <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
         <tbody>
@@ -27,6 +33,14 @@ Benenne sie entsprechend um und passe sie bei Bedarf an deinen Stil an.
             <td style="padding: 8px; background: #f8f8f8; border-bottom: 1px solid #ddd;"><strong>Rechnungsnummer:</strong></td>
             <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ rechnungsnummer }}</td>
           </tr>
+
+          {% if abrechnungszyklus > 1 %}
+          <tr>
+            <td style="padding: 8px; background: #f8f8f8; border-bottom: 1px solid #ddd;"><strong>Abrechnungszeitraum:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ abrechnungszeitraum }}</td>
+          </tr>
+          {% endif %}
+
           <tr>
             <td style="padding: 8px; background: #f8f8f8; border-bottom: 1px solid #ddd;"><strong>Rechnungsdatum:</strong></td>
             <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ rechnungsdatum }}</td>
@@ -67,6 +81,7 @@ Benenne sie entsprechend um und passe sie bei Bedarf an deinen Stil an.
       </table>      
 
       <p>Bitte überweisen Sie den Rechnungsbetrag bis spätestens <strong>{{ faelligkeit }}</strong> auf das in der Rechnung angegebene Konto.</p>
+
       <h3 style="color: #333;">🏦 Bankverbindung</h3>
       <p> <strong>Kontoinhaber:</strong> Max Mustermann<br>
         <strong>Bank:</strong> Sparkasse Musterstadt<br>
@@ -85,7 +100,7 @@ Benenne sie entsprechend um und passe sie bei Bedarf an deinen Stil an.
         <strong>Max Mustermann GmbH – Web Development</strong><br>
         <strong>📍</strong>Musterstraße 5, 51234 Musterstadt<br>
         📧 <a href="mailto:Mustermail@mail.de" style="color: #007BFF; text-decoration: none;">Mustermail@mail.de</a> |
-        📞 <a href="tel:0123 456789" style="color: #007BFF; text-decoration: none;">0123 456789</a> |
+        📞 <a href="tel:0123456789" style="color: #007BFF; text-decoration: none;">0123 456789</a> |
         🌐 <a href="http://www.max-mustermann.de" style="color: #007BFF; text-decoration: none;">www.max-mustermann.de</a>
       </p>
     </div>

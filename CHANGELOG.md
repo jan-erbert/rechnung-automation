@@ -2,6 +2,23 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
+## [1.2.0] - 2025-05-15
+### Added
+- Neue Konfigurationsdatei konfiguration.json für Absenderdaten, Steueroptionen und Bankverbindung.
+- Unterstützung für Kleinunternehmerregelung gemäß §19 UStG und dynamische Mehrwertsteuerberechnung.
+- Unterstützung zusätzlicher Leistungen mit automatischer Multiplikation bei zyklischer Abrechnung.
+- Anzeige einer Zwischensumme (netto) und einer getrennten MwSt.-Zeile vor dem Gesamtbetrag.
+- Dynamische Anzeige des Abrechnungszeitraums in der Leistungsübersicht (auch für Stunden).
+
+### Changed
+- Aufteilung und bessere Strukturierung der Konfigurationsdaten zwischen daten.json und konfiguration.json.
+- Die Darstellung der Mail- und PDF-Leistungsübersicht wurde optisch verbessert (z. B. mit horizontaler Linie vor dem Gesamtbetrag).
+- Automatische Erstellung eines backup-Verzeichnisses bei beschädigter Verlaufsdatei.
+
+### Fixed
+- Korrekte Addition von Zusatzleistungen bei stundenbasierter Abrechnung mit mehrmonatigem Zeitraum.
+- Fehlerhafte Anzeige oder Berechnung bei fehlendem Stundensatz oder ungültigen Werten korrigiert.
+
 ## [1.1.1] - 2025-05-11
 ### Added
 - Neues Update-Tool tools/update_tool.py, das automatisch auf GitHub Releases prüft und bei Bedarf ein ZIP-Update installiert.

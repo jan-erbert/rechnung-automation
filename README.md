@@ -77,6 +77,34 @@ Beispielstruktur:
 ]
 ```
 
+### `konfiguration.json`
+
+Beinhaltet zentrale Daten wie Absenderadresse, Steuersatz, Bankverbindung und steuerliche Optionen.
+
+```jsonc
+{
+  "absender": {
+    "name": "Jan Erbert",
+    "firma": "Web Development",
+    "email": "mail@jan-erbert.de",
+    "strasse": "Sponheimerstraße 4",
+    "ort": "55543 Bad Kreuznach"
+  },
+  "bank": {
+    "kontoinhaber": "Jan Erbert",
+    "iban": "DE67 5605 0180 1200 4871 12",
+    "bic": "MALADE51KRE",
+    "bankname": "Sparkasse Rhein-Nahe"
+  },
+  "finanzen": {
+    "kleinunternehmer": false,
+    "mehrwertsteuer_prozent": 19
+  }
+}
+```
+
+Beispiel: Wenn kleinunternehmer = true, wird keine MwSt berechnet (Hinweis nach §19 UStG erscheint automatisch).
+
 > Weitere Konfiguration siehe `daten.sample.jsonc` im `sample/`-Ordner.
 
 ---
@@ -97,31 +125,34 @@ python mail_versenden.py
 
 ```
 rechnung-automation/
-├── .venv/                     # Virtuelle Umgebung
-├── bin/                      # wkhtmltopdf.exe
+├── .venv/                        # Virtuelle Umgebung (nicht im Git)
+├── bin/
+│   └── wkhtmltopdf.exe          # PDF-Konverter für Windows (optional)
 ├── img/
-│   └── logo.png             # optional
+│   └── logo.png                 # Optionales Logo für PDF und Mail
 ├── sample/
 │   ├── daten.sample.jsonc
 │   ├── environment.sample.env
+│   ├── konfiguration.sample.json
 │   ├── mail_template.sample.html
 │   └── rechnung_template.sample.html
+├── stunden/                     # Stundenlisten pro Monat (z. B. stunden_2025_04.json)
 ├── vorlagen/
-│   ├── mail_template.html
-│   └── rechnung_template.html
-├── stunden/                  # Stundenlisten pro Monat (stunden_2025_04.json etc.)
+│   ├── mail_template.html       # E-Mail-HTML-Vorlage
+│   └── rechnung_template.html   # PDF-HTML-Vorlage
 ├── tools/
-│   └── update_tool.py         #separates Update-Skript
-├── version.py                 #zentrale Versionsvariable
-├── daten.json
-├── environment.env
-├── verlauf-2025.json         # Verlauf automatisch erstellt
-├── main.py                   # Hauptskript
-├── install.ps1               # Einrichtungsskript (Windows)
-├── requirements.txt
-└── .gitignore
+│   └── update_tool.py           # Separates Update-Skript (GitHub Releases)
+├── daten.json                   # Kunden- und Rechnungsdaten
+├── konfiguration.json           # Absender-, Steuer- und Bankdaten
+├── environment.env              # SMTP-Zugangsdaten
+├── verlauf-2025.json            # Automatisch gepflegter Rechnungsverlauf
+├── version.py                   # Zentrale Versionsvariable
+├── main.py                      # Hauptskript zur Rechnungserstellung
+├── install.ps1                  # Einrichtungsskript (nur Windows)
+├── requirements.txt             # Python-Abhängigkeiten
 ├── CHANGELOG.md
 ├── README.md
+└── .gitignore
 ```
 
 ---

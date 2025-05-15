@@ -2,7 +2,10 @@ import json
 import os
 from pathlib import Path
 
-def lade_kundendaten(dateiname="daten.json"):
+BASE_DIR = Path(__file__).resolve().parent.parent  # .../rechnung-automation/
+DATA_DIR = BASE_DIR / "data"
+
+def lade_kundendaten(dateiname=DATA_DIR / "daten.json"):
     if not os.path.exists(dateiname):
         print(f"📄 Datei '{dateiname}' nicht gefunden. Es wird eine neue erstellt.")
         return []
@@ -23,7 +26,7 @@ def lade_kundendaten(dateiname="daten.json"):
                 backup_entscheidung = input("Willst du vorher ein Backup speichern? (y/n): ").strip().lower()
                 if backup_entscheidung == "y":
                     os.makedirs("backup", exist_ok=True)
-                    backup_pfad = "backup/daten_backup.json"
+                    backup_pfad = BASE_DIR / "backup" / "daten_backup.json"
                     try:
                         os.rename(dateiname, backup_pfad)
                         print(f"🛡️ Backup gespeichert unter: {backup_pfad}")
@@ -130,7 +133,7 @@ def neuer_kunde():
 
     return kunde
 
-def daten_speichern(kunde, dateipfad="daten.json"):
+def daten_speichern(kunde, dateipfad=DATA_DIR / "daten.json"):
     pfad = Path(dateipfad)
     if pfad.exists():
         try:
