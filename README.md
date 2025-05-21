@@ -215,6 +215,19 @@ Siehe [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
+## 📚 Dokumentation
+
+Eine vollständige Dokumentation findest du im **[offiziellen GitHub-Wiki](https://github.com/jan-erbert/rechnung-automation/wiki)**.  
+Dort sind alle Bereiche detailliert erklärt:
+
+- Einrichtung & Systemvoraussetzungen
+- Konfigurationsdateien (`daten.json`, `konfiguration.json`, `.env`)
+- PDF- und E-Mail-Vorlagen
+- Archivierung, Update-Tool & Fehlerbehandlung
+- Technischer Aufbau und Erweiterungsmöglichkeiten
+
+---
+
 ## ⚖️ Lizenz
 
 MIT License – frei nutzbar, kommerziell verwendbar, keine Gewährleistung.
