@@ -7,9 +7,7 @@ __pycache__/
 .venv/
 venv/
 
-# Eigene Templates
-vorlagen/mail_template.html
-vorlagen/rechnung_template.html
+# Eigene  Bilder
 img/logo.png
 
 # Editor/IDE specific

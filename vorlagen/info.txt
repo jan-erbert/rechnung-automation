@@ -1,4 +1,0 @@
-Folgendes in diesen Ordner (./vorlagen) ablegen:
-
-- E-Mail-HTML: `vorlagen/mail_template.html`
-- PDF-Vorlage: `vorlagen/rechnung_template.html`

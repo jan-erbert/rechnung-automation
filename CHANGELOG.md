@@ -2,6 +2,25 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
+## [1.2.1] - 2025-05-21
+### Added
+- Plattformübergreifende Startskripte (`start-rechnung.bat`, `start-rechnung.sh`) zur einfachen Ausführung mit venv-Aktivierung.
+- Automatische Erstellung einer Desktop-Verknüpfung unter Windows (install.ps1 / install.bat).
+- Neuer interaktiver Installer (install.ps1/install.sh/install.bat) mit Pflichtfeldvalidierung nach §14 UStG.
+- Vollständig überarbeitete README.md mit OS-spezifischer Einrichtung und aktualisierter Struktur.
+- Erweiterung der install.ps1 um automatische JSON-Erzeugung mit Prüfung aller Pflichtfelder.
+
+### Changed
+- Projektstruktur modernisiert (install/Verzeichnis, sample, tools).
+- `README.md` vollständig neu aufgebaut für GitHub-Kompatibilität.
+- `install.bat` und `install.sh` mit gleichem Funktionsumfang wie `install.ps1` angepasst.
+- Mail-Konfiguration (`MAIL_BCC`) als optionales, aber empfohlenes Feld ausgewiesen.
+
+### Fixed
+- Falscher Dateiname `enviroonment.env` in README korrigiert.
+- Einträge in der Projektstrukturbeschreibung korrigiert (z. B. mehrfach vorhandene `version.py`).
+- Verbesserung der Pfadverweise und UTF-8-Speicherlogik für Setup-Tools.
+
 ## [1.2.0] - 2025-05-15
 ### Added
 - Neue Konfigurationsdatei konfiguration.json für Absenderdaten, Steueroptionen und Bankverbindung.

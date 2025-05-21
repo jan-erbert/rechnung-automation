@@ -1,3 +1,5 @@
+#tools/kunden_anlegen.py
+
 import json
 import os
 from pathlib import Path
@@ -48,8 +50,12 @@ def lade_kundendaten(dateiname=DATA_DIR / "daten.json"):
                 print("Bitte y oder n eingeben.")
 
 def frage(prompt, optional=True):
-    eingabe = input(prompt).strip()
-    return eingabe if eingabe or not optional else None
+    while True:
+        eingabe = input(prompt).strip()
+        if eingabe or optional:
+            return eingabe if eingabe else None
+        else:
+            print("⚠️ Dieses Feld darf nicht leer sein.")
 
 def frage_mehrere_leistungen():
     leistungen = []
@@ -80,7 +86,7 @@ def neuer_kunde():
         "webseite": frage("🔗 Webseite (optional, nur bei hosting relevant): ")
     }
 
-    einmalig_input = input("🔁 Soll diese Rechnung nur einmalig erstellt werden? (y/n): ").strip().lower()
+    einmalig_input = input("🔁 Soll diese Rechnung nur einmalig erstellt werden? Standard: nein (y/n): ").strip().lower()
     einmalig = einmalig_input == "y"
     if einmalig:
         kunde["einmalig"] = True
@@ -153,5 +159,12 @@ def daten_speichern(kunde, dateipfad=DATA_DIR / "daten.json"):
     print(f"\n✅ Kunde gespeichert in {pfad.resolve()}.")
 
 if __name__ == "__main__":
-    neuer = neuer_kunde()
-    daten_speichern(neuer)
+    while True:
+        neuer = neuer_kunde()
+        daten_speichern(neuer)
+
+        nochmal = input("\n🔁 Weitere Kunden anlegen? (y/n): ").strip().lower()
+        if nochmal != "y":
+            print("\n🏁 Vorgang beendet.")
+            break
+

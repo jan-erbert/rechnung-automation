@@ -12,6 +12,8 @@ Ein flexibles Python-Tool zur automatisierten Erstellung und Versendung von PDF-
 - 🔁 Zyklische oder einmalige Abrechnung, je nach Kundeneinstellung
 - 💡 Rückfrage bei fehlenden Daten, z. B. Stunden oder fehlerhaften Dateien
 - 🖼 Anpassbares HTML/CSS-Design (Logo, Farben, Templates)
+- ⚙️ Interaktive Einrichtung über install.ps1/install.sh/install.bat
+- 🖱 Desktop-Verknüpfung für Windows-Nutzer wird automatisch erstellt
 
 ---
 
@@ -23,13 +25,20 @@ Ein flexibles Python-Tool zur automatisierten Erstellung und Versendung von PDF-
 - wkhtmltopdf (liegt im Ordner `bin/` oder muss installiert sein)
 - Internetzugang für den Mailversand (SMTP)
 
-### 2. Einrichtung
+### 2. Einrichtung (abhängig vom Betriebssystem)
 
 ```powershell
+# Windows PowerShell
 ./install.ps1
+
+# Linux/macOS Terminal
+./install.sh
+
+# Windows CMD (Alternativ)
+install.bat
 ```
 
-> Erstellt `.venv`, installiert Abhängigkeiten, kopiert Beispieldateien (`daten.json`, `environment.env`, Vorlagen)
+> Erstellt `.venv`, installiert Abhängigkeiten, fragt zentrale Konfigurationsdaten ab und erstellt Startskripte + Desktop-Verknüpfung.
 
 ---
 
@@ -47,7 +56,7 @@ MAIL_BCC=optional@email.de
 
 ### `daten.json`
 
-Beispielstruktur:
+Beinhaltet die Kunden-, Leistungs- und Abrechnungsdaten. Kann interaktiv über `tools/kunden_anlegen.py` erweitert werden.
 
 ```jsonc
 [
@@ -77,47 +86,15 @@ Beispielstruktur:
 ]
 ```
 
-### `konfiguration.json`
-
-Beinhaltet zentrale Daten wie Absenderadresse, Steuersatz, Bankverbindung und steuerliche Optionen.
-
-```jsonc
-{
-  "absender": {
-    "name": "Jan Erbert",
-    "firma": "Web Development",
-    "email": "mail@jan-erbert.de",
-    "strasse": "Sponheimerstraße 4",
-    "ort": "55543 Bad Kreuznach"
-  },
-  "bank": {
-    "kontoinhaber": "Jan Erbert",
-    "iban": "DE67 5605 0180 1200 4871 12",
-    "bic": "MALADE51KRE",
-    "bankname": "Sparkasse Rhein-Nahe"
-  },
-  "finanzen": {
-    "kleinunternehmer": false,
-    "mehrwertsteuer_prozent": 19
-  }
-}
-```
-
-Beispiel: Wenn kleinunternehmer = true, wird keine MwSt berechnet (Hinweis nach §19 UStG erscheint automatisch).
-
-> Weitere Konfiguration siehe `daten.sample.jsonc` im `sample/`-Ordner.
-
 ---
 
 ## 📤 Rechnung erzeugen & versenden
 
-### PowerShell (empfohlen):
-
-```powershell
-python mail_versenden.py
+```bash
+python main.py
 ```
 
-> Erzeugt die PDF, versendet sie per Mail, archiviert sie und protokolliert den Verlauf.
+> Erzeugt PDF-Rechnungen, versendet sie per Mail, archiviert sie, aktualisiert den Verlauf und bietet Löschoption für einmalige Kunden.
 
 ---
 
@@ -125,34 +102,47 @@ python mail_versenden.py
 
 ```
 rechnung-automation/
-├── .venv/                        # Virtuelle Umgebung (nicht im Git)
+├── .gitignore                     # Ausschlüsse (z. B. .venv/, data/)
+├── .venv/                         # Virtuelle Umgebung (nicht ins Git)
 ├── bin/
-│   └── wkhtmltopdf.exe          # PDF-Konverter für Windows (optional)
+│   ├── wkhtmltopdf.exe            # PDF-Konverter für Windows
+│   └── gtk/                       # Zusatzbibliotheken für wkhtmltopdf
+├── data/
+│   ├── daten.json                 # Kunden- und Rechnungsdaten
+│   ├── environment.env            # SMTP-Zugangsdaten
+│   ├── konfiguration.json         # Absender-, Steuer- und Bankdaten
+│   └── verlauf-20XX.json          # Automatisch gepflegter Rechnungsverlauf
 ├── img/
-│   └── logo.png                 # Optionales Logo für PDF und Mail
+│   └── logo.png                   # Optionales Logo für PDF und Mail
+├── install/
+│   ├── install.ps1                # Einrichtungsskript (PowerShell)
+│   ├── install.sh                 # Einrichtungsskript (Linux/macOS)
+│   ├── install.bat                # Einrichtungsskript (CMD Windows)
+├── licenses/
+│   ├── gpl-2.0.txt
+│   ├── LGPL-3.0.txt
+│   └── wkhtmltopdf_lizenzhinweis.txt
 ├── sample/
 │   ├── daten.sample.jsonc
 │   ├── environment.sample.env
 │   ├── konfiguration.sample.json
 │   ├── mail_template.sample.html
 │   └── rechnung_template.sample.html
-├── stunden/                     # Stundenlisten pro Monat (z. B. stunden_2025_04.json)
-├── vorlagen/
-│   ├── mail_template.html       # E-Mail-HTML-Vorlage
-│   └── rechnung_template.html   # PDF-HTML-Vorlage
+├── src/
+│   └── main.py                    # Hauptskript zur Rechnungserstellung
+├── stunden/                       # Stundenlisten pro Monat
 ├── tools/
-│   └── update_tool.py           # Separates Update-Skript (GitHub Releases)
-├── daten.json                   # Kunden- und Rechnungsdaten
-├── konfiguration.json           # Absender-, Steuer- und Bankdaten
-├── environment.env              # SMTP-Zugangsdaten
-├── verlauf-2025.json            # Automatisch gepflegter Rechnungsverlauf
-├── version.py                   # Zentrale Versionsvariable
-├── main.py                      # Hauptskript zur Rechnungserstellung
-├── install.ps1                  # Einrichtungsskript (nur Windows)
-├── requirements.txt             # Python-Abhängigkeiten
+│   ├── kunden_anlegen.py         # Interaktive Kundenerfassung
+│   ├── update_tool.py            # Tool zum GitHub-Update
+├── vorlagen/
+│   ├── mail_template.html         # HTML-Vorlage für E-Mail
+│   └── rechnung_template.html     # HTML-Vorlage für PDF-Rechnung
+├── rechnung_generieren.ps1        # Schnellstart-Skript (optional)
+├── rechnung_generieren.bat        # Schnellstart-Skript (optional)
+├── version.py                     # Zentrale Versionsnummer
 ├── CHANGELOG.md
-├── README.md
-└── .gitignore
+├── LICENSE.md
+└── README.md
 ```
 
 ---
@@ -177,31 +167,19 @@ Bearbeite die Templates direkt, um Texte, Farben oder Formatierungen zu ändern.
 
 ## 🔄 Update
 
-Um die Software auf die neueste Version zu aktualisieren, kannst du das integrierte **Update-Tool** verwenden. Es prüft automatisch, ob ein neuer [GitHub Release](https://github.com/jan-erbert/rechnung-automation/releases) verfügbar ist, und installiert bei Bedarf die aktualisierten Dateien.
-
-### 📥 Ausführen des Update-Tools
+Verwende `tools/update_tool.py` um die aktuellste Version von GitHub zu laden.
 
 ```bash
 python tools/update_tool.py
 ```
-Das Tool:
 
-- vergleicht die lokale Version mit der neuesten GitHub-Version,
-- lädt das Release-ZIP bei Bedarf herunter,
-- ersetzt nur freigegebene Dateien (z. B. main.py, vorlagen/*.html, requirements.txt),
-- lässt alle persönlichen Daten wie daten.json, stunden/, verlauf*.json unberührt.
-
-⚠️ Voraussetzung: Eine funktionierende Internetverbindung und ein installierter Python-Paketmanager (requests, packaging – bereits in requirements.txt enthalten).
-
-### 💡 Hinweis
-
-Wenn du selbst Änderungen an Systemdateien vorgenommen hast, könnten diese beim Update überschrieben werden. Persönliche Konfigurations- und Abrechnungsdaten bleiben jedoch erhalten.
+> Persönliche Daten bleiben erhalten – nur Systemdateien werden aktualisiert.
 
 ---
 
 ## 📋 Changelog
 
-Siehe [doc/CHANGELOG.md](doc/CHANGELOG.md)
+Siehe [CHANGELOG.md](CHANGELOG.md)
 
 ---
 

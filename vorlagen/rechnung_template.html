@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title>Rechnung</title>
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        font-size: 12pt;
+        margin: 0;
+        padding: 0;
+        color: #000;
+    }
+    html, body {
+    height: 100%;
+    }
+    .page {
+        width: 100%;
+        height: 29.7cm;
+        padding: 0.5cm 0.5cm 0.5cm 0.5cm; /* oben, rechts, unten, links */
+        box-sizing: border-box;
+        min-height: 100%;
+        position: relative;
+        padding-bottom: 4cm; /* Platz für die Fußzeile */
+    }
+    .absender-oben {
+        font-size: 8pt;
+        color: #333;
+        margin-bottom: 0.2cm;
+        text-decoration: underline;
+    }
+    .empfaenger {
+        margin-top: 5.5cm;
+        line-height: 1.4;
+    }
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f2f2f2;
+        padding: 1cm 1.5cm;
+        margin-top: 1cm;
+    }
+    .header .logo-text {
+        font-size: 20pt;
+        font-weight: bold;
+        color: #1d3e81;
+    }
+    .header .logo-sub {
+        font-size: 14pt;
+        color: #000;
+        font-weight: normal;
+    }
+    .header img {
+        height: 40px;
+    }
+    .kontaktblock {
+        text-align: right;
+        font-size: 10pt;
+        line-height: 1.4;
+        margin-top: 0.5cm;
+    }
+    h1 {
+        margin-top: 1.5cm;
+        font-size: 16pt;
+    }
+    .rechnungsinfo {
+        margin-top: 0.5cm;
+        font-size: 11pt;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1cm;
+    }
+    th, td {
+        border: 1px solid #ccc;
+        padding: 8px;
+    }
+    th {
+        background: #e9eff8;
+        text-align: left;
+    }
+    tfoot td {
+        font-weight: bold;
+    }
+    .hinweise {
+        margin-top: 1cm;
+        font-size: 10pt;
+    }
+    .fusszeile {
+        margin-top: 2cm;
+        font-size: 9pt;
+        display: flex;
+        justify-content: space-between;
+    }
+    .fusszeile > div {
+        width: 24%;
+        padding-top: 0.5cm;
+    }
+    .footer-fixed {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    font-size: 9pt;
+    padding-bottom: 0.1cm;
+    }
+    .footer-fixed > div {
+        width: 24%;
+    }
+</style>
+
+</head>
+<body>
+  <div class="page">
+
+    <!-- Blauer Balken mit Logo als Tabelle -->
+    <table style="width: 100%; background: #2f3c50; padding: 0.8cm 1cm; margin-top: 1cm; border: none; border-collapse: collapse; color: #ffffff;">
+      <tr>
+        <td style="padding: 0.5cm 1cm; border: none;">
+          <div style="font-size: 20pt; font-weight: bold;">{{ absender.name }}</div>
+          <div style="font-size: 14pt; color: #dbe2ea;">{{ absender.firma }}</div>
+        </td>
+        <td style="padding: 0.5cm 1cm; text-align: right; border: none;">
+          <img src="{{ logo_base64 }}" alt="Logo" style="height: 40px;">
+        </td>
+      </tr>
+    </table>     
+
+    <table style="width: 100%; margin-top: 1.2cm; margin-bottom: 40px;">
+      <tr>
+        <td style="vertical-align: top; width: 60%; border: none;">
+          <!-- Briefkopf (über dem Sichtfenster) -->
+          <div class="absender-oben">
+            {{ absender.name }} – {{ absender.straße }} – {{ absender.plz }} {{ absender.ort }}
+          </div>
+          <!-- Adressblock + Kontaktdaten -->
+          <div style="font-size: 14px; line-height: 1.6;">
+            <strong>{{ firma }}</strong><br>
+            {{ name }}<br>
+            {{ strasse }}<br>
+            {{ plz }} {{ ort }}<br>
+            {{ email }}
+          </div>
+        </td>
+        <td style="vertical-align: top; width: 40%; text-align: right; font-size: 13px; line-height: 1.6; border: none;">
+          <strong>{{ absender.name }}</strong><br>
+          {{ absender.straße }}<br>
+          {{ absender.plz }} {{ absender.ort }}<br><br>
+          Tel.: {{ absender.telefon }}<br>
+          E-Mail: {{ absender.email }}<br>
+          Internet: {{ absender.website }}<br><br>
+          Rechnungsdatum: {{ rechnungsdatum }}
+        </td>
+      </tr>
+    </table>
+
+    <h1>Rechnung</h1>
+    <div class="rechnungsinfo">
+      <strong>Rechnung Nr.:</strong> {{ rechnungsnummer }}<br>
+      {% if abrechnungszeitraum %}
+      <strong>Abrechnungszeitraum:</strong> {{ abrechnungszeitraum }}<br>
+      {% endif %}
+
+      Bitte bei Zahlungen und Schriftverkehr angeben
+    </div>
+
+    <!-- Rechnungstabelle -->
+    <table style="width: 100%; border-collapse: collapse; margin-top: 1cm; font-size: 11pt;">
+      <thead>
+        <tr style="background-color: #f4f6f8; color: #374151;">
+          <th style="text-align: left; padding: 12px 16px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">Bezeichnung</th>
+          <th style="text-align: right; padding: 12px 16px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">Betrag</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for eintrag in leistungen %}
+        <tr style="background-color: #ffffff; color: #111827;">
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">{{ eintrag.beschreibung }}</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">{{ eintrag.preis }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+        <tfoot>
+        {% if finanzen.kleinunternehmer %}
+          <tr style="background-color: #f9fafb; font-weight: bold; color: #111827;">
+            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb;">Summe brutto</td>
+            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb; text-align: right;">{{ brutto_betrag }} EUR</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td style="padding: 8px 16px; text-align: left;">Zwischensumme (Netto)</td>
+            <td style="padding: 8px 16px; text-align: right;">{{ netto_betrag }} EUR</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 16px; text-align: left;">zzgl. {{ mwst_prozent }}% MwSt</td>
+            <td style="padding: 8px 16px; text-align: right;">{{ steuerbetrag }} EUR</td>
+          </tr>
+          <tr style="background-color: #f9fafb; font-weight: bold; color: #111827;">
+            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb;">Gesamtsumme (Brutto)</td>
+            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb; text-align: right;">{{ brutto_betrag }} EUR</td>
+          </tr>
+        {% endif %}
+      </tfoot>
+    </table>
+    
+    <!-- Hinweise -->
+    {% if stundensatz_hinweis %}
+      <div class="hinweise" style="margin-top: 0.5cm;">
+        {{ stundensatz_hinweis }}
+      </div>
+    {% endif %}
+
+    <div class="hinweise">
+      {{ mwst_hinweis }}<br>
+      Bitte begleichen Sie den Rechnungsbetrag bis spätestens <strong>{{ faelligkeit }}</strong>.
+    </div>
+
+    <!-- Fußzeile -->
+    <div class="footer-border"></div>
+    <div class="footer-fixed">
+      <table style="width: 100%; font-size: 9pt; border-top: 1px solid black; padding-top: 0cm; margin-top: 0;">
+        <tr>
+          <td style="width: 25%; vertical-align: top; border: none;">
+            <strong>{{ absender.firma }}</strong><br>
+            {{ absender.name }}<br>
+            {{ absender.straße }}<br>
+            {{ absender.plz }} {{ absender.ort }}
+          </td>
+          <td style="width: 25%; vertical-align: top; border: none;">
+            <strong>{{ bank.bankname }}</strong><br>
+            KTO Inh.: {{ bank.kontoinhaber }}
+          </td>
+          <td style="width: 25%; vertical-align: top; border: none;">
+            <strong>IBAN:</strong> {{ bank.iban }}<br>
+            <strong>BIC:</strong> {{ bank.bic }}
+          </td>
+          <td style="width: 25%; vertical-align: top; border: none;">
+            <strong>Steuer-Nr.:</strong> {{ finanzen.steuernummer }}<br>
+            Finanzamt: {{ finanzen.finanzamt }}
+          </td>
+        </tr>
+      </table>
+    </div>    
+  </div>
+</body>
+</html>

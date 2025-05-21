@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Ihre Rechnung Nr. {{ rechnungsnummer }} – {{ monat_jahr }}</title>
+  </head>
+  <body style="color: #000000; background-color: #FFFFFF;">
+    <div style="max-width: 600px; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); margin: auto;">
+      <div style="background-color: #f4f4f4; padding: 15px; text-align: left;">
+        <h1 style="font-size: 28px; margin: 0; color: #1e3a70; font-weight: bold;">{{ absender.name }}</h1>
+        <h2 style="font-size: 22px; margin: 0; color: #222; font-weight: normal;">{{ absender.firma }}</h2>
+      </div>
+
+      <h2 style="color: #333;">📄 Ihre Rechnung Nr. {{ rechnungsnummer }}</h2>
+      <p>Sehr geehrte(r) <strong>{{ name }}</strong>,</p>
+      {% if abrechnungszeitraum %}
+        <p>anbei erhalten Sie Ihre Rechnung für die Leistungen im Zeitraum <strong>{{ abrechnungszeitraum }}</strong>.</p>
+      {% else %}
+        <p>anbei erhalten Sie Ihre Rechnung für {{ monat_jahr }}.</p>
+      {% endif %}
+
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <tbody>
+          <tr>
+            <td style="padding: 8px; background: #f8f8f8;"><strong>Rechnungsnummer:</strong></td>
+            <td style="padding: 8px;">{{ rechnungsnummer }}</td>
+          </tr>
+          {% if abrechnungszyklus > 1 %}
+          <tr>
+            <td style="padding: 8px; background: #f8f8f8;"><strong>Abrechnungszeitraum:</strong></td>
+            <td style="padding: 8px;">{{ abrechnungszeitraum }}</td>
+          </tr>
+          {% endif %}
+          <tr>
+            <td style="padding: 8px; background: #f8f8f8;"><strong>Rechnungsdatum:</strong></td>
+            <td style="padding: 8px;">{{ rechnungsdatum }}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; background: #f8f8f8;"><strong>Fälligkeit:</strong></td>
+            <td style="padding: 8px;">{{ faelligkeit }}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; background: #f8f8f8;"><strong>Betrag:</strong></td>
+            <td style="padding: 8px;"><strong>{{ gesamtpreis }} EUR</strong></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top: 30px;">💼 Leistungsübersicht</h3>
+      <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+        <thead>
+          <tr>
+            <th style="text-align: left; background: #f0f0f0; padding: 8px;">Leistung</th>
+            <th style="text-align: right; background: #f0f0f0; padding: 8px;">Preis</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for leistung in leistungen %}
+          <tr>
+            <td style="padding: 8px;">{{ leistung.beschreibung }}</td>
+            <td style="padding: 8px; text-align: right;">{{ leistung.preis }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+        {% if finanzen.kleinunternehmer %}
+          <tr style="background-color: #f8f8f8;">
+            <td style="padding: 10px; font-weight: bold;">Gesamtbetrag</td>
+            <td style="padding: 10px; text-align: right; font-weight: bold;">{{ brutto_betrag }} EUR</td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding: 6px; font-size: 13px; color: #666;">{{ mwst_hinweis }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td style="padding: 8px;">Zwischensumme (netto)</td>
+            <td style="padding: 8px; text-align: right;">{{ netto_betrag }} EUR</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px;">zzgl. {{ mwst_prozent }}% MwSt</td>
+            <td style="padding: 8px; text-align: right;">{{ steuerbetrag }} EUR</td>
+          </tr>
+          <tr style="background-color: #f8f8f8;">
+            <td style="padding: 10px; font-weight: bold;">Gesamtbetrag (brutto)</td>
+            <td style="padding: 10px; text-align: right; font-weight: bold;">{{ brutto_betrag }} EUR</td>
+          </tr>
+        {% endif %}
+      </tfoot>
+      </table>
+
+      <p>Bitte überweisen Sie den Rechnungsbetrag bis spätestens <strong>{{ faelligkeit }}</strong> auf das unten angegebene Konto.</p>
+
+      <h3 style="color: #333;">🏦 Bankverbindung</h3>
+      <p>
+        <strong>Kontoinhaber:</strong> {{ bank.kontoinhaber }}<br>
+        <strong>Bank:</strong> {{ bank.bankname }}<br>
+        <strong>IBAN:</strong> {{ bank.iban }}<br>
+        <strong>BIC:</strong> {{ bank.bic }}
+      </p>
+
+      <p>📎 <strong>Die Rechnung ist als PDF im Anhang beigefügt.</strong></p>
+      <p>Sollten Sie Rückfragen haben oder weitere Informationen benötigen, stehe ich Ihnen jederzeit gerne zur Verfügung.</p>
+      <p>Vielen Dank für Ihr Vertrauen! Ich freue mich auf unsere weitere Zusammenarbeit.</p>
+
+      <p style="margin-top: 20px; font-size: 14px; color: #555;"><strong>Mit freundlichen Grüßen</strong>,<br>
+        <strong>{{ absender.name }}</strong></p>
+
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+      <p style="text-align: center; font-size: 12px; color: #777;">
+        <strong>{{ absender.name }} – {{ absender.firma }}</strong><br>
+        📍 {{ absender.straße }}, {{ absender.plz }} {{ absender.ort }}<br>
+        📧 <a href="mailto:{{ absender.email }}" style="color: #007BFF; text-decoration: none;">{{ absender.email }}</a> |
+        📞 <a href="tel:{{ absender.telefon | replace(' ', '') }}" style="color: #007BFF; text-decoration: none;">{{ absender.telefon }}</a> |
+        🌐 <a href="{{ absender.website }}" style="color: #007BFF; text-decoration: none;">{{ absender.website }}</a>
+      </p>
+    </div>
+  </body>
+</html>

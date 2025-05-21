@@ -1,3 +1,4 @@
+#src/main.py
 import json
 import smtplib
 import os
