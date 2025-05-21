@@ -51,7 +51,6 @@ MAIL_SERVER=smtp.example.com
 MAIL_PORT=587
 MAIL_USER=deine@email.de
 MAIL_PASS=dein_passwort
-MAIL_BCC=optional@email.de
 ```
 
 ### `daten.json`
@@ -84,6 +83,39 @@ Beinhaltet die Kunden-, Leistungs- und Abrechnungsdaten. Kann interaktiv über `
     "archiv_pfad": "C:/Users/DEINNAME/Desktop/test Archiv"
   }
 ]
+```
+### `daten.json`
+
+Beinhaltet die eigenen Daten wie Absender, Bankdaten und Mail. Kann interaktiv über `install/install.sh`, `install/install.ps1` oder `install/install.bat` erstellt werden.
+
+```json
+{
+  "absender": {
+    "name": "Max Mustermann",
+    "firma": "Musterfirma GmbH",
+    "straße": "Musterstraße 1",
+    "plz": "12345",
+    "ort": "Musterstadt",
+    "telefon": "+49 123 456789",
+    "email": "muster.mann@mustermann.de",
+    "website": "www.mustermann.de"
+  },
+  "bank": {
+    "bankname": "Sparkasse XY",
+    "kontoinhaber": "Max Mustermann",
+    "iban": "DE12345678901234567890",
+    "bic": "SPKEXY12XXX"
+  },
+  "finanzen": {
+    "steuernummer": "12/345/67890",
+    "finanzamt": "Finanzamt Musterstadt",
+    "kleinunternehmer": false,
+    "mehrwertsteuer_prozent": 19
+  },
+  "mail": {
+    "bcc": "rechnung@mustermann.de"
+  }
+}
 ```
 
 ---
