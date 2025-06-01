@@ -1,6 +1,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+chcp 65001 >nul
 echo 🔧 Starte Einrichtung der virtuellen Umgebung...
 
 REM 1. Virtuelle Umgebung erstellen
@@ -11,21 +12,16 @@ if not exist .venv (
     echo 🔁 .venv bereits vorhanden.
 )
 
-REM 2. Hinweis zur Aktivierung
-echo.
-echo 💡 Bitte aktiviere die Umgebung mit:
-echo    .venv\Scripts\activate.bat
-echo.
-
-REM 3. requirements.txt installieren
+REM 2. requirements.txt installieren
 if exist requirements.txt (
+    echo.
     echo 📦 Installiere Pakete aus requirements.txt...
     .venv\Scripts\pip.exe install -r requirements.txt
 ) else (
     echo ⚠️  Keine requirements.txt gefunden.
 )
 
-REM 4. Konfiguration erstellen
+REM 3. Konfiguration erstellen
 set "konfigPath=data\konfiguration.json"
 if not exist %konfigPath% (
     echo.
@@ -63,7 +59,6 @@ if not exist %konfigPath% (
         echo 📌 Es wird empfohlen, eine BCC-Adresse zur revisionssicheren Archivierung anzugeben.
     )
 
-    REM data-Ordner anlegen
     if not exist data (
         mkdir data
     )
@@ -107,29 +102,17 @@ if not exist %konfigPath% (
     echo 🗂️  konfiguration.json ist bereits vorhanden – keine Änderungen vorgenommen.
 )
 
-echo.
-echo ✅ Projekt ist bereit! Du kannst jetzt main.py ausführen.
-goto :eof
-
-REM Funktion für Pflichtfelder mit Wiederholung
-:prompt
-setlocal
-:ask
-set /p eingabe=%~1: 
-if "%eingabe%"=="" (
-    echo ⚠️  Dieses Feld ist gesetzlich erforderlich, da Rechnungen gemäß § 14 UStG bestimmte Pflichtangaben enthalten müssen – z. B. vollständiger Name, Adresse, Steuernummer oder Kontoverbindung.
-    goto ask
-)
-REM 5. Start-Skript für Windows erzeugen
+REM 4. Start-Skript erstellen
 if not exist start-rechnung.bat (
     echo @echo off > start-rechnung.bat
-    echo call .venv\Scripts\activate.bat >> start-rechnung.bat
-    echo python main.py >> start-rechnung.bat
+    echo chcp 65001 ^>nul >> start-rechnung.bat
+    echo echo Starte Rechnungsgenerierung... >> start-rechnung.bat
+    echo .venv\Scripts\python.exe src\main.py >> start-rechnung.bat
     echo pause >> start-rechnung.bat
     echo 🚀 start-rechnung.bat wurde erstellt.
 )
 
-REM 6. Desktop-Verknüpfung anlegen (nur bei Windows mit wscript)
+REM 5. Desktop-Verknüpfung anlegen
 set "desktop=%USERPROFILE%\Desktop"
 set "lnk=%desktop%\Rechnung starten.lnk"
 
@@ -138,7 +121,22 @@ powershell -Command ^
    $s.TargetPath = '%cd%\start-rechnung.bat'; ^
    $s.WorkingDirectory = '%cd%'; ^
    $s.Save()"
+
 echo 📎 Desktop-Verknüpfung "Rechnung starten" wurde erstellt.
 
+echo.
+echo ✅ Projekt ist einsatzbereit! Nutze 'start-rechnung.bat' oder die Desktop-Verknüpfung.
+
+endlocal
+goto :eof
+
+:prompt
+setlocal
+:ask
+set /p eingabe=%~1: 
+if "%eingabe%"=="" (
+    echo ⚠️ Dieses Feld ist erforderlich.
+    goto ask
+)
 endlocal & set "%~2=%eingabe%"
 goto :eof

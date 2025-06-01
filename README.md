@@ -57,7 +57,7 @@ MAIL_PASS=dein_passwort
 
 Beinhaltet die Kunden-, Leistungs- und Abrechnungsdaten. Kann interaktiv über `tools/kunden_anlegen.py` erweitert werden.
 
-```jsonc
+```json
 [
   {
     "name": "Herr Mustermann",
@@ -84,7 +84,8 @@ Beinhaltet die Kunden-, Leistungs- und Abrechnungsdaten. Kann interaktiv über `
   }
 ]
 ```
-### `daten.json`
+
+### `konfiguration.json`
 
 Beinhaltet die eigenen Daten wie Absender, Bankdaten und Mail. Kann interaktiv über `install/install.sh`, `install/install.ps1` oder `install/install.bat` erstellt werden.
 
@@ -122,9 +123,18 @@ Beinhaltet die eigenen Daten wie Absender, Bankdaten und Mail. Kann interaktiv �
 
 ## 📤 Rechnung erzeugen & versenden
 
+### Variante A: Manuell im Terminal
+
 ```bash
 python main.py
 ```
+
+### Variante B: Per Doppelklick oder Ausführen aus dem Terminal (empfohlen)
+
+- **Windows:** `start-rechnung.bat` (Desktop-Verknüpfung wird automatisch angelegt)
+- **macOS/Linux:** `start-rechnung.sh` (nach `chmod +x` direkt aufrufbar)
+
+> Die Startskripte aktivieren automatisch die virtuelle Umgebung und starten `main.py`.
 
 > Erzeugt PDF-Rechnungen, versendet sie per Mail, archiviert sie, aktualisiert den Verlauf und bietet Löschoption für einmalige Kunden.
 
@@ -171,6 +181,8 @@ rechnung-automation/
 │   └── rechnung_template.html     # HTML-Vorlage für PDF-Rechnung
 ├── rechnung_generieren.ps1        # Schnellstart-Skript (optional)
 ├── rechnung_generieren.bat        # Schnellstart-Skript (optional)
+├── start-rechnung.bat             # Automatisch erzeugtes Startskript (Windows)
+├── start-rechnung.sh              # Automatisch erzeugtes Startskript (Linux/macOS)
 ├── version.py                     # Zentrale Versionsnummer
 ├── CHANGELOG.md
 ├── LICENSE.md

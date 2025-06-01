@@ -189,39 +189,48 @@ def rechnung_fällig(eintrag, verlauf_liste):
     name = eintrag.get("name", "").strip().lower()
     empfaenger_id = f"{firma}__{name}__{aktueller_schlüssel}"
 
-    for eintrag_verlauf in rechnungsverlauf:
+    for eintrag_verlauf in verlauf_liste:
         if eintrag_verlauf.get("id") == empfaenger_id:
             return False  # Schon abgerechnet
 
     # 3. Einmalige Rechnung?
     if eintrag.get("einmalig") is True:
-        # Wurde schon abgerechnet?
         for eintrag_verlauf in verlauf_liste:
             if eintrag_verlauf.get("firma", "").strip().lower() == firma and \
-            eintrag_verlauf.get("name", "").strip().lower() == name:
+               eintrag_verlauf.get("name", "").strip().lower() == name:
                 return False  # Einmalige Rechnung wurde bereits gestellt
-        return True  # Noch nie gestellt → jetzt abrechnen
+        return True
 
-    # 4. Prüfe, ob das aktuelle Datum auf den Zyklus passt
-    letzte_abrechnung = None
-    for eintrag_verlauf in sorted(verlauf_liste, key=lambda e: (e.get("jahr", 0), e.get("monat", 0))):
-        if eintrag_verlauf.get("firma", "").strip().lower() == firma and \
-        eintrag_verlauf.get("name", "").strip().lower() == name:
-            # Kombiniere Jahr und Monat zu einem "YYYY-MM"-String
-            jahr_v = eintrag_verlauf.get("jahr")
-            monat_v = eintrag_verlauf.get("monat")
+    # 4. Letzte reguläre Abrechnung bestimmen
+    letzter_eintrag = None
+    for ev in reversed(verlauf_liste):
+        if ev.get("firma", "").strip().lower() == firma and \
+        ev.get("name", "").strip().lower() == name:
+            letzter_eintrag = ev
+            jahr_v = ev.get("jahr")
+            monat_v = ev.get("monat")
             if isinstance(jahr_v, int) and isinstance(monat_v, int):
                 letzte_abrechnung = f"{jahr_v}-{monat_v:02d}"
+            break
 
+    # 5. Prüfe Zyklus-Wechsel
+    if letzter_eintrag:
+        vorheriger_zyklus = letzter_eintrag.get("zyklus_monate")
+        if vorheriger_zyklus and int(vorheriger_zyklus) != abrechnungszyklus:
+            print(f"🔁 Zykluswechsel erkannt ({vorheriger_zyklus} → {abrechnungszyklus}) – neue Rechnung wird erzeugt.")
+            return True
+
+    # 6. Prüfe Differenz in Monaten
     if letzte_abrechnung:
         try:
             letzte_dt = datetime.strptime(letzte_abrechnung, "%Y-%m")
             diff_monate = (heute.year - letzte_dt.year) * 12 + heute.month - letzte_dt.month
             return diff_monate >= abrechnungszyklus
         except ValueError:
-            return True  # Fehlerhafte Daten => lieber abrechnen
+            return True  # Vorsichtshalber trotzdem abrechnen
     else:
         return True  # Noch nie abgerechnet
+
 
 # 📩 Jinja2-Umgebung und Template laden
 env = Environment(loader=FileSystemLoader(VORLAGEN_DIR))
@@ -490,6 +499,7 @@ for eintrag in daten:
                 "rechnungsnummer": rechnungsnummer,
                 "rechnungsdatum": rechnungsdatum,
                 "betrag": gesamtpreis_str.replace(",", "."),
+                "zyklus_monate": abrechnungszyklus,
                 "id": f"{eintrag['firma'].lower().strip()}__{eintrag['name'].lower().strip()}__{heute.strftime('%Y-%m')}"
             })
 

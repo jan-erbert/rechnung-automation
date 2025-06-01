@@ -29,5 +29,6 @@ stunden/
 # Temporäre Dateien
 *.tmp
 old/
+wiki/
 rechnung_automation_v*
 __pycache__

@@ -37,13 +37,12 @@ if [ ! -f "$KONFIG_PATH" ]; then
         while [ -z "$eingabe" ]; do
             read -p "$prompt: " eingabe
             if [ -z "$eingabe" ]; then
-                echo "⚠️  Dieses Feld ist gesetzlich erforderlich, da Rechnungen gemäß § 14 UStG bestimmte Pflichtangaben enthalten müssen – z. B. vollständiger Name, Adresse, Steuernummer oder Kontoverbindung."
+                echo "⚠️  Dieses Feld ist gesetzlich erforderlich."
             fi
         done
         echo "$eingabe"
     }
 
-    # Eingaben
     name=$(pflicht_eingabe "👤 Dein Name (z. B. Jan Erbert)")
     firma=$(pflicht_eingabe "🏢 Firmenname (z. B. Web Development)")
     strasse=$(pflicht_eingabe "📍 Straße und Hausnummer")
@@ -64,9 +63,11 @@ if [ ! -f "$KONFIG_PATH" ]; then
     read -p "❓ Kleinunternehmerregelung nach § 19 UStG? (y/n): " ku
     if [ "$ku" == "y" ]; then
         kleinunternehmer=true
+        mwst_part=""
     else
         kleinunternehmer=false
         mwst=$(pflicht_eingabe "💰 Mehrwertsteuersatz in % (z. B. 19)")
+        mwst_part=", \"mehrwertsteuer_prozent\": $mwst"
     fi
 
     echo "⚠️  Hinweis: Für steuerkonforme Rechnungen muss eine Kopie gemäß § 14b UStG aufbewahrt werden."
@@ -75,7 +76,6 @@ if [ ! -f "$KONFIG_PATH" ]; then
         echo "📌 Es wird empfohlen, eine BCC-Adresse zur revisionssicheren Archivierung anzugeben."
     fi
 
-    # data/-Ordner sicherstellen
     mkdir -p data
 
     # JSON schreiben
@@ -100,7 +100,7 @@ if [ ! -f "$KONFIG_PATH" ]; then
   "finanzen": {
     "steuernummer": "$steuernummer",
     "finanzamt": "$finanzamt",
-    "kleinunternehmer": $kleinunternehmer$( [ "$kleinunternehmer" = false ] && echo ", \"mehrwertsteuer_prozent\": $mwst" )
+    "kleinunternehmer": $kleinunternehmer$mwst_part
   },
   "mail": {
     "bcc": "$bcc"
@@ -121,11 +121,10 @@ START_SCRIPT="start-rechnung.sh"
 if [ ! -f "$START_SCRIPT" ]; then
     cat > "$START_SCRIPT" <<EOF
 #!/bin/bash
-source .venv/bin/activate
-python3 main.py
+.venv/bin/python3 src/main.py
 EOF
     chmod +x "$START_SCRIPT"
     echo "🚀 $START_SCRIPT wurde erstellt."
 fi
 
-echo "✅ Projekt ist bereit! Du kannst jetzt 'main.py' ausführen."
+echo "✅ Projekt ist bereit! Du kannst jetzt './start-rechnung.sh' ausführen."
