@@ -2,6 +2,21 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
+## [1.2.3] - 2026-01-02
+
+### Fixed
+
+- Behebung eines kritischen Fehlers beim Jahreswechsel: Wenn noch keine Verlaufsdatei für das neue Jahr existiert (z. B. `verlauf-2026.json`), wird diese nun korrekt angelegt und das Programm läuft stabil weiter.
+- Verhindert einen Absturz (`UnboundLocalError`) bei leerem Rechnungsverlauf zu Jahresbeginn.
+- Mehrmonats-Abrechnungszyklen (z. B. 3-, 6-Monats-Rechnungen) berücksichtigen nun korrekt die letzte Abrechnung aus dem Vorjahr.
+- Die Prüfung „bereits abgerechnet“ erfolgt jetzt jahresübergreifend, um doppelte Rechnungen an Jahresgrenzen zuverlässig zu verhindern.
+- Einmalige Rechnungen werden ebenfalls jahresübergreifend geprüft, sodass eine im Dezember gestellte Einmalrechnung im Januar nicht erneut erzeugt wird.
+
+### Changed
+
+- Der Rechnungsverlauf des Vorjahres wird bei Bedarf read-only in die Fälligkeitslogik einbezogen, ohne das bestehende Jahresdateikonzept zu verändern.
+- Das Schreiben von Verlaufsdaten erfolgt weiterhin ausschließlich in der Verlaufsdatei des aktuellen Jahres.
+
 ## [1.2.2] - 2025-06-01
 
 ### Added

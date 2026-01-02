@@ -75,6 +75,16 @@ finanzen = konfig["finanzen"]
 def lade_verlauf_datei(dateiname, jahr):
     if not os.path.exists(dateiname):
         print(f"ℹ️ Keine Verlaufsdatei vorhanden. Es wird eine neue Datei erstellt.")
+
+        os.makedirs(Path(dateiname).parent, exist_ok=True)
+        try:
+            with open(dateiname, "w", encoding="utf-8") as f:
+                json.dump([], f, indent=2, ensure_ascii=False)
+        except Exception as err:
+            print(f"❌ Konnte neue Verlaufsdatei nicht anlegen: {dateiname}\n{err}")
+            print("🚫 Abbruch zur Sicherheit.")
+            exit(1)
+
         return []
 
     try:
@@ -166,10 +176,14 @@ def berechne_stundenleistung(firma: str, zyklus: int, stundensatz: float):
 jahr = datetime.today().year
 verlauf_dateiname = BASE_DIR / "data" / f"verlauf-{jahr}.json"
 rechnungsverlauf = lade_verlauf_datei(verlauf_dateiname, jahr)
+vorjahr_dateiname = BASE_DIR / "data" / f"verlauf-{jahr - 1}.json"
+rechnungsverlauf_vorjahr = lade_verlauf_datei(vorjahr_dateiname, jahr - 1) if os.path.exists(vorjahr_dateiname) else []
 
 
-def rechnung_fällig(eintrag, verlauf_liste):
+def rechnung_fällig(eintrag, verlauf_liste, verlauf_vorjahr=None):
     """Prüft, ob für diesen Eintrag heute abgerechnet werden soll."""
+    if verlauf_vorjahr is None:
+        verlauf_vorjahr = []
     abrechnungszyklus = int(eintrag.get("abrechnungszyklus", 1))
     heute = datetime.today()
     aktueller_schlüssel = heute.strftime("%Y-%m")
@@ -189,29 +203,42 @@ def rechnung_fällig(eintrag, verlauf_liste):
     name = eintrag.get("name", "").strip().lower()
     empfaenger_id = f"{firma}__{name}__{aktueller_schlüssel}"
 
-    for eintrag_verlauf in verlauf_liste:
-        if eintrag_verlauf.get("id") == empfaenger_id:
-            return False  # Schon abgerechnet
+    for liste in (verlauf_liste, verlauf_vorjahr):
+        for eintrag_verlauf in liste:
+            if eintrag_verlauf.get("id") == empfaenger_id:
+                return False  # Schon abgerechnet
 
     # 3. Einmalige Rechnung?
     if eintrag.get("einmalig") is True:
-        for eintrag_verlauf in verlauf_liste:
-            if eintrag_verlauf.get("firma", "").strip().lower() == firma and \
-               eintrag_verlauf.get("name", "").strip().lower() == name:
-                return False  # Einmalige Rechnung wurde bereits gestellt
-        return True
+        for liste in (verlauf_liste, verlauf_vorjahr):
+            for eintrag_verlauf in liste:
+                if eintrag_verlauf.get("firma", "").strip().lower() == firma and \
+                eintrag_verlauf.get("name", "").strip().lower() == name:
+                    return False
+        return True  # Einmalige Rechnung war noch nie im Verlauf (auch nicht im Vorjahr)
 
     # 4. Letzte reguläre Abrechnung bestimmen
+    letzte_abrechnung = None
     letzter_eintrag = None
-    for ev in reversed(verlauf_liste):
-        if ev.get("firma", "").strip().lower() == firma and \
-        ev.get("name", "").strip().lower() == name:
-            letzter_eintrag = ev
-            jahr_v = ev.get("jahr")
-            monat_v = ev.get("monat")
-            if isinstance(jahr_v, int) and isinstance(monat_v, int):
-                letzte_abrechnung = f"{jahr_v}-{monat_v:02d}"
+
+    # Erst im aktuellen Jahr suchen, dann (falls nötig) im Vorjahr
+    suchlisten = [verlauf_liste]
+    if abrechnungszyklus > 1 and verlauf_vorjahr:
+        suchlisten.append(verlauf_vorjahr)
+
+    for liste in suchlisten:
+        for ev in reversed(liste):
+            if ev.get("firma", "").strip().lower() == firma and \
+            ev.get("name", "").strip().lower() == name:
+                letzter_eintrag = ev
+                jahr_v = ev.get("jahr")
+                monat_v = ev.get("monat")
+                if isinstance(jahr_v, int) and isinstance(monat_v, int):
+                    letzte_abrechnung = f"{jahr_v}-{monat_v:02d}"
+                break
+        if letzter_eintrag:
             break
+
 
     # 5. Prüfe Zyklus-Wechsel
     if letzter_eintrag:
@@ -243,7 +270,7 @@ for eintrag in daten:
     if eintrag.get("aktiv") is False:
         print(f"⏭️  {eintrag['firma']}: Kunde ist deaktiviert – keine Abrechnung.")
         continue
-    if not rechnung_fällig(eintrag, rechnungsverlauf):
+    if not rechnung_fällig(eintrag, rechnungsverlauf, rechnungsverlauf_vorjahr):
         print(f"⏭️  {eintrag['firma']}: Keine Abrechnung fällig.")
         continue
 
