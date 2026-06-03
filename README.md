@@ -12,7 +12,7 @@ Ein flexibles Python-Tool zur automatisierten Erstellung und Versendung von PDF-
 - 🔁 Zyklische oder einmalige Abrechnung, je nach Kundeneinstellung
 - 💡 Rückfrage bei fehlenden Daten, z. B. Stunden oder fehlerhaften Dateien
 - 🖼 Anpassbares HTML/CSS-Design (Logo, Farben, Templates)
-- ⚙️ Interaktive Einrichtung über install.ps1/install.sh/install.bat
+- ⚙️ Interaktive Einrichtung über install/install.ps1, install/install.sh oder install/install.bat
 - 🖱 Desktop-Verknüpfung für Windows-Nutzer wird automatisch erstellt
 
 ---
@@ -23,19 +23,20 @@ Ein flexibles Python-Tool zur automatisierten Erstellung und Versendung von PDF-
 
 - Python 3.10 oder neuer
 - wkhtmltopdf (liegt im Ordner `bin/` oder muss installiert sein)
+- Linux: WeasyPrint wird vorbereitet; je nach Distribution können zusätzlich Systembibliotheken und Fonts für HTML/CSS-Rendering nötig sein.
 - Internetzugang für den Mailversand (SMTP)
 
 ### 2. Einrichtung (abhängig vom Betriebssystem)
 
 ```powershell
 # Windows PowerShell
-./install.ps1
+./install/install.ps1
 
 # Linux/macOS Terminal
-./install.sh
+./install/install.sh
 
 # Windows CMD (Alternativ)
-install.bat
+install\install.bat
 ```
 
 > Erstellt `.venv`, installiert Abhängigkeiten, fragt zentrale Konfigurationsdaten ab und erstellt Startskripte + Desktop-Verknüpfung.
@@ -126,15 +127,17 @@ Beinhaltet die eigenen Daten wie Absender, Bankdaten und Mail. Kann interaktiv �
 ### Variante A: Manuell im Terminal
 
 ```bash
-python main.py
+python src/main.py
 ```
+
+> Achtung: Dieser Befehl startet die produktive Verarbeitung. Dabei können PDFs erzeugt, E-Mails versendet, Verlaufsdaten aktualisiert und Archivdateien geschrieben werden.
 
 ### Variante B: Per Doppelklick oder Ausführen aus dem Terminal (empfohlen)
 
 - **Windows:** `start-rechnung.bat` (Desktop-Verknüpfung wird automatisch angelegt)
 - **macOS/Linux:** `start-rechnung.sh` (nach `chmod +x` direkt aufrufbar)
 
-> Die Startskripte aktivieren automatisch die virtuelle Umgebung und starten `main.py`.
+> Die Startskripte aktivieren automatisch die virtuelle Umgebung und starten `src/main.py`.
 
 > Erzeugt PDF-Rechnungen, versendet sie per Mail, archiviert sie, aktualisiert den Verlauf und bietet Löschoption für einmalige Kunden.
 
@@ -160,6 +163,7 @@ rechnung-automation/
 │   ├── install.ps1                # Einrichtungsskript (PowerShell)
 │   ├── install.sh                 # Einrichtungsskript (Linux/macOS)
 │   ├── install.bat                # Einrichtungsskript (CMD Windows)
+│   └── requirements.txt           # Python-Abhängigkeiten
 ├── licenses/
 │   ├── gpl-2.0.txt
 │   ├── LGPL-3.0.txt

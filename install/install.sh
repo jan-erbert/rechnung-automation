@@ -1,5 +1,11 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REQUIREMENTS_FILE="$SCRIPT_DIR/requirements.txt"
+
+cd "$PROJECT_ROOT" || exit 1
+
 echo "🔧 Starte Einrichtung der virtuellen Umgebung..."
 
 # 1. Virtuelle Umgebung erstellen
@@ -17,11 +23,11 @@ echo "   source .venv/bin/activate"
 echo ""
 
 # 3. Abhängigkeiten installieren
-if [ -f "requirements.txt" ]; then
-    echo "📦 Installiere Pakete aus requirements.txt..."
-    .venv/bin/pip install -r requirements.txt
+if [ -f "$REQUIREMENTS_FILE" ]; then
+    echo "📦 Installiere Pakete aus $REQUIREMENTS_FILE..."
+    .venv/bin/pip install -r "$REQUIREMENTS_FILE"
 else
-    echo "⚠️  Keine requirements.txt gefunden."
+    echo "⚠️  Keine requirements.txt gefunden unter: $REQUIREMENTS_FILE"
 fi
 
 # 4. Konfigurationsdatei erstellen

@@ -2,6 +2,22 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
+## [1.3.0] - 2026-06-03
+
+### Added
+
+- Projektspezifische `AGENTS.md` mit Sicherheitsregeln für Rechnungserzeugung, PDF-Erstellung, Archivierung und Mailversand ergänzt.
+- `weasyprint` als Python-Abhängigkeit für Linux-Vorbereitung ergänzt.
+
+### Changed
+
+- `install/requirements.txt` von UTF-16 nach UTF-8 mit LF-Zeilenenden normalisiert.
+- `install/install.sh` nutzt jetzt zuverlässig die Requirements-Datei aus `install/requirements.txt`.
+- README-Installationspfade an die tatsächliche Projektstruktur angepasst.
+- README-Hinweis ergänzt, dass der manuelle Start produktive Verarbeitung auslösen kann.
+- `.gitignore` schützt nun auch `.env` und `environment.env` im Projektroot.
+- Versionsnummer auf `1.3.0` gesetzt.
+
 ## [1.2.3] - 2026-01-02
 
 ### Fixed
