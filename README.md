@@ -41,9 +41,30 @@ install\install.bat
 
 > Erstellt `.venv`, installiert Abhängigkeiten, fragt zentrale Konfigurationsdaten ab und erstellt Startskripte + Desktop-Verknüpfung.
 
+### Entwickler-Abhängigkeiten
+
+Nur für Entwicklung und statische Prüfungen:
+
+```bash
+source .venv/bin/activate
+python -m pip install -r install/requirements-dev.txt
+```
+
+Empfohlene Prüfungen:
+
+```bash
+python -m black --check .
+python -m flake8 .
+python -m pytest
+```
+
 ---
 
 ## ⚙️ Konfiguration
+
+### `config/settings.yaml`
+
+Enthält nicht-sensitive Projekteinstellungen wie Pfade, Runtime-Optionen und die vorbereitete PDF-Engine-Auswahl. Zugangsdaten und Kundendaten gehören nicht in diese Datei.
 
 ### `environment.env`
 
@@ -152,6 +173,8 @@ rechnung-automation/
 ├── bin/
 │   ├── wkhtmltopdf.exe            # PDF-Konverter für Windows
 │   └── gtk/                       # Zusatzbibliotheken für wkhtmltopdf
+├── config/
+│   └── settings.yaml              # Nicht-sensitive Projekteinstellungen
 ├── data/
 │   ├── daten.json                 # Kunden- und Rechnungsdaten
 │   ├── environment.env            # SMTP-Zugangsdaten
@@ -175,7 +198,19 @@ rechnung-automation/
 │   ├── mail_template.sample.html
 │   └── rechnung_template.sample.html
 ├── src/
-│   └── main.py                    # Hauptskript zur Rechnungserstellung
+│   ├── faelligkeit.py             # Fälligkeitsprüfung für Rechnungen
+│   ├── konfiguration.py           # Konfigurations- und Mail-Env-Laden
+│   ├── kunden.py                  # Kundenliste aktualisieren
+│   ├── leistungen.py              # Leistungs- und Stundenberechnung
+│   ├── mail.py                    # Mail-Aufbau und SMTP-Versand
+│   ├── main.py                    # Hauptskript zur Rechnungserstellung
+│   ├── pdf.py                     # PDF-Erzeugung mit bestehender pdfkit-Logik
+│   ├── paths.py                   # Zentrale Projektpfade aus Einstellungen
+│   ├── rechnungen.py              # Rechnungsdatum, Nummer, Zeitraum und Steuer
+│   ├── settings_loader.py         # YAML-Loader für Projekteinstellungen
+│   ├── templates.py               # Template-Laden und Kontextaufbau
+│   ├── verlauf.py                 # Rechnungsverlauf laden und absichern
+│   └── workflow.py                # Orchestrierung pro Rechnungslauf
 ├── stunden/                       # Stundenlisten pro Monat
 ├── tools/
 │   ├── kunden_anlegen.py         # Interaktive Kundenerfassung

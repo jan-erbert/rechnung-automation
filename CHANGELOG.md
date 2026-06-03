@@ -2,6 +2,27 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
+## [1.3.1] - 2026-06-03
+
+### Added
+
+- `config/settings.yaml` für nicht-sensitive Projektpfade, Runtime-Optionen und vorbereitete PDF-Engine-Auswahl ergänzt.
+- Neue Dev-Requirements in `install/requirements-dev.txt` für Black, Flake8 und Pytest ergänzt.
+- Neue Module für Fälligkeit, Konfiguration, Kundenlogik, Leistungen, Mail, Pfade, PDF, Rechnungsdaten, Templates, Verlauf und Workflow ergänzt.
+
+### Changed
+
+- `src/main.py` auf einen schlanken Einstiegspunkt reduziert.
+- Rechnungsworkflow in kleinere, nachvollziehbare Python-Module ausgelagert.
+- README um Entwickler-Abhängigkeiten, YAML-Konfiguration und aktualisierte Projektstruktur ergänzt.
+- Runtime-Requirements um `PyYAML` für die YAML-Konfiguration erweitert.
+
+### Notes
+
+- Keine produktive PDF-Engine-Umstellung vorgenommen.
+- Windows-Dateien und `wkhtmltopdf.exe` bleiben unverändert.
+- `environment.env` wurde nicht zu `.env` migriert.
+
 ## [1.3.0] - 2026-06-03
 
 ### Added

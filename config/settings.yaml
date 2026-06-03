@@ -1,0 +1,14 @@
+paths:
+  data_dir: data
+  templates_dir: vorlagen
+  image_dir: img
+  hours_dir: stunden
+  backup_dir: backup
+  bin_dir: bin
+
+pdf:
+  engine: auto
+  wkhtmltopdf_path: null
+
+runtime:
+  locale: de_DE.UTF-8
