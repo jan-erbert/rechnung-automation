@@ -17,6 +17,7 @@ Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgef�
 - README-Hinweis ergänzt, dass der manuelle Start produktive Verarbeitung auslösen kann.
 - `.gitignore` schützt nun auch `.env` und `environment.env` im Projektroot.
 - Versionsnummer auf `1.3.0` gesetzt.
+- `src/main.py` in eine `main()`-Funktion gekapselt und bestehende Funktionen mit kurzen Docstrings ergänzt.
 
 ## [1.2.3] - 2026-01-02
 
