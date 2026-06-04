@@ -35,10 +35,25 @@ def lade_konfiguration(pfad: Path) -> dict:
 
 def lade_mail_umgebung(pfad: Path) -> dict:
     """Laedt die Mail-Zugangsdaten aus der lokalen Umgebung."""
+    if not pfad.exists():
+        raise FileNotFoundError(f"Env-Datei '{pfad}' nicht gefunden.")
+
     load_dotenv(pfad)
+
+    pflichtfelder = ["MAIL_SERVER", "MAIL_PORT", "MAIL_USER", "MAIL_PASS"]
+    fehlende_felder = [feld for feld in pflichtfelder if not os.getenv(feld)]
+    if fehlende_felder:
+        felder = ", ".join(fehlende_felder)
+        raise ValueError(f"Pflichtfelder fehlen in der Env-Datei: {felder}")
+
+    try:
+        mail_port = int(os.getenv("MAIL_PORT"))
+    except ValueError as err:
+        raise ValueError("MAIL_PORT muss eine Zahl sein.") from err
+
     return {
         "server": os.getenv("MAIL_SERVER"),
-        "port": int(os.getenv("MAIL_PORT")),
+        "port": mail_port,
         "user": os.getenv("MAIL_USER"),
         "passwort": os.getenv("MAIL_PASS"),
     }

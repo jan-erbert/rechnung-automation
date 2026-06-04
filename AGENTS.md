@@ -10,18 +10,17 @@ Dieses Projekt kann Rechnungen erzeugen, PDFs erstellen, Archive schreiben und E
 
 Standardmaessig duerfen keine produktiven Ablaeufe ausgefuehrt werden. Produktive oder potenziell produktive Befehle duerfen nur nach ausdruecklicher Freigabe des Nutzers gestartet werden.
 
+Wenn der Nutzer ausdruecklich bestaetigt, dass in einer Dev-/Testumgebung gearbeitet wird, duerfen produktionsnahe Testlaeufe nur fuer den konkret freigegebenen Zweck ausgefuehrt werden. Vorher muss klar benannt werden, dass dabei PDFs erzeugt, E-Mails versendet, Verlaeufe aktualisiert oder lokale Dateien veraendert werden koennen.
+
 ## Nicht Ausfuehren
 
 Die folgenden Befehle und Skripte duerfen ohne ausdrueckliche Freigabe nicht ausgefuehrt werden:
 
 - `python src/main.py`
 - `python main.py`
-- `./start-rechnung.sh`
-- `start-rechnung.sh`
-- `rechnung_generieren.bat`
+- `./rechnung_generieren.sh`
 - `rechnung_generieren.ps1`
 - `install/install.sh`
-- `install/install.bat`
 - `install/install.ps1`
 - `tools/kunden_anlegen.py`
 
@@ -78,9 +77,9 @@ Secrets, Tokens, Passwoerter und vollstaendige Inhalte von lokalen Konfiguration
 
 Fuer den aktuellen Umbau gelten diese zusaetzlichen Regeln:
 
-- Fokus zunaechst auf Linux.
-- Windows-Dateien nicht aendern, solange das nicht ausdruecklich beauftragt ist.
-- `wkhtmltopdf.exe` vorerst nicht entfernen.
-- WeasyPrint soll vorbereitet werden.
-- Produktive PDF-Erzeugung darf nicht ausgefuehrt werden.
-- `environment.env` soll spaeter zu `.env` migriert werden.
+- Linux und Windows werden ueber getrennte Start- und Installationsskripte unterstuetzt.
+- Linux nutzt `.sh`-Skripte, Windows nutzt PowerShell-Skripte.
+- wkhtmltopdf wird nicht mehr unterstuetzt.
+- WeasyPrint wird als PDF-Engine verwendet.
+- Produktive oder produktionsnahe PDF-/Mail-Testlaeufe duerfen nur nach ausdruecklichem Go des Nutzers ausgefuehrt werden.
+- `.env` ist die aktuelle lokale Env-Datei; alte `environment.env`-Dateien gelten als Altbestand.

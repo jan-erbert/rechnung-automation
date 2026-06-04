@@ -12,7 +12,7 @@ Ein flexibles Python-Tool zur automatisierten Erstellung und Versendung von PDF-
 - 🔁 Zyklische oder einmalige Abrechnung, je nach Kundeneinstellung
 - 💡 Rückfrage bei fehlenden Daten, z. B. Stunden oder fehlerhaften Dateien
 - 🖼 Anpassbares HTML/CSS-Design (Logo, Farben, Templates)
-- ⚙️ Interaktive Einrichtung über install/install.ps1, install/install.sh oder install/install.bat
+- ⚙️ Interaktive Einrichtung über `install/install.ps1` (Windows) oder `install/install.sh` (Linux)
 - 🖱 Desktop-Verknüpfung für Windows-Nutzer wird automatisch erstellt
 
 ---
@@ -22,8 +22,7 @@ Ein flexibles Python-Tool zur automatisierten Erstellung und Versendung von PDF-
 ### 1. Voraussetzungen
 
 - Python 3.10 oder neuer
-- wkhtmltopdf (liegt im Ordner `bin/` oder muss installiert sein)
-- Linux: WeasyPrint wird vorbereitet; je nach Distribution können zusätzlich Systembibliotheken und Fonts für HTML/CSS-Rendering nötig sein.
+- Linux: WeasyPrint für die PDF-Erzeugung; je nach Distribution können zusätzlich Systembibliotheken und Fonts für HTML/CSS-Rendering nötig sein.
 - Internetzugang für den Mailversand (SMTP)
 
 ### 2. Einrichtung (abhängig vom Betriebssystem)
@@ -32,14 +31,11 @@ Ein flexibles Python-Tool zur automatisierten Erstellung und Versendung von PDF-
 # Windows PowerShell
 ./install/install.ps1
 
-# Linux/macOS Terminal
+# Linux Terminal
 ./install/install.sh
-
-# Windows CMD (Alternativ)
-install\install.bat
 ```
 
-> Erstellt `.venv`, installiert Abhängigkeiten, fragt zentrale Konfigurationsdaten ab und erstellt Startskripte + Desktop-Verknüpfung.
+> Erstellt `.venv`, installiert Abhängigkeiten, fragt zentrale Konfigurationsdaten ab und erstellt unter Windows eine Desktop-Verknüpfung auf das PowerShell-Startskript.
 
 ### Entwickler-Abhängigkeiten
 
@@ -64,9 +60,16 @@ python -m pytest
 
 ### `config/settings.yaml`
 
-Enthält nicht-sensitive Projekteinstellungen wie Pfade, Runtime-Optionen und die vorbereitete PDF-Engine-Auswahl. Zugangsdaten und Kundendaten gehören nicht in diese Datei.
+Enthält nicht-sensitive Projekteinstellungen wie Pfade, Runtime-Optionen und die PDF-Engine-Auswahl. Zugangsdaten und Kundendaten gehören nicht in diese Datei.
 
-### `environment.env`
+```yaml
+pdf:
+  engine: weasyprint
+```
+
+Als PDF-Engine wird `weasyprint` verwendet.
+
+### `.env`
 
 ```env
 MAIL_SERVER=smtp.example.com
@@ -109,7 +112,7 @@ Beinhaltet die Kunden-, Leistungs- und Abrechnungsdaten. Kann interaktiv über `
 
 ### `konfiguration.json`
 
-Beinhaltet die eigenen Daten wie Absender, Bankdaten und Mail. Kann interaktiv über `install/install.sh`, `install/install.ps1` oder `install/install.bat` erstellt werden.
+Beinhaltet die eigenen Daten wie Absender, Bankdaten und Mail. Kann interaktiv über `install/install.sh` oder `install/install.ps1` erstellt werden.
 
 ```json
 {
@@ -130,7 +133,7 @@ Beinhaltet die eigenen Daten wie Absender, Bankdaten und Mail. Kann interaktiv �
     "bic": "SPKEXY12XXX"
   },
   "finanzen": {
-    "steuernummer": "12/345/67890",
+    "wirtschafts_id": "DE123456789-00001",
     "finanzamt": "Finanzamt Musterstadt",
     "kleinunternehmer": false,
     "mehrwertsteuer_prozent": 19
@@ -155,10 +158,10 @@ python src/main.py
 
 ### Variante B: Per Doppelklick oder Ausführen aus dem Terminal (empfohlen)
 
-- **Windows:** `start-rechnung.bat` (Desktop-Verknüpfung wird automatisch angelegt)
-- **macOS/Linux:** `start-rechnung.sh` (nach `chmod +x` direkt aufrufbar)
+- **Windows:** `.\rechnung_generieren.ps1` (Desktop-Verknüpfung wird automatisch angelegt)
+- **Linux:** `./rechnung_generieren.sh`
 
-> Die Startskripte aktivieren automatisch die virtuelle Umgebung und starten `src/main.py`.
+> Die Startskripte nutzen automatisch die Python-Umgebung aus `.venv` und starten `src/main.py`.
 
 > Erzeugt PDF-Rechnungen, versendet sie per Mail, archiviert sie, aktualisiert den Verlauf und bietet Löschoption für einmalige Kunden.
 
@@ -169,31 +172,26 @@ python src/main.py
 ```
 rechnung-automation/
 ├── .gitignore                     # Ausschlüsse (z. B. .venv/, data/)
+├── .env                           # SMTP-Zugangsdaten (nicht im Git)
 ├── .venv/                         # Virtuelle Umgebung (nicht ins Git)
-├── bin/
-│   ├── wkhtmltopdf.exe            # PDF-Konverter für Windows
-│   └── gtk/                       # Zusatzbibliotheken für wkhtmltopdf
 ├── config/
 │   └── settings.yaml              # Nicht-sensitive Projekteinstellungen
 ├── data/
 │   ├── daten.json                 # Kunden- und Rechnungsdaten
-│   ├── environment.env            # SMTP-Zugangsdaten
 │   ├── konfiguration.json         # Absender-, Steuer- und Bankdaten
 │   └── verlauf-20XX.json          # Automatisch gepflegter Rechnungsverlauf
 ├── img/
 │   └── logo.png                   # Optionales Logo für PDF und Mail
 ├── install/
-│   ├── install.ps1                # Einrichtungsskript (PowerShell)
-│   ├── install.sh                 # Einrichtungsskript (Linux/macOS)
-│   ├── install.bat                # Einrichtungsskript (CMD Windows)
+│   ├── install.ps1                # Einrichtungsskript (Windows PowerShell)
+│   ├── install.sh                 # Einrichtungsskript (Linux)
 │   └── requirements.txt           # Python-Abhängigkeiten
 ├── licenses/
 │   ├── gpl-2.0.txt
-│   ├── LGPL-3.0.txt
-│   └── wkhtmltopdf_lizenzhinweis.txt
+│   └── LGPL-3.0.txt
 ├── sample/
 │   ├── daten.sample.jsonc
-│   ├── environment.sample.env
+│   ├── .env.sample
 │   ├── konfiguration.sample.json
 │   ├── mail_template.sample.html
 │   └── rechnung_template.sample.html
@@ -204,7 +202,7 @@ rechnung-automation/
 │   ├── leistungen.py              # Leistungs- und Stundenberechnung
 │   ├── mail.py                    # Mail-Aufbau und SMTP-Versand
 │   ├── main.py                    # Hauptskript zur Rechnungserstellung
-│   ├── pdf.py                     # PDF-Erzeugung mit bestehender pdfkit-Logik
+│   ├── pdf.py                     # PDF-Erzeugung per konfigurierter Engine
 │   ├── paths.py                   # Zentrale Projektpfade aus Einstellungen
 │   ├── rechnungen.py              # Rechnungsdatum, Nummer, Zeitraum und Steuer
 │   ├── settings_loader.py         # YAML-Loader für Projekteinstellungen
@@ -218,10 +216,8 @@ rechnung-automation/
 ├── vorlagen/
 │   ├── mail_template.html         # HTML-Vorlage für E-Mail
 │   └── rechnung_template.html     # HTML-Vorlage für PDF-Rechnung
-├── rechnung_generieren.ps1        # Schnellstart-Skript (optional)
-├── rechnung_generieren.bat        # Schnellstart-Skript (optional)
-├── start-rechnung.bat             # Automatisch erzeugtes Startskript (Windows)
-├── start-rechnung.sh              # Automatisch erzeugtes Startskript (Linux/macOS)
+├── rechnung_generieren.ps1        # Schnellstart-Skript für Windows
+├── rechnung_generieren.sh         # Schnellstart-Skript für Linux
 ├── version.py                     # Zentrale Versionsnummer
 ├── CHANGELOG.md
 ├── LICENSE.md

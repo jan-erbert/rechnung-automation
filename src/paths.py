@@ -13,7 +13,6 @@ class ProjektPfade:
     stunden_dir: Path
     vorlagen_dir: Path
     img_dir: Path
-    bin_dir: Path
     backup_dir: Path
 
 
@@ -41,6 +40,5 @@ def erstelle_pfade(
             base_dir, paths_config.get("templates_dir", "vorlagen")
         ),
         img_dir=_resolve_path(base_dir, paths_config.get("image_dir", "img")),
-        bin_dir=_resolve_path(base_dir, paths_config.get("bin_dir", "bin")),
         backup_dir=_resolve_path(base_dir, paths_config.get("backup_dir", "backup")),
     )

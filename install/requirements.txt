@@ -1,6 +1,5 @@
 Jinja2==3.1.6
 MarkupSafe==3.0.2
-pdfkit==1.0.0
 weasyprint
 python-dotenv==1.1.0
 PyYAML>=6.0.0

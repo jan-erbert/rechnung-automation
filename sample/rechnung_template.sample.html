@@ -1,7 +1,7 @@
 <!--
-Diese Datei ist eine Beispielvorlage für die PDF-Rechnung.
+Diese Datei ist eine Beispielvorlage fuer die PDF-Rechnung.
 Speichere sie als rechnung_template.html im Ordner /vorlagen.
-Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch die Rechnungsdaten ersetzt.
+Die Platzhalter verwenden Jinja2-Syntax und werden automatisch durch Rechnungsdaten ersetzt.
 -->
 
 <!DOCTYPE html>
@@ -10,6 +10,10 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
   <title>Rechnung</title>
   <style>
+    @page {
+        size: A4;
+        margin: 0;
+    }
     body {
         font-family: Arial, sans-serif;
         font-size: 12pt;
@@ -18,53 +22,21 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
         color: #000;
     }
     html, body {
-    height: 100%;
+        height: 100%;
     }
     .page {
         width: 100%;
         height: 29.7cm;
-        padding: 0.5cm 0.5cm 0.5cm 0.5cm;
+        padding: 0.5cm 0.5cm 4cm 0.5cm;
         box-sizing: border-box;
         min-height: 100%;
         position: relative;
-        padding-bottom: 4cm;
     }
     .absender-oben {
         font-size: 8pt;
         color: #333;
         margin-bottom: 0.2cm;
         text-decoration: underline;
-    }
-    .empfaenger {
-        margin-top: 5.5cm;
-        line-height: 1.4;
-    }
-    .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #f2f2f2;
-        padding: 1cm 1.5cm;
-        margin-top: 1cm;
-    }
-    .header .logo-text {
-        font-size: 20pt;
-        font-weight: bold;
-        color: #1d3e81;
-    }
-    .header .logo-sub {
-        font-size: 14pt;
-        color: #000;
-        font-weight: normal;
-    }
-    .header img {
-        height: 40px;
-    }
-    .kontaktblock {
-        text-align: right;
-        font-size: 10pt;
-        line-height: 1.4;
-        margin-top: 0.5cm;
     }
     h1 {
         margin-top: 1.5cm;
@@ -94,47 +66,36 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
         margin-top: 1cm;
         font-size: 10pt;
     }
-    .fusszeile {
-        margin-top: 2cm;
-        font-size: 9pt;
-        display: flex;
-        justify-content: space-between;
-    }
-    .fusszeile > div {
-        width: 24%;
-        padding-top: 0.5cm;
-    }
     .footer-fixed {
         position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
+        bottom: 0.5cm;
+        left: 0.5cm;
+        width: calc(100% - 1cm);
         font-size: 9pt;
-        padding-bottom: 0.1cm;
+        padding-bottom: 0;
     }
-</style>
+  </style>
 </head>
 <body>
   <div class="page">
 
-    <!-- Blauer Balken mit Logo als Tabelle -->
     <table style="width: 100%; background: #2f3c50; padding: 0.8cm 1cm; margin-top: 1cm; border: none; border-collapse: collapse; color: #ffffff;">
       <tr>
         <td style="padding: 0.5cm 1cm; border: none;">
-          <div style="font-size: 20pt; font-weight: bold;">Max Mustermann</div>
-          <div style="font-size: 14pt; color: #dbe2ea;">Mustermann GmbH</div>
+          <div style="font-size: 20pt; font-weight: bold;">{{ absender.name }}</div>
+          <div style="font-size: 14pt; color: #dbe2ea;">{{ absender.firma }}</div>
         </td>
         <td style="padding: 0.5cm 1cm; text-align: right; border: none;">
           <img src="{{ logo_base64 }}" alt="Logo" style="height: 40px;">
         </td>
       </tr>
-    </table>     
+    </table>
 
     <table style="width: 100%; margin-top: 1.2cm; margin-bottom: 40px;">
       <tr>
         <td style="vertical-align: top; width: 60%; border: none;">
           <div class="absender-oben">
-            Max Mustermann – Musterstraße 5 – 51234 Musterstadt
+            {{ absender.name }} – {{ absender.straße }} – {{ absender.plz }} {{ absender.ort }}
           </div>
           <div style="font-size: 14px; line-height: 1.6;">
             <strong>{{ firma }}</strong><br>
@@ -145,13 +106,13 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
           </div>
         </td>
         <td style="vertical-align: top; width: 40%; text-align: right; font-size: 13px; line-height: 1.6; border: none;">
-          <strong>Max Mustermann</strong><br>
-          Musterstraße 5<br>
-          51234 Musterstadt<br><br>
-          Tel.: 0123 456789<br>
-          E-Mail: Mustermail@mail.de<br>
-          Internet: www.max-mustermann.de<br><br>
-          Rechnungsdatum: {{ rechnungsdatum }}<br>
+          <strong>{{ absender.name }}</strong><br>
+          {{ absender.straße }}<br>
+          {{ absender.plz }} {{ absender.ort }}<br><br>
+          Tel.: {{ absender.telefon }}<br>
+          E-Mail: {{ absender.email }}<br>
+          Internet: {{ absender.website }}<br><br>
+          Rechnungsdatum: {{ rechnungsdatum }}
         </td>
       </tr>
     </table>
@@ -181,44 +142,59 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ ... }}) und werden automatisch durch
         {% endfor %}
       </tbody>
       <tfoot>
-        <tr style="background-color: #f9fafb; font-weight: bold; color: #111827;">
-          <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb;">Summe brutto</td>
-          <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb; text-align: right;">{{ gesamtpreis }} EUR</td>
-        </tr>
+        {% if finanzen.kleinunternehmer %}
+          <tr style="background-color: #f9fafb; font-weight: bold; color: #111827;">
+            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb;">Summe brutto</td>
+            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb; text-align: right;">{{ brutto_betrag }} EUR</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td style="padding: 8px 16px; text-align: left;">Zwischensumme (Netto)</td>
+            <td style="padding: 8px 16px; text-align: right;">{{ netto_betrag }} EUR</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 16px; text-align: left;">zzgl. {{ mwst_prozent }}% MwSt</td>
+            <td style="padding: 8px 16px; text-align: right;">{{ steuerbetrag }} EUR</td>
+          </tr>
+          <tr style="background-color: #f9fafb; font-weight: bold; color: #111827;">
+            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb;">Gesamtsumme (Brutto)</td>
+            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb; text-align: right;">{{ brutto_betrag }} EUR</td>
+          </tr>
+        {% endif %}
       </tfoot>
     </table>
-    
+
     {% if stundensatz_hinweis %}
-    <div class="hinweise" style="margin-top: 0.5cm;">
-      {{ stundensatz_hinweis }}
-    </div>
+      <div class="hinweise" style="margin-top: 0.5cm;">
+        {{ stundensatz_hinweis }}
+      </div>
     {% endif %}
 
     <div class="hinweise">
-      Es wird gemäß §19 Abs. 1 Umsatzsteuergesetz keine Umsatzsteuer erhoben.<br>
+      {{ mwst_hinweis }}<br>
       Bitte begleichen Sie den Rechnungsbetrag bis spätestens <strong>{{ faelligkeit }}</strong>.
     </div>
 
     <div class="footer-fixed">
       <table style="width: 100%; font-size: 9pt; border-top: 1px solid black; padding-top: 0cm; margin-top: 0;">
         <tr>
-          <td style="width: 25%; vertical-align: top;">
-            <strong>Kleinunternehmen</strong><br>
-            Inh. Max Mustermann<br>
-            Musterstraße 5<br>
-            51234 Musterstadt
+          <td style="width: 25%; vertical-align: top; border: none;">
+            <strong>{{ absender.firma }}</strong><br>
+            {{ absender.name }}<br>
+            {{ absender.straße }}<br>
+            {{ absender.plz }} {{ absender.ort }}
           </td>
-          <td style="width: 25%; vertical-align: top;">
-            <strong>Sparkasse Musterstadt</strong><br>
-            KTO Inh.: Max Mustermann
+          <td style="width: 25%; vertical-align: top; border: none;">
+            <strong>{{ bank.bankname }}</strong><br>
+            KTO Inh.: {{ bank.kontoinhaber }}
           </td>
-          <td style="width: 25%; vertical-align: top;">
-            <strong>IBAN:</strong> DEXX XXXX XXXX XXXX XXXX XX<br>
-            <strong>BIC:</strong> DRESDEFFXXX
+          <td style="width: 25%; vertical-align: top; border: none;">
+            <strong>IBAN:</strong> {{ bank.iban }}<br>
+            <strong>BIC:</strong> {{ bank.bic }}
           </td>
-          <td style="width: 25%; vertical-align: top;">
-            <strong>Steuer-Nr.:</strong> 00/000/00000<br>
-            Finanzamt: Musterstadt
+          <td style="width: 25%; vertical-align: top; border: none;">
+            <strong>W-IdNr.:</strong> {{ finanzen.wirtschafts_id | default(finanzen.steuernummer, true) }}<br>
+            Finanzamt: {{ finanzen.finanzamt }}
           </td>
         </tr>
       </table>

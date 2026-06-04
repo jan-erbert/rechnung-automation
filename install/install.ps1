@@ -1,118 +1,159 @@
-﻿# install.ps1 – Einrichtungsskript für das Rechnungssystem
-Write-Host "🔧 Starte Einrichtung der virtuellen Umgebung..."
+# install.ps1 - Einrichtungsskript fuer Windows
 
-# 1. Virtuelle Umgebung erstellen
-if (-Not (Test-Path ".venv")) {
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ProjectRoot = (Resolve-Path (Join-Path $ScriptDir "..")).Path
+$RequirementsFile = Join-Path $ScriptDir "requirements.txt"
+$VenvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
+
+Set-Location $ProjectRoot
+
+function Read-Required {
+    param([string]$Prompt)
+
+    do {
+        $Value = Read-Host $Prompt
+        if ([string]::IsNullOrWhiteSpace($Value)) {
+            Write-Host "Dieses Feld ist erforderlich."
+        }
+    } until (-not [string]::IsNullOrWhiteSpace($Value))
+
+    return $Value.Trim()
+}
+
+function Read-RequiredInt {
+    param([string]$Prompt)
+
+    do {
+        $RawValue = Read-Required $Prompt
+        $ParsedValue = 0
+        $IsValid = [int]::TryParse($RawValue, [ref]$ParsedValue)
+        if (-not $IsValid) {
+            Write-Host "Bitte eine ganze Zahl eingeben."
+        }
+    } until ($IsValid)
+
+    return $ParsedValue
+}
+
+function Read-YesNo {
+    param([string]$Prompt)
+
+    do {
+        $Value = (Read-Host $Prompt).Trim().ToLowerInvariant()
+    } until ($Value -in @("j", "ja", "y", "yes", "n", "nein", "no"))
+
+    return $Value -in @("j", "ja", "y", "yes")
+}
+
+Write-Host "Starte Einrichtung der virtuellen Umgebung..."
+
+if (-not (Test-Path ".venv")) {
     python -m venv .venv
-    Write-Host "✅ Virtuelle Umgebung wurde erstellt."
+    Write-Host "Virtuelle Umgebung wurde erstellt."
 } else {
-    Write-Host "🔁 .venv bereits vorhanden."
+    Write-Host ".venv ist bereits vorhanden."
 }
 
-# 2. Pakete installieren
-if (Test-Path "requirements.txt") {
-    Write-Host "`n📦 Installiere Pakete aus requirements.txt..."
-    .\.venv\Scripts\pip.exe install -r requirements.txt
+if (-not (Test-Path $RequirementsFile)) {
+    throw "Requirements-Datei nicht gefunden: $RequirementsFile"
+}
+
+Write-Host "Installiere Pakete aus install/requirements.txt..."
+& $VenvPython -m pip install -r $RequirementsFile
+
+$EnvPath = Join-Path $ProjectRoot ".env"
+if (-not (Test-Path $EnvPath)) {
+    Write-Host "Lokale Mail-Konfiguration wird erstellt (.env)..."
+
+    $MailServer = Read-Required "SMTP-Server"
+    $MailPort = Read-RequiredInt "SMTP-Port"
+    $MailUser = Read-Required "SMTP-Benutzer"
+    $MailPass = Read-Required "SMTP-Passwort"
+
+    @(
+        "MAIL_SERVER=$MailServer",
+        "MAIL_PORT=$MailPort",
+        "MAIL_USER=$MailUser",
+        "MAIL_PASS=$MailPass"
+    ) | Set-Content -Path $EnvPath -Encoding UTF8
+
+    Write-Host ".env wurde erstellt."
 } else {
-    Write-Host "⚠️ Keine requirements.txt gefunden."
+    Write-Host ".env ist bereits vorhanden - keine Aenderung vorgenommen."
 }
 
-# 3. Konfiguration erstellen
-$konfigPath = "data\konfiguration.json"
-if (-Not (Test-Path $konfigPath)) {
-    Write-Host "`n🛠️  Konfigurationsdatei wird erstellt ($konfigPath)...`n"
+$ConfigPath = Join-Path $ProjectRoot "data\konfiguration.json"
+if (-not (Test-Path $ConfigPath)) {
+    Write-Host "Konfigurationsdatei wird erstellt (data/konfiguration.json)..."
 
-    function PflichtEingabe($prompt) {
-        do {
-            $wert = Read-Host $prompt
-            if (-not $wert) {
-               Write-Host "⚠️  Dieses Feld ist gesetzlich erforderlich."
-            }
-        } until ($wert)
-        return $wert
+    $Website = Read-Host "Webseite (optional)"
+
+    $Absender = [ordered]@{
+        name = Read-Required "Dein Name"
+        firma = Read-Required "Firmenname"
+        "straße" = Read-Required "Strasse und Hausnummer"
+        plz = Read-Required "PLZ"
+        ort = Read-Required "Ort"
+        telefon = Read-Required "Telefonnummer"
+        email = Read-Required "E-Mail-Adresse"
+        website = $Website.Trim()
     }
 
-    $website = Read-Host "🔗 Webseite (optional)"
-
-    $absender = @{
-        name     = PflichtEingabe "👤 Dein Name (z. B. Jan Erbert)"
-        firma    = PflichtEingabe "🏢 Firmenname (z. B. Web Development)"
-        straße   = PflichtEingabe "📍 Straße und Hausnummer"
-        plz      = PflichtEingabe "📮 PLZ"
-        ort      = PflichtEingabe "🌆 Ort"
-        telefon  = PflichtEingabe "📞 Telefonnummer"
-        email    = PflichtEingabe "📧 E-Mail-Adresse"
-        website  = $website
+    $Bank = [ordered]@{
+        bankname = Read-Required "Bankname"
+        kontoinhaber = Read-Required "Kontoinhaber"
+        iban = Read-Required "IBAN"
+        bic = Read-Required "BIC"
     }
 
-    $bank = @{
-        bankname     = PflichtEingabe "🏦 Bankname"
-        kontoinhaber = PflichtEingabe "👤 Kontoinhaber"
-        iban         = PflichtEingabe "💳 IBAN"
-        bic          = PflichtEingabe "🏷️  BIC"
+    $Kleinunternehmer = Read-YesNo "Kleinunternehmerregelung nach Paragraph 19 UStG? (j/n)"
+    $Finanzen = [ordered]@{
+        wirtschafts_id = Read-Required "Wirtschafts-Identifikationsnummer (W-IdNr.)"
+        finanzamt = Read-Required "Finanzamt"
+        kleinunternehmer = $Kleinunternehmer
     }
 
-    $steuernummer     = PflichtEingabe "🧾 Steuernummer"
-    $finanzamt        = PflichtEingabe "🏛️  Finanzamt"
-    $kuInput          = Read-Host "❓ Kleinunternehmerregelung nach § 19 UStG? (y/n)"
-    $kleinunternehmer = $kuInput -eq "y"
-
-    $finanzen = @{
-        steuernummer     = $steuernummer
-        finanzamt        = $finanzamt
-        kleinunternehmer = $kleinunternehmer
+    if (-not $Kleinunternehmer) {
+        $Finanzen["mehrwertsteuer_prozent"] = Read-RequiredInt "Mehrwertsteuersatz in Prozent"
     }
 
-    if (-not $kleinunternehmer) {
-        $mwst = PflichtEingabe "💰 Mehrwertsteuersatz in % (z. B. 19)"
-        $finanzen["mehrwertsteuer_prozent"] = [int]$mwst
+    Write-Host "Hinweis: Fuer steuerkonforme Rechnungen muss eine Kopie gemaess Paragraph 14b UStG aufbewahrt werden."
+    $Bcc = Read-Host "BCC-Empfaenger (optional, empfohlen zur Archivierung)"
+
+    $Config = [ordered]@{
+        absender = $Absender
+        bank = $Bank
+        finanzen = $Finanzen
+        mail = [ordered]@{
+            bcc = $Bcc.Trim()
+        }
     }
 
-    Write-Host "⚠️  Hinweis: Für steuerkonforme Rechnungen muss eine Kopie gemäß § 14b UStG aufbewahrt werden."
-    $bcc = Read-Host "📧 BCC-Empfänger (optional, empfohlen zur Archivierung)"
-    if (-not $bcc) {
-        Write-Host "📌 Es wird empfohlen, eine BCC-Adresse zur revisionssicheren Archivierung anzugeben.`n"
-    }
-
-    $mail = @{ bcc = $bcc }
-
-    $config = @{
-        absender = $absender
-        bank     = $bank
-        finanzen = $finanzen
-        mail     = $mail
-    }
-
-    New-Item -Path "data" -ItemType Directory -Force | Out-Null
-    $config | ConvertTo-Json -Depth 4 | Out-File $konfigPath -Encoding UTF8
-    Write-Host "`n✅ konfiguration.json wurde gespeichert unter: $konfigPath"
+    New-Item -Path (Join-Path $ProjectRoot "data") -ItemType Directory -Force | Out-Null
+    $Config | ConvertTo-Json -Depth 5 | Set-Content -Path $ConfigPath -Encoding UTF8
+    Write-Host "konfiguration.json wurde gespeichert."
 } else {
-    Write-Host "🗂️  konfiguration.json ist bereits vorhanden – keine Änderungen vorgenommen."
+    Write-Host "konfiguration.json ist bereits vorhanden - keine Aenderung vorgenommen."
 }
 
-# 4. Startskript erzeugen
-$startScriptPath = "start-rechnung.bat"
-if (-not (Test-Path $startScriptPath)) {
-    @"
-@echo off
-chcp 65001 >nul
-echo Starte Rechnungsgenerierung...
-.venv\Scripts\python.exe src\main.py
-pause
-"@ | Set-Content $startScriptPath -Encoding UTF8
-    Write-Host "🚀 start-rechnung.bat wurde erstellt."
+$RunScript = Join-Path $ProjectRoot "rechnung_generieren.ps1"
+if (Test-Path $RunScript) {
+    $Desktop = [Environment]::GetFolderPath("Desktop")
+    if (-not [string]::IsNullOrWhiteSpace($Desktop)) {
+        $LinkPath = Join-Path $Desktop "Rechnung starten.lnk"
+        $PowerShellExe = (Get-Command powershell.exe).Source
+        $Shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut($LinkPath)
+        $Shortcut.TargetPath = $PowerShellExe
+        $Shortcut.Arguments = "-ExecutionPolicy Bypass -File `"$RunScript`""
+        $Shortcut.WorkingDirectory = $ProjectRoot
+        $Shortcut.WindowStyle = 1
+        $Shortcut.Save()
+        Write-Host "Desktop-Verknuepfung 'Rechnung starten' wurde erstellt."
+    }
 }
 
-# 5. Desktop-Verknüpfung
-$desktop = [Environment]::GetFolderPath("Desktop")
-$linkPath = Join-Path $desktop "Rechnung starten.lnk"
-$target = (Resolve-Path ".\start-rechnung.bat").Path
-$wsh = New-Object -ComObject WScript.Shell
-$shortcut = $wsh.CreateShortcut($linkPath)
-$shortcut.TargetPath = $target
-$shortcut.WorkingDirectory = (Resolve-Path ".").Path
-$shortcut.WindowStyle = 1
-$shortcut.Save()
-Write-Host "📎 Desktop-Verknüpfung 'Rechnung starten' wurde erstellt."
-
-Write-Host "`n✅ Projekt ist bereit! Du kannst jetzt 'start-rechnung.bat' ausführen."
+Write-Host "Projekt ist bereit. Starte Rechnungen unter Windows mit .\rechnung_generieren.ps1."

@@ -28,7 +28,7 @@ def main():
         daten = json.load(f)
 
     # 📧 E-Mail Konfiguration
-    mail_config = lade_mail_umgebung(pfade.data_dir / "environment.env")
+    mail_config = lade_mail_umgebung(pfade.base_dir / ".env")
 
     # 📥 Konfiguration laden
     konfig = lade_konfiguration(pfade.data_dir / "konfiguration.json")
@@ -52,6 +52,7 @@ def main():
         pfade=pfade,
         konfig=konfig,
         mail_config=mail_config,
+        pdf_config=settings.get("pdf", {}),
         templates=templates,
         rechnungsverlauf=rechnungsverlauf,
         rechnungsverlauf_vorjahr=rechnungsverlauf_vorjahr,

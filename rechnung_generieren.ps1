@@ -1,16 +1,27 @@
-chcp 65001
+# rechnung_generieren.ps1 - Startskript fuer Windows
+
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+$ProjectRoot = $PSScriptRoot
+$Python = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
+$MainScript = Join-Path $ProjectRoot "src\main.py"
+
 Write-Host "Starte Rechnungsgenerierung..."
 
-# Virtuelle Umgebung aktivieren
-$venvPath = "$PSScriptRoot\.venv\Scripts\Activate.ps1"
-if (Test-Path $venvPath) {
-    & $venvPath
-    python "$PSScriptRoot\src\main.py"
-} else {
-    Write-Host "⚠️ Virtuelle Umgebung nicht gefunden unter: $venvPath"
-    Pause
+if (-not (Test-Path $Python)) {
+    Write-Host "Virtuelle Umgebung nicht gefunden: $Python"
+    Read-Host "Enter druecken zum Beenden"
     exit 1
 }
 
-Pause
-# Hinweis: Stelle sicher, dass die virtuelle Umgebung und die Python-Skripte korrekt eingerichtet sind.
+& $Python $MainScript
+$ExitCode = $LASTEXITCODE
+
+if ($ExitCode -ne 0) {
+    Write-Host "Rechnungsgenerierung wurde mit Fehlercode $ExitCode beendet."
+}
+
+Read-Host "Enter druecken zum Beenden"
+exit $ExitCode

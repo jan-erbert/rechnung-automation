@@ -2,6 +2,38 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
+## [1.3.2] - 2026-06-04
+
+### Added
+
+- Linux-Schnellstartskript `rechnung_generieren.sh` ergänzt.
+- `sample/.env.sample` als neue Vorlage für lokale SMTP-Zugangsdaten ergänzt.
+
+### Changed
+
+- PDF-Erzeugung vollständig auf WeasyPrint umgestellt.
+- wkhtmltopdf-Unterstützung entfernt, da die GitHub-Organisation `wkhtmltopdf` am 10. Juli 2024 archiviert wurde und das Projekt nicht mehr maintained ist.
+- Inhalt von `bin/` entfernt; `wkhtmltopdf.exe` wird nicht mehr mitgeführt.
+- `pdfkit` aus den Runtime-Abhängigkeiten entfernt.
+- `config/settings.yaml` auf WeasyPrint-only bereinigt.
+- Lokale Mail-Konfiguration von `data/environment.env` auf `.env` migriert.
+- Linux-Installer erzeugt jetzt `.env`, prüft SMTP-Portwerte und schreibt die Datei mit restriktiven Rechten.
+- Windows-Installer auf PowerShell-only nachgezogen und an `.env`, WeasyPrint-Requirements und `finanzen.wirtschafts_id` angepasst.
+- Windows-Start auf `rechnung_generieren.ps1` vereinheitlicht; das Skript nutzt direkt `.venv\Scripts\python.exe`.
+- PDF-Template für WeasyPrint optimiert und alte wkhtmltopdf-/Footer-Reste entfernt.
+- Sample-Rechnungsvorlage an die produktive Vorlage angeglichen.
+- Rechnungsfuß von `Steuer-Nr.` auf `W-IdNr.` umgestellt; bestehende alte Konfigurationen werden im Template vorübergehend als Fallback unterstützt.
+- Linux-Installer und Beispielkonfiguration verwenden jetzt `finanzen.wirtschafts_id`.
+- README beschreibt Windows über PowerShell und Linux über Shell-Skripte.
+
+### Removed
+
+- Windows-CMD-/BAT-Pfade entfernt; `install/install.bat` und `rechnung_generieren.bat` werden nicht mehr mitgeführt.
+
+### Notes
+
+- Bestehende lokale `data/konfiguration.json` wurde strukturell auf `finanzen.wirtschafts_id` migriert, ohne sensible Werte auszugeben.
+
 ## [1.3.1] - 2026-06-03
 
 ### Added

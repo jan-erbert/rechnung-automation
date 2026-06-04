@@ -23,6 +23,7 @@ def verarbeite_rechnungen(
     pfade,
     konfig: dict,
     mail_config: dict,
+    pdf_config: dict,
     templates,
     rechnungsverlauf: list,
     rechnungsverlauf_vorjahr: list,
@@ -52,6 +53,7 @@ def verarbeite_rechnungen(
             finanzen=finanzen,
             mail_bcc=mail_bcc,
             mail_config=mail_config,
+            pdf_config=pdf_config,
             templates=templates,
             rechnungsverlauf=rechnungsverlauf,
             verlauf_dateiname=verlauf_dateiname,
@@ -70,6 +72,7 @@ def _verarbeite_kundeneintrag(
     finanzen: dict,
     mail_bcc: str | None,
     mail_config: dict,
+    pdf_config: dict,
     templates,
     rechnungsverlauf: list,
     verlauf_dateiname,
@@ -132,7 +135,7 @@ def _verarbeite_kundeneintrag(
 
     mail_html = templates.mail.render(context)
     pdf_html = templates.rechnung.render(context)
-    pdf_bytes = erzeuge_pdf_bytes(pdf_html, pfade.bin_dir)
+    pdf_bytes = erzeuge_pdf_bytes(pdf_html, pdf_config)
 
     firma_slug = eintrag["firma"].lower().replace(" ", "_")
     anhang_name = f"Rechnung_{firma_slug}_{auto_rechnungsnummer}.pdf"
