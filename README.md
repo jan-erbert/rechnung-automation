@@ -2,6 +2,8 @@
 
 Ein flexibles Python-Tool zur automatisierten Erstellung und Versendung von PDF-Rechnungen per E-Mail – ideal für Freelancer und Kleinunternehmer.
 
+**Aktuelle stabile Version:** `1.3.3`
+
 ## ✅ Funktionen
 
 - 📄 Erstellung von PDF-Rechnungen aus HTML-Vorlagen
@@ -306,6 +308,7 @@ Dort sind alle Bereiche detailliert erklärt:
 
 - Einrichtung & Systemvoraussetzungen
 - Konfigurationsdateien (`daten.json`, `konfiguration.json`, `.env`)
+- Betrieb, Cronjobs und Logging
 - PDF- und E-Mail-Vorlagen
 - Archivierung, Updates & Fehlerbehandlung
 - Technischer Aufbau und Erweiterungsmöglichkeiten
