@@ -2,6 +2,29 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
+## [1.3.3] - 2026-06-04
+
+### Added
+
+- Zentrales Logging mit optionalen Lauf-Logdateien unter `logs/` ergänzt.
+- Nicht-interaktives Cron-/Server-Startskript `rechnung_cron.sh` ergänzt.
+- Setup-Check `tools/check_setup.py` für ungefährliche Konfigurationsprüfungen ergänzt.
+- Erste ungefährliche Pytest-Tests für PDF-Konfiguration und Rechnungslogik ergänzt.
+
+### Changed
+
+- `src/main.py` unterstützt jetzt `--non-interactive` für automatisierte Läufe.
+- Workflow-, PDF-, Template- und Stundenlogik nutzen Logging für Laufmeldungen.
+- Stundenbasierte Abrechnung nimmt im nicht-interaktiven Modus bei fehlenden Stunden 0 Stunden an, statt eine Eingabe anzufordern.
+- `tools/kunden_anlegen.py` strukturell modernisiert und mit kurzen Docstrings versehen.
+- README um Logging, Setup-Check, Cron-/Serverbetrieb und Git-basiertes Update ergänzt.
+- Versionsnummer auf `1.3.3` gesetzt.
+
+### Removed
+
+- Veraltetes Self-Update-Tool `tools/update_tool.py` entfernt.
+- Lokales Release-ZIP-Skript `tools/build_release_zip.py` entfernt.
+
 ## [1.3.2] - 2026-06-04
 
 ### Added

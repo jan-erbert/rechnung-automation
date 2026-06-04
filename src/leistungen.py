@@ -1,9 +1,12 @@
 import json
+import logging
 import os
 from datetime import datetime
 from pathlib import Path
 
 from dateutil.relativedelta import relativedelta
+
+logger = logging.getLogger(__name__)
 
 
 def berechne_stundenleistung(
@@ -11,6 +14,7 @@ def berechne_stundenleistung(
     zyklus: int,
     stundensatz: float,
     stunden_dir: Path,
+    interactive: bool = True,
 ):
     """Berechnet stundenbasierte Leistungen fuer den Abrechnungszeitraum."""
     heute = datetime.today()
@@ -39,12 +43,18 @@ def berechne_stundenleistung(
                             eintrag_gefunden = True
                             break
             except Exception as e:
-                print(f"⚠️ Fehler beim Lesen der Datei {dateiname}: {e}")
+                logger.warning("Fehler beim Lesen der Datei %s: %s", dateiname, e)
 
         if not eintrag_gefunden:
-            print(
-                f"❓ Keine Stunden für '{firma}' im Monat {monat_dt.strftime('%B %Y')} gefunden."
+            logger.warning(
+                "Keine Stunden fuer '%s' im Monat %s gefunden.",
+                firma,
+                monat_dt.strftime("%B %Y"),
             )
+            if not interactive:
+                logger.info("Nicht-interaktiver Lauf: 0 Stunden angenommen.")
+                continue
+
             eingabe = input(
                 "Bitte Stundenanzahl manuell eingeben (Enter für 0): "
             ).strip()
@@ -54,7 +64,7 @@ def berechne_stundenleistung(
                 if stunden > 0:
                     monate.append(monat_dt.strftime("%B %Y"))
             except ValueError:
-                print("⚠️ Ungültige Eingabe – 0 Stunden angenommen.")
+                logger.warning("Ungueltige Eingabe - 0 Stunden angenommen.")
 
     betrag = stundensatz * stunden_total
     zeitraum = ", ".join(reversed(monate))
@@ -71,6 +81,7 @@ def baue_leistungspositionen(
     eintrag: dict,
     abrechnungszyklus: int,
     stunden_dir: Path,
+    interactive: bool = True,
 ) -> dict:
     """Baut Leistungspositionen und Nettosumme fuer einen Kundeneintrag."""
     hauptleistung = eintrag.get("hauptleistung", {})
@@ -92,6 +103,7 @@ def baue_leistungspositionen(
             abrechnungszyklus,
             betrag,
             stunden_dir,
+            interactive=interactive,
         )
 
         if stundeninfo["stunden"] == 0:

@@ -1,8 +1,11 @@
 import base64
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -28,8 +31,8 @@ def lade_logo_base64(img_dir: Path) -> str:
         with open(img_dir / "logo.png", "rb") as img_file:
             logo_base64 = base64.b64encode(img_file.read()).decode("utf-8")
     except FileNotFoundError:
-        print(
-            "⚠️ Logo-Datei nicht gefunden. Logo wird in der Rechnung nicht angezeigt."
+        logger.warning(
+            "Logo-Datei nicht gefunden. Logo wird in der Rechnung nicht angezeigt."
         )
         logo_base64 = ""
 

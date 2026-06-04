@@ -19,13 +19,13 @@ img/logo.png
 
 # Log-Dateien
 *.log
+logs/
 
 # Sensible Daten
 data/
 .env
 environment.env
 verlauf*.json
-tools/build_release_zip.py
 stunden/
 
 # Temporäre Dateien

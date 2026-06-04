@@ -10,3 +10,8 @@ pdf:
 
 runtime:
   locale: de_DE.UTF-8
+
+logging:
+  enabled: true
+  directory: logs
+  level: INFO

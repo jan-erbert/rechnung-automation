@@ -1,170 +1,211 @@
-#tools/kunden_anlegen.py
-
 import json
-import os
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent  # .../rechnung-automation/
+BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
+DEFAULT_DATEN_PATH = DATA_DIR / "daten.json"
 
-def lade_kundendaten(dateiname=DATA_DIR / "daten.json"):
-    if not os.path.exists(dateiname):
-        print(f"📄 Datei '{dateiname}' nicht gefunden. Es wird eine neue erstellt.")
+
+def lade_kundendaten(dateiname: Path = DEFAULT_DATEN_PATH) -> list:
+    """Laedt die bestehende Kundenliste oder erstellt eine neue Liste."""
+    if not dateiname.exists():
+        print(f"Datei '{dateiname}' nicht gefunden. Es wird eine neue erstellt.")
         return []
 
     try:
-        with open(dateiname, 'r', encoding='utf-8') as f:
-            daten = json.load(f)
-            if not isinstance(daten, list):
-                raise ValueError("daten.json ist kein Array.")
-            return daten
-    except (json.JSONDecodeError, ValueError) as e:
-        print(f"\n❌ Fehler beim Laden von '{dateiname}': {e}")
-        print("‼️ Die Datei scheint ungültig zu sein.")
+        with dateiname.open("r", encoding="utf-8") as daten_file:
+            daten = json.load(daten_file)
+    except json.JSONDecodeError as err:
+        return _behandle_ungueltige_kundendatei(dateiname, err)
 
-        while True:
-            entscheidung = input("Möchtest du die fehlerhafte Datei überschreiben? (y/n): ").strip().lower()
-            if entscheidung == "y":
-                backup_entscheidung = input("Willst du vorher ein Backup speichern? (y/n): ").strip().lower()
-                if backup_entscheidung == "y":
-                    os.makedirs("backup", exist_ok=True)
-                    backup_pfad = BASE_DIR / "backup" / "daten_backup.json"
-                    try:
-                        os.rename(dateiname, backup_pfad)
-                        print(f"🛡️ Backup gespeichert unter: {backup_pfad}")
-                    except Exception as err:
-                        print(f"⚠️ Backup fehlgeschlagen: {err}")
-                        print("🚫 Abbruch zur Sicherheit.")
-                        exit(1)
-                else:
-                    print("⚠️ Kein Backup erstellt.")
+    if not isinstance(daten, list):
+        return _behandle_ungueltige_kundendatei(
+            dateiname,
+            ValueError("daten.json ist kein Array."),
+        )
 
-                print("🆕 Neue leere Datei wird erstellt.")
-                with open(dateiname, 'w', encoding='utf-8') as f:
-                    json.dump([], f, indent=2, ensure_ascii=False)
-                return []
-            elif entscheidung == "n":
-                print("🚫 Vorgang abgebrochen.")
-                exit(1)
-            else:
-                print("Bitte y oder n eingeben.")
+    return daten
 
-def frage(prompt, optional=True):
+
+def _behandle_ungueltige_kundendatei(dateiname: Path, fehler: Exception) -> list:
+    """Fragt nach dem Umgang mit einer ungueltigen Kundendatei."""
+    print(f"\nFehler beim Laden von '{dateiname}': {fehler}")
+    print("Die Datei scheint ungueltig zu sein.")
+
+    while True:
+        entscheidung = (
+            input("Moechtest du die fehlerhafte Datei ueberschreiben? (y/n): ")
+            .strip()
+            .lower()
+        )
+        if entscheidung == "y":
+            _sichere_kundendatei_falls_gewuenscht(dateiname)
+            _schreibe_kundendaten(dateiname, [])
+            print("Neue leere Datei wurde erstellt.")
+            return []
+        if entscheidung == "n":
+            raise SystemExit("Vorgang abgebrochen.")
+        print("Bitte y oder n eingeben.")
+
+
+def _sichere_kundendatei_falls_gewuenscht(dateiname: Path) -> None:
+    """Erstellt optional ein Backup der ungueltigen Kundendatei."""
+    entscheidung = input("Willst du vorher ein Backup speichern? (y/n): ").strip()
+    if entscheidung.lower() != "y":
+        print("Kein Backup erstellt.")
+        return
+
+    backup_dir = BASE_DIR / "backup"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    backup_pfad = backup_dir / "daten_backup.json"
+    try:
+        dateiname.replace(backup_pfad)
+        print(f"Backup gespeichert unter: {backup_pfad}")
+    except OSError as err:
+        print(f"Backup fehlgeschlagen: {err}")
+        raise SystemExit("Abbruch zur Sicherheit.") from err
+
+
+def frage(prompt: str, optional: bool = True) -> str | None:
+    """Fragt einen Textwert ab und validiert Pflichtfelder."""
     while True:
         eingabe = input(prompt).strip()
-        if eingabe or optional:
-            return eingabe if eingabe else None
-        else:
-            print("⚠️ Dieses Feld darf nicht leer sein.")
+        if eingabe:
+            return eingabe
+        if optional:
+            return None
+        print("Dieses Feld darf nicht leer sein.")
 
-def frage_mehrere_leistungen():
+
+def frage_mehrere_leistungen() -> list | None:
+    """Fragt optionale Zusatzleistungen fuer einen Kunden ab."""
     leistungen = []
     while True:
-        beschreibung = frage("📌 Zusätzliche Leistungen – Beschreibung (oder leer zum Abbrechen): ", optional=True)
+        beschreibung = frage(
+            "Zusaetzliche Leistung - Beschreibung (leer zum Beenden): "
+        )
         if not beschreibung:
             break
-        preis = frage("💶 Preis (z. B. 9,99 oder Inklusive): ")
-        leistungen.append({
-            "beschreibung": beschreibung,
-            "preis": preis
-        })
-        nochmal = input("➕ Weitere Leistung hinzufügen? (j/n): ").strip().lower()
+
+        preis = frage("Preis (z. B. 9,99 oder Inklusive): ", optional=False)
+        leistungen.append({"beschreibung": beschreibung, "preis": preis})
+
+        nochmal = input("Weitere Leistung hinzufuegen? (j/n): ").strip().lower()
         if nochmal != "j":
             break
-    return leistungen if leistungen else None
 
-def neuer_kunde():
-    print("\n🧾 Neuen Kunden anlegen:\n")
+    return leistungen or None
+
+
+def neuer_kunde() -> dict:
+    """Fragt interaktiv einen neuen Kundeneintrag ab."""
+    print("\nNeuen Kunden anlegen:\n")
 
     kunde = {
-        "name": frage("👤 Name oder Ansprechpartner (z. B. Herr Müller): ", optional=False),
-        "firma": frage("🏢 Firma: ", optional=False),
-        "email": frage("📧 E-Mail: ", optional=False),
-        "strasse": frage("📍 Straße und Hausnummer: ", optional=False),
-        "plz": frage("📮 PLZ: ", optional=False),
-        "ort": frage("🌆 Ort: ", optional=False),
-        "webseite": frage("🔗 Webseite (optional, nur bei hosting relevant): ")
+        "name": frage("Name oder Ansprechpartner: ", optional=False),
+        "firma": frage("Firma: ", optional=False),
+        "email": frage("E-Mail: ", optional=False),
+        "strasse": frage("Strasse und Hausnummer: ", optional=False),
+        "plz": frage("PLZ: ", optional=False),
+        "ort": frage("Ort: ", optional=False),
+        "webseite": frage("Webseite (optional, nur bei Hosting relevant): "),
     }
 
-    einmalig_input = input("🔁 Soll diese Rechnung nur einmalig erstellt werden? Standard: nein (y/n): ").strip().lower()
-    einmalig = einmalig_input == "y"
+    einmalig = (
+        input(
+            "Soll diese Rechnung nur einmalig erstellt werden? Standard: nein (y/n): "
+        )
+        .strip()
+        .lower()
+        == "y"
+    )
     if einmalig:
         kunde["einmalig"] = True
 
-    # 🔧 Hauptleistung
-    print("\n💼 Hauptleistung eintragen:")
-    beschreibung = frage("📝 Beschreibung der Hauptleistung (z. B. Hosting): ", optional=False)
-    betrag = frage("💶 Betrag (z. B. 49,99): ", optional=False)
-    if einmalig:
-        einheit = "pauschal"
-    else:
-        einheit = frage("📏 Einheit der Abrechnung (Monat, Stunde, pauschal – Standard: Monat): ", optional=True)
-        if not einheit:
-            einheit = "Monat"
-
-    kunde["hauptleistung"] = {
-        "beschreibung": beschreibung,
-        "einheit": einheit.strip().lower(),
-        "betrag": betrag
-    }
-
-    if not einmalig:
-        zyklus = frage("📆 Abrechnungszyklus in Monaten (z. B. 1 oder 6, Standard: 1): ")
-        if zyklus:
-            kunde["abrechnungszyklus"] = int(zyklus)
-
-    # Optionalfelder
-    optional_felder = {
-        "rechnungsnummer": "📄 Rechnungsnummer-Präfix (optional): ",
-        "rechnungsdatum": "📅 Rechnungsdatum (z. B. 01.05.2025, optional): ",
-        "faelligkeit": "⏳ Fälligkeit in Tagen (z. B. 14, optional): ",
-        "archiv_pfad": "📂 Archiv-Pfad für PDF (z. B. C:/Pfad/zum/Ordner): "
-    }
-
-    if not einmalig:
-        optional_felder["letzte_rechnung"] = "📅 Letzte zu erstellende Rechnung (YYYY-MM, optional): "
-
-    for key, prompt in optional_felder.items():
-        wert = frage(prompt)
-        if wert:
-            kunde[key] = wert
+    kunde["hauptleistung"] = _frage_hauptleistung(einmalig)
+    _frage_optionale_felder(kunde, einmalig)
 
     leistungen = frage_mehrere_leistungen()
     if leistungen:
         kunde["weitere_leistungen"] = leistungen
 
-    aktiv_input = input("✅ Soll dieser Kunde ab jetzt aktiv sein? (y/n): ").strip().lower()
-    if aktiv_input == "n":
+    aktiv_input = input("Soll dieser Kunde ab jetzt aktiv sein? (y/n): ")
+    if aktiv_input.strip().lower() == "n":
         kunde["aktiv"] = False
 
     return kunde
 
-def daten_speichern(kunde, dateipfad=DATA_DIR / "daten.json"):
-    pfad = Path(dateipfad)
-    if pfad.exists():
-        try:
-            daten = lade_kundendaten(dateipfad)
-            if not isinstance(daten, list):
-                raise ValueError
-        except Exception:
-            print("⚠️ Die bestehende daten.json ist ungültig oder kein Array. Erstelle neue Datei.")
-            daten = []
+
+def _frage_hauptleistung(einmalig: bool) -> dict:
+    """Fragt die Hauptleistung fuer einen Kundeneintrag ab."""
+    print("\nHauptleistung eintragen:")
+    beschreibung = frage("Beschreibung der Hauptleistung: ", optional=False)
+    betrag = frage("Betrag (z. B. 49,99): ", optional=False)
+
+    if einmalig:
+        einheit = "pauschal"
     else:
-        daten = []
+        einheit = frage(
+            "Einheit der Abrechnung (Monat, Stunde, pauschal - Standard: Monat): "
+        )
+        einheit = einheit or "Monat"
 
+    return {
+        "beschreibung": beschreibung,
+        "einheit": einheit.strip().lower(),
+        "betrag": betrag,
+    }
+
+
+def _frage_optionale_felder(kunde: dict, einmalig: bool) -> None:
+    """Ergaenzt optionale Kundenfelder."""
+    if not einmalig:
+        zyklus = frage("Abrechnungszyklus in Monaten (Standard: 1): ")
+        if zyklus:
+            kunde["abrechnungszyklus"] = int(zyklus)
+
+    optionale_felder = {
+        "rechnungsnummer": "Rechnungsnummer-Praefix (optional): ",
+        "rechnungsdatum": "Rechnungsdatum (z. B. 01.05.2026, optional): ",
+        "faelligkeit": "Faelligkeit in Tagen (z. B. 14, optional): ",
+        "archiv_pfad": "Archiv-Pfad fuer PDF: ",
+    }
+
+    if not einmalig:
+        optionale_felder["letzte_rechnung"] = (
+            "Letzte zu erstellende Rechnung (YYYY-MM, optional): "
+        )
+
+    for key, prompt in optionale_felder.items():
+        wert = frage(prompt)
+        if wert:
+            kunde[key] = wert
+
+
+def daten_speichern(kunde: dict, dateipfad: Path = DEFAULT_DATEN_PATH) -> None:
+    """Speichert einen neuen Kundeneintrag in daten.json."""
+    daten = lade_kundendaten(dateipfad) if dateipfad.exists() else []
     daten.append(kunde)
+    _schreibe_kundendaten(dateipfad, daten)
+    print(f"\nKunde gespeichert in {dateipfad.resolve()}.")
 
-    with pfad.open("w", encoding="utf-8") as f:
-        json.dump(daten, f, indent=2, ensure_ascii=False)
-    print(f"\n✅ Kunde gespeichert in {pfad.resolve()}.")
 
-if __name__ == "__main__":
+def _schreibe_kundendaten(dateipfad: Path, daten: list) -> None:
+    """Schreibt Kundendaten formatiert als JSON."""
+    dateipfad.parent.mkdir(parents=True, exist_ok=True)
+    with dateipfad.open("w", encoding="utf-8") as daten_file:
+        json.dump(daten, daten_file, indent=2, ensure_ascii=False)
+
+
+def main() -> None:
+    """Startet die interaktive Kundenerfassung."""
     while True:
-        neuer = neuer_kunde()
-        daten_speichern(neuer)
-
-        nochmal = input("\n🔁 Weitere Kunden anlegen? (y/n): ").strip().lower()
+        daten_speichern(neuer_kunde())
+        nochmal = input("\nWeitere Kunden anlegen? (y/n): ").strip().lower()
         if nochmal != "y":
-            print("\n🏁 Vorgang beendet.")
+            print("\nVorgang beendet.")
             break
 
+
+if __name__ == "__main__":
+    main()

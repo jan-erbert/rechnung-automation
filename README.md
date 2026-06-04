@@ -7,11 +7,13 @@ Ein flexibles Python-Tool zur automatisierten Erstellung und Versendung von PDF-
 - 📄 Erstellung von PDF-Rechnungen aus HTML-Vorlagen
 - 📧 Versand der Rechnungen per E-Mail mit BCC-Unterstützung
 - 📁 Automatische Archivierung der PDFs an frei definierbare Pfade
+- 🧾 Logdateien pro Rechnungslauf, optional abschaltbar
 - 🧠 Automatische Generierung von Rechnungsnummer, Abrechnungszeitraum, Fälligkeitsdatum
 - 🕒 Unterstützung stundenbasierter Abrechnung (mit Monatsdateien)
 - 🔁 Zyklische oder einmalige Abrechnung, je nach Kundeneinstellung
 - 💡 Rückfrage bei fehlenden Daten, z. B. Stunden oder fehlerhaften Dateien
 - 🖼 Anpassbares HTML/CSS-Design (Logo, Farben, Templates)
+- 🩺 Setup-Check ohne Rechnungserzeugung
 - ⚙️ Interaktive Einrichtung über `install/install.ps1` (Windows) oder `install/install.sh` (Linux)
 - 🖱 Desktop-Verknüpfung für Windows-Nutzer wird automatisch erstellt
 
@@ -68,6 +70,17 @@ pdf:
 ```
 
 Als PDF-Engine wird `weasyprint` verwendet.
+
+### Logging
+
+```yaml
+logging:
+  enabled: true
+  directory: logs
+  level: INFO
+```
+
+Wenn `logging.enabled` aktiv ist, schreibt jeder Rechnungslauf eine Logdatei mit Zeitstempel in `logs/`. Der Ordner wird nicht versioniert. Mit `enabled: false` wird kein Logfile geschrieben.
 
 ### `.env`
 
@@ -148,6 +161,14 @@ Beinhaltet die eigenen Daten wie Absender, Bankdaten und Mail. Kann interaktiv �
 
 ## 📤 Rechnung erzeugen & versenden
 
+### Setup prüfen
+
+```bash
+python tools/check_setup.py
+```
+
+Der Check liest nur die lokale Konfiguration, prüft Pflichtfelder und gibt keine `.env`-Werte oder Kundendaten aus.
+
 ### Variante A: Manuell im Terminal
 
 ```bash
@@ -164,6 +185,20 @@ python src/main.py
 > Die Startskripte nutzen automatisch die Python-Umgebung aus `.venv` und starten `src/main.py`.
 
 > Erzeugt PDF-Rechnungen, versendet sie per Mail, archiviert sie, aktualisiert den Verlauf und bietet Löschoption für einmalige Kunden.
+
+### Variante C: Cronjob oder Serverbetrieb
+
+```bash
+./rechnung_cron.sh
+```
+
+Dieses Skript läuft ohne Rückfragen und ist für automatisierte Starts gedacht. Beispiel für einen monatlichen Cronjob am ersten Tag um 08:00 Uhr:
+
+```cron
+0 8 1 * * cd /pfad/rechnung-automation && ./rechnung_cron.sh
+```
+
+Der Python-Prozess schreibt bei aktivem Logging selbst in `logs/`. Eine zusätzliche Shell-Umleitung ist deshalb normalerweise nicht nötig.
 
 ---
 
@@ -182,10 +217,12 @@ rechnung-automation/
 │   └── verlauf-20XX.json          # Automatisch gepflegter Rechnungsverlauf
 ├── img/
 │   └── logo.png                   # Optionales Logo für PDF und Mail
+├── logs/                          # Lokale Logdateien (nicht ins Git)
 ├── install/
 │   ├── install.ps1                # Einrichtungsskript (Windows PowerShell)
 │   ├── install.sh                 # Einrichtungsskript (Linux)
-│   └── requirements.txt           # Python-Abhängigkeiten
+│   ├── requirements.txt           # Python-Abhängigkeiten
+│   └── version.py                 # Zentrale Versionsnummer
 ├── licenses/
 │   ├── gpl-2.0.txt
 │   └── LGPL-3.0.txt
@@ -200,6 +237,7 @@ rechnung-automation/
 │   ├── konfiguration.py           # Konfigurations- und Mail-Env-Laden
 │   ├── kunden.py                  # Kundenliste aktualisieren
 │   ├── leistungen.py              # Leistungs- und Stundenberechnung
+│   ├── logging_setup.py           # Zentrale Logging-Konfiguration
 │   ├── mail.py                    # Mail-Aufbau und SMTP-Versand
 │   ├── main.py                    # Hauptskript zur Rechnungserstellung
 │   ├── pdf.py                     # PDF-Erzeugung per konfigurierter Engine
@@ -211,14 +249,15 @@ rechnung-automation/
 │   └── workflow.py                # Orchestrierung pro Rechnungslauf
 ├── stunden/                       # Stundenlisten pro Monat
 ├── tools/
-│   ├── kunden_anlegen.py         # Interaktive Kundenerfassung
-│   ├── update_tool.py            # Tool zum GitHub-Update
+│   ├── check_setup.py             # Ungefährlicher Setup-Check
+│   └── kunden_anlegen.py          # Interaktive Kundenerfassung
 ├── vorlagen/
 │   ├── mail_template.html         # HTML-Vorlage für E-Mail
 │   └── rechnung_template.html     # HTML-Vorlage für PDF-Rechnung
 ├── rechnung_generieren.ps1        # Schnellstart-Skript für Windows
 ├── rechnung_generieren.sh         # Schnellstart-Skript für Linux
-├── version.py                     # Zentrale Versionsnummer
+├── rechnung_cron.sh               # Nicht-interaktiver Start für Cron/Server
+├── tests/                         # Ungefährliche Tests für reine Logik
 ├── CHANGELOG.md
 ├── LICENSE.md
 └── README.md
@@ -246,13 +285,11 @@ Bearbeite die Templates direkt, um Texte, Farben oder Formatierungen zu ändern.
 
 ## 🔄 Update
 
-Verwende `tools/update_tool.py` um die aktuellste Version von GitHub zu laden.
-
 ```bash
-python tools/update_tool.py
+git pull
 ```
 
-> Persönliche Daten bleiben erhalten – nur Systemdateien werden aktualisiert.
+Vor einem Update sollten lokale Änderungen committed oder gesichert sein. Persönliche Daten in `.env` und `data/` werden nicht versioniert.
 
 ---
 
@@ -270,7 +307,7 @@ Dort sind alle Bereiche detailliert erklärt:
 - Einrichtung & Systemvoraussetzungen
 - Konfigurationsdateien (`daten.json`, `konfiguration.json`, `.env`)
 - PDF- und E-Mail-Vorlagen
-- Archivierung, Update-Tool & Fehlerbehandlung
+- Archivierung, Updates & Fehlerbehandlung
 - Technischer Aufbau und Erweiterungsmöglichkeiten
 
 ---

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from faelligkeit import rechnung_fällig
@@ -17,6 +18,8 @@ from rechnungen import (
 from templates import baue_template_context, lade_logo_base64
 from verlauf import baue_verlaufseintrag, speichere_verlauf
 
+logger = logging.getLogger(__name__)
+
 
 def verarbeite_rechnungen(
     daten: list,
@@ -28,6 +31,7 @@ def verarbeite_rechnungen(
     rechnungsverlauf: list,
     rechnungsverlauf_vorjahr: list,
     verlauf_dateiname,
+    interactive: bool = True,
 ) -> None:
     """Verarbeitet alle faelligen Kundeneintraege fuer den Rechnungslauf."""
     absender = konfig["absender"]
@@ -37,11 +41,13 @@ def verarbeite_rechnungen(
 
     for eintrag in daten:
         if eintrag.get("aktiv") is False:
-            print(f"⏭️  {eintrag['firma']}: Kunde ist deaktiviert – keine Abrechnung.")
+            logger.info(
+                "%s: Kunde ist deaktiviert - keine Abrechnung.", eintrag["firma"]
+            )
             continue
 
         if not rechnung_fällig(eintrag, rechnungsverlauf, rechnungsverlauf_vorjahr):
-            print(f"⏭️  {eintrag['firma']}: Keine Abrechnung fällig.")
+            logger.info("%s: Keine Abrechnung faellig.", eintrag["firma"])
             continue
 
         _verarbeite_kundeneintrag(
@@ -57,10 +63,11 @@ def verarbeite_rechnungen(
             templates=templates,
             rechnungsverlauf=rechnungsverlauf,
             verlauf_dateiname=verlauf_dateiname,
+            interactive=interactive,
         )
 
-    print("🏁 Alle Rechnungen wurden verarbeitet.")
-    print("🔚 Skript beendet...")
+    logger.info("Alle Rechnungen wurden verarbeitet.")
+    logger.info("Skript beendet.")
 
 
 def _verarbeite_kundeneintrag(
@@ -76,6 +83,7 @@ def _verarbeite_kundeneintrag(
     templates,
     rechnungsverlauf: list,
     verlauf_dateiname,
+    interactive: bool,
 ) -> None:
     """Erzeugt und versendet eine Rechnung fuer einen Kundeneintrag."""
     heute = datetime.today()
@@ -92,6 +100,7 @@ def _verarbeite_kundeneintrag(
         eintrag,
         abrechnungszyklus,
         pfade.stunden_dir,
+        interactive=interactive,
     )
     leistungs_liste = leistungsdaten["leistungs_liste"]
     gesamtpreis = leistungsdaten["gesamtpreis"]
@@ -162,8 +171,9 @@ def _verarbeite_kundeneintrag(
             msg,
             empfaenger_liste,
         )
-        print(f"✅ Mail an {eintrag['name']} ({eintrag['email']}) gesendet.")
-        print("BCC:", mail_bcc)
+        logger.info("Mail an %s (%s) gesendet.", eintrag["name"], eintrag["email"])
+        if mail_bcc:
+            logger.info("BCC-Empfaenger ist konfiguriert.")
 
         _speichere_erfolgreichen_verlauf(
             eintrag,
@@ -176,10 +186,10 @@ def _verarbeite_kundeneintrag(
             verlauf_dateiname,
         )
         _archiviere_pdf_falls_noetig(eintrag, anhang_name, pdf_bytes)
-        _entferne_kunden_falls_noetig(daten, eintrag, heute, pfade)
+        _entferne_kunden_falls_noetig(daten, eintrag, heute, pfade, interactive)
 
     except Exception as e:
-        print(f"❌ Fehler beim Senden an {eintrag['email']}: {e}")
+        logger.exception("Fehler beim Senden an %s: %s", eintrag["email"], e)
 
 
 def _speichere_nullstunden_verlauf(
@@ -191,9 +201,9 @@ def _speichere_nullstunden_verlauf(
     verlauf_dateiname,
 ) -> None:
     """Speichert einen Verlaufseintrag fuer stundenbasierte Nullabrechnungen."""
-    print(
-        f"⏭️ Keine Stunden für {eintrag['firma']} – "
-        "es wird keine Rechnung verschickt, aber der Verlauf wird aktualisiert."
+    logger.info(
+        "Keine Stunden fuer %s - keine Rechnung, Verlauf wird aktualisiert.",
+        eintrag["firma"],
     )
     rechnungsverlauf.append(
         baue_verlaufseintrag(
@@ -205,7 +215,7 @@ def _speichere_nullstunden_verlauf(
         )
     )
     speichere_verlauf(verlauf_dateiname, rechnungsverlauf)
-    print("📝 Verlauf aktualisiert.")
+    logger.info("Verlauf aktualisiert.")
 
 
 def _speichere_erfolgreichen_verlauf(
@@ -230,7 +240,7 @@ def _speichere_erfolgreichen_verlauf(
         )
     )
     speichere_verlauf(verlauf_dateiname, rechnungsverlauf)
-    print("📝 Verlauf aktualisiert.")
+    logger.info("Verlauf aktualisiert.")
 
 
 def _archiviere_pdf_falls_noetig(
@@ -246,7 +256,7 @@ def _archiviere_pdf_falls_noetig(
     try:
         archiviere_pdf(archiv_pfad, anhang_name, pdf_bytes)
     except Exception as e:
-        print(f"⚠️ Fehler beim Archivieren der PDF: {e}")
+        logger.warning("Fehler beim Archivieren der PDF: %s", e)
 
 
 def _entferne_kunden_falls_noetig(
@@ -254,15 +264,21 @@ def _entferne_kunden_falls_noetig(
     eintrag: dict,
     heute: datetime,
     pfade,
+    interactive: bool,
 ) -> None:
     """Fragt nach dem Entfernen abgeschlossener Kundeneintraege."""
     if not sollte_kunde_entfernt_werden(eintrag, heute):
         return
 
-    print(
-        f"\n🛑 Kunde '{eintrag['firma']}' "
-        f"({eintrag['name']}) hat die letzte Rechnung erhalten."
+    logger.info(
+        "Kunde '%s' (%s) hat die letzte Rechnung erhalten.",
+        eintrag["firma"],
+        eintrag["name"],
     )
+    if not interactive:
+        logger.info("Nicht-interaktiver Lauf: Kunde bleibt in daten.json.")
+        return
+
     entscheidung = (
         input("❓ Möchtest du diesen Kunden jetzt aus daten.json löschen? (y/n): ")
         .strip()
@@ -271,6 +287,6 @@ def _entferne_kunden_falls_noetig(
     if entscheidung == "y":
         daten[:] = entferne_kunde_aus_daten(daten, eintrag)
         speichere_kundendaten(pfade.data_dir / "daten.json", daten)
-        print("🗑️ Kunde wurde aus daten.json entfernt.")
+        logger.info("Kunde wurde aus daten.json entfernt.")
     else:
-        print("⚠️ Kunde bleibt weiterhin in der Kundendatei, wird jedoch übersprungen")
+        logger.info("Kunde bleibt weiterhin in der Kundendatei.")

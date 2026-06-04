@@ -19,6 +19,7 @@ Die folgenden Befehle und Skripte duerfen ohne ausdrueckliche Freigabe nicht aus
 - `python src/main.py`
 - `python main.py`
 - `./rechnung_generieren.sh`
+- `./rechnung_cron.sh`
 - `rechnung_generieren.ps1`
 - `install/install.sh`
 - `install/install.ps1`
@@ -37,6 +38,8 @@ Standardmaessig erlaubt sind nur ungefaehrliche statische Pruefungen:
 - `git log`
 - `file`
 - `cat`, `head`, `tail`, `sed`
+- `python tools/check_setup.py`
+- `python -m pytest`, solange nur ungefaehrliche Tests ohne Rechnungserzeugung, PDF-Erzeugung, Mailversand oder `data/`-Schreibzugriffe ausgefuehrt werden
 
 Keine Tests oder Checks ausfuehren, die Projektcode starten, Rechnungen erzeugen, PDFs erzeugen, E-Mails versenden oder Dateien in `data/` veraendern koennten.
 
@@ -82,4 +85,3 @@ Fuer den aktuellen Umbau gelten diese zusaetzlichen Regeln:
 - wkhtmltopdf wird nicht mehr unterstuetzt.
 - WeasyPrint wird als PDF-Engine verwendet.
 - Produktive oder produktionsnahe PDF-/Mail-Testlaeufe duerfen nur nach ausdruecklichem Go des Nutzers ausgefuehrt werden.
-- `.env` ist die aktuelle lokale Env-Datei; alte `environment.env`-Dateien gelten als Altbestand.

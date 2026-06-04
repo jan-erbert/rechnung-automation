@@ -1,21 +1,23 @@
 import json
+import logging
 import os
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
 
-def lade_verlauf_datei(dateiname, jahr, backup_dir: Path):
+
+def lade_verlauf_datei(dateiname, jahr, backup_dir: Path, interactive: bool = True):
     """Laedt eine Verlaufsdatei oder legt sie bei Bedarf neu an."""
     if not os.path.exists(dateiname):
-        print("ℹ️ Keine Verlaufsdatei vorhanden. Es wird eine neue Datei erstellt.")
+        logger.info("Keine Verlaufsdatei vorhanden. Es wird eine neue Datei erstellt.")
 
         os.makedirs(Path(dateiname).parent, exist_ok=True)
         try:
             with open(dateiname, "w", encoding="utf-8") as f:
                 json.dump([], f, indent=2, ensure_ascii=False)
         except Exception as err:
-            print(f"❌ Konnte neue Verlaufsdatei nicht anlegen: {dateiname}\n{err}")
-            print("🚫 Abbruch zur Sicherheit.")
-            exit(1)
+            logger.error("Konnte neue Verlaufsdatei nicht anlegen: %s", dateiname)
+            raise SystemExit("Abbruch zur Sicherheit.") from err
 
         return []
 
@@ -23,8 +25,11 @@ def lade_verlauf_datei(dateiname, jahr, backup_dir: Path):
         with open(dateiname, "r", encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError as e:
-        print(f"\n❌ Fehler beim Laden der Verlaufsdatei '{dateiname}':\n{e}")
-        print("‼️ Die Datei scheint ungültiges JSON zu enthalten.")
+        logger.error("Fehler beim Laden der Verlaufsdatei '%s': %s", dateiname, e)
+        logger.error("Die Datei scheint ungueltiges JSON zu enthalten.")
+
+        if not interactive:
+            raise RuntimeError(f"Verlaufsdatei '{dateiname}' ist ungueltig.") from e
 
         while True:
             entscheidung = (
@@ -43,21 +48,19 @@ def lade_verlauf_datei(dateiname, jahr, backup_dir: Path):
                     os.makedirs(backup_path.parent, exist_ok=True)
                     try:
                         os.rename(dateiname, backup_path)
-                        print(f"🛡️ Sicherung gespeichert unter: {backup_path}")
+                        logger.info("Sicherung gespeichert unter: %s", backup_path)
                     except Exception as err:
-                        print(f"⚠️ Backup konnte nicht erstellt werden: {err}")
-                        print("🚫 Abbruch zur Sicherheit.")
-                        exit(1)
+                        logger.warning("Backup konnte nicht erstellt werden: %s", err)
+                        raise SystemExit("Abbruch zur Sicherheit.") from err
                 else:
-                    print("⚠️ Kein Backup erstellt.")
+                    logger.warning("Kein Backup erstellt.")
 
-                print("🆕 Leere Datei wird angelegt.")
+                logger.info("Leere Datei wird angelegt.")
                 return []
             if entscheidung == "n":
-                print("🚫 Vorgang abgebrochen.")
-                exit(1)
+                raise SystemExit("Vorgang abgebrochen.")
 
-            print("Bitte y oder n eingeben.")
+            logger.info("Bitte y oder n eingeben.")
 
 
 def baue_verlaufseintrag(

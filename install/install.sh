@@ -160,7 +160,7 @@ fi
 
 echo ""
 
-# 6. Start-Skript für Linux/macOS erzeugen
+# 6. Start-Skript für Linux erzeugen
 START_SCRIPT="start-rechnung.sh"
 if [ ! -f "$START_SCRIPT" ]; then
     cat > "$START_SCRIPT" <<EOF

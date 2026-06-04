@@ -1,4 +1,7 @@
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 def rechnung_fällig(eintrag, verlauf_liste, verlauf_vorjahr=None):
@@ -70,9 +73,10 @@ def rechnung_fällig(eintrag, verlauf_liste, verlauf_vorjahr=None):
     if letzter_eintrag:
         vorheriger_zyklus = letzter_eintrag.get("zyklus_monate")
         if vorheriger_zyklus and int(vorheriger_zyklus) != abrechnungszyklus:
-            print(
-                f"🔁 Zykluswechsel erkannt ({vorheriger_zyklus} → {abrechnungszyklus}) – "
-                "neue Rechnung wird erzeugt."
+            logger.info(
+                "Zykluswechsel erkannt (%s -> %s) - neue Rechnung wird erzeugt.",
+                vorheriger_zyklus,
+                abrechnungszyklus,
             )
             return True
 
