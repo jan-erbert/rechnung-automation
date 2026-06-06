@@ -167,8 +167,9 @@ def _check_konfiguration(report: CheckReport) -> None:
         report,
         config,
         "finanzen",
-        ("wirtschafts_id", "finanzamt", "kleinunternehmer"),
+        ("steuer_id_typ", "finanzamt", "kleinunternehmer"),
     )
+    _check_steuer_id(report, config.get("finanzen", {}))
 
 
 def _check_daten(report: CheckReport) -> None:
@@ -212,6 +213,20 @@ def _check_kundeneintrag(report: CheckReport, kunde: dict, index: int) -> None:
         report.warning(
             f"data/daten.json: Eintrag #{index}: Archivpfad existiert noch nicht."
         )
+
+
+def _check_steuer_id(report: CheckReport, finanzen: dict) -> None:
+    """Prueft die ausgewaehlte steuerliche Identifikationsnummer."""
+    steuer_id_typ = finanzen.get("steuer_id_typ")
+    if steuer_id_typ not in ("steuernummer", "ust_id"):
+        report.error(
+            "data/konfiguration.json: finanzen.steuer_id_typ muss "
+            "'steuernummer' oder 'ust_id' sein."
+        )
+        return
+
+    if not finanzen.get(steuer_id_typ):
+        report.error(f"data/konfiguration.json: finanzen.{steuer_id_typ} fehlt.")
 
 
 def _load_json(path: Path, report: CheckReport, label: str):

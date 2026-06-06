@@ -2,6 +2,19 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
+## [1.3.4] - 2026-06-06
+
+### Added
+
+- Auswahl zwischen Steuernummer und Umsatzsteuer-Identifikationsnummer (USt-IdNr.) für Rechnungen ergänzt.
+- Tests für beide unterstützten steuerlichen Identifikationsarten ergänzt.
+
+### Changed
+
+- Linux- und Windows-Installer fragen die gewünschte steuerliche Identifikationsart bei der Einrichtung ab.
+- Rechnungsvorlagen zeigen abhängig von der Konfiguration die passende Bezeichnung und Nummer an.
+- Konfigurationsloader, Setup-Check, Samples und Dokumentation an das neue Auswahlschema angepasst.
+
 ## [1.3.3] - 2026-06-04
 
 ### Added
@@ -41,12 +54,12 @@ Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgef�
 - `config/settings.yaml` auf WeasyPrint-only bereinigt.
 - Lokale Mail-Konfiguration von `data/environment.env` auf `.env` migriert.
 - Linux-Installer erzeugt jetzt `.env`, prüft SMTP-Portwerte und schreibt die Datei mit restriktiven Rechten.
-- Windows-Installer auf PowerShell-only nachgezogen und an `.env`, WeasyPrint-Requirements und `finanzen.wirtschafts_id` angepasst.
+- Windows-Installer auf PowerShell-only nachgezogen und an `.env` sowie WeasyPrint-Requirements angepasst.
 - Windows-Start auf `rechnung_generieren.ps1` vereinheitlicht; das Skript nutzt direkt `.venv\Scripts\python.exe`.
 - PDF-Template für WeasyPrint optimiert und alte wkhtmltopdf-/Footer-Reste entfernt.
 - Sample-Rechnungsvorlage an die produktive Vorlage angeglichen.
-- Rechnungsfuß von `Steuer-Nr.` auf `W-IdNr.` umgestellt; bestehende alte Konfigurationen werden im Template vorübergehend als Fallback unterstützt.
-- Linux-Installer und Beispielkonfiguration verwenden jetzt `finanzen.wirtschafts_id`.
+- Rechnungsfuß und Steuerkonfiguration überarbeitet.
+- Linux-Installer und Beispielkonfiguration an die neue Steuerkonfiguration angepasst.
 - README beschreibt Windows über PowerShell und Linux über Shell-Skripte.
 
 ### Removed
@@ -55,7 +68,7 @@ Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgef�
 
 ### Notes
 
-- Bestehende lokale `data/konfiguration.json` wurde strukturell auf `finanzen.wirtschafts_id` migriert, ohne sensible Werte auszugeben.
+- Bestehende lokale `data/konfiguration.json` wurde strukturell migriert, ohne sensible Werte auszugeben.
 
 ## [1.3.1] - 2026-06-03
 

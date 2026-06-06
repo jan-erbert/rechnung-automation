@@ -16,7 +16,8 @@
     "bic": "SPKEXY12XXX"
   },
   "finanzen": {
-    "wirtschafts_id": "DE123456789-00001",
+    "steuer_id_typ": "steuernummer",
+    "steuernummer": "12/345/67890",
     "finanzamt": "Finanzamt Musterstadt",
     "kleinunternehmer": false,
     "mehrwertsteuer_prozent": 19

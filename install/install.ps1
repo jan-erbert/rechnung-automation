@@ -49,6 +49,29 @@ function Read-YesNo {
     return $Value -in @("j", "ja", "y", "yes")
 }
 
+function Read-TaxId {
+    # Fragt die steuerliche Identifikationsnummer fuer Rechnungen ab.
+    Write-Host "Welche steuerliche Identifikationsnummer soll auf Rechnungen stehen?"
+    Write-Host "1) Steuernummer"
+    Write-Host "2) Umsatzsteuer-Identifikationsnummer (USt-IdNr.)"
+
+    do {
+        $Selection = (Read-Host "Auswahl (1/2)").Trim()
+    } until ($Selection -in @("1", "2"))
+
+    if ($Selection -eq "2") {
+        return [ordered]@{
+            steuer_id_typ = "ust_id"
+            ust_id = Read-Required "Umsatzsteuer-Identifikationsnummer (USt-IdNr.)"
+        }
+    }
+
+    return [ordered]@{
+        steuer_id_typ = "steuernummer"
+        steuernummer = Read-Required "Steuernummer"
+    }
+}
+
 Write-Host "Starte Einrichtung der virtuellen Umgebung..."
 
 if (-not (Test-Path ".venv")) {
@@ -111,11 +134,9 @@ if (-not (Test-Path $ConfigPath)) {
     }
 
     $Kleinunternehmer = Read-YesNo "Kleinunternehmerregelung nach Paragraph 19 UStG? (j/n)"
-    $Finanzen = [ordered]@{
-        wirtschafts_id = Read-Required "Wirtschafts-Identifikationsnummer (W-IdNr.)"
-        finanzamt = Read-Required "Finanzamt"
-        kleinunternehmer = $Kleinunternehmer
-    }
+    $Finanzen = Read-TaxId
+    $Finanzen["finanzamt"] = Read-Required "Finanzamt"
+    $Finanzen["kleinunternehmer"] = $Kleinunternehmer
 
     if (-not $Kleinunternehmer) {
         $Finanzen["mehrwertsteuer_prozent"] = Read-RequiredInt "Mehrwertsteuersatz in Prozent"

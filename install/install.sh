@@ -101,7 +101,27 @@ if [ ! -f "$KONFIG_PATH" ]; then
     iban=$(pflicht_eingabe "💳 IBAN")
     bic=$(pflicht_eingabe "🏷️  BIC")
 
-    wirtschafts_id=$(pflicht_eingabe "🧾 Wirtschafts-Identifikationsnummer (W-IdNr.)")
+    echo "🧾 Welche steuerliche Identifikationsnummer soll auf Rechnungen stehen?"
+    echo "   1) Steuernummer"
+    echo "   2) Umsatzsteuer-Identifikationsnummer (USt-IdNr.)"
+    while true; do
+        read -r -p "Auswahl (1/2): " steuer_id_auswahl
+        case "$steuer_id_auswahl" in
+            1)
+                steuer_id_typ="steuernummer"
+                steuer_id_wert=$(pflicht_eingabe "🧾 Steuernummer")
+                break
+                ;;
+            2)
+                steuer_id_typ="ust_id"
+                steuer_id_wert=$(pflicht_eingabe "🧾 Umsatzsteuer-Identifikationsnummer (USt-IdNr.)")
+                break
+                ;;
+            *)
+                echo "⚠️  Bitte 1 oder 2 eingeben."
+                ;;
+        esac
+    done
     finanzamt=$(pflicht_eingabe "🏛️  Finanzamt")
 
     read -r -p "❓ Kleinunternehmerregelung nach § 19 UStG? (y/n): " ku
@@ -142,7 +162,8 @@ if [ ! -f "$KONFIG_PATH" ]; then
     "bic": "$bic"
   },
   "finanzen": {
-    "wirtschafts_id": "$wirtschafts_id",
+    "steuer_id_typ": "$steuer_id_typ",
+    "$steuer_id_typ": "$steuer_id_wert",
     "finanzamt": "$finanzamt",
     "kleinunternehmer": $kleinunternehmer$mwst_part
   },

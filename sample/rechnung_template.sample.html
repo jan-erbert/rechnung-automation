@@ -193,7 +193,11 @@ Die Platzhalter verwenden Jinja2-Syntax und werden automatisch durch Rechnungsda
             <strong>BIC:</strong> {{ bank.bic }}
           </td>
           <td style="width: 25%; vertical-align: top; border: none;">
-            <strong>W-IdNr.:</strong> {{ finanzen.wirtschafts_id | default(finanzen.steuernummer, true) }}<br>
+            {% if finanzen.steuer_id_typ == "ust_id" %}
+            <strong>USt-IdNr.:</strong> {{ finanzen.ust_id }}<br>
+            {% else %}
+            <strong>Steuernummer:</strong> {{ finanzen.steuernummer }}<br>
+            {% endif %}
             Finanzamt: {{ finanzen.finanzamt }}
           </td>
         </tr>

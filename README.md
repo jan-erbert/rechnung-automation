@@ -2,7 +2,7 @@
 
 Ein flexibles Python-Tool zur automatisierten Erstellung und Versendung von PDF-Rechnungen per E-Mail – ideal für Freelancer und Kleinunternehmer.
 
-**Aktuelle stabile Version:** `1.3.3`
+**Aktuelle stabile Version:** `1.3.4`
 
 ## ✅ Funktionen
 
@@ -148,7 +148,8 @@ Beinhaltet die eigenen Daten wie Absender, Bankdaten und Mail. Kann interaktiv �
     "bic": "SPKEXY12XXX"
   },
   "finanzen": {
-    "wirtschafts_id": "DE123456789-00001",
+    "steuer_id_typ": "steuernummer",
+    "steuernummer": "12/345/67890",
     "finanzamt": "Finanzamt Musterstadt",
     "kleinunternehmer": false,
     "mehrwertsteuer_prozent": 19
@@ -157,6 +158,13 @@ Beinhaltet die eigenen Daten wie Absender, Bankdaten und Mail. Kann interaktiv �
     "bcc": "rechnung@mustermann.de"
   }
 }
+```
+
+Für Rechnungen muss entweder eine Steuernummer oder eine USt-IdNr. konfiguriert werden. Der Installer fragt ab, welche Variante verwendet werden soll. Für die USt-IdNr. werden stattdessen folgende Felder verwendet:
+
+```json
+"steuer_id_typ": "ust_id",
+"ust_id": "DE123456789"
 ```
 
 ---

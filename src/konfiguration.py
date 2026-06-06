@@ -26,11 +26,26 @@ def lade_konfiguration(pfad: Path) -> dict:
         if feld not in config.get(bereich, {}):
             raise ValueError(f"Pflichtfeld fehlt: '{bereich}.{feld}'")
 
+    _validiere_steuer_id(config["finanzen"])
+
     if not config["finanzen"].get("kleinunternehmer", False):
         if "mehrwertsteuer_prozent" not in config["finanzen"]:
             raise ValueError("Mehrwertsteuersatz fehlt bei Nicht-Kleinunternehmern.")
 
     return config
+
+
+def _validiere_steuer_id(finanzen: dict) -> None:
+    """Prueft die ausgewaehlte Steuernummer oder USt-IdNr."""
+    steuer_id_typ = finanzen.get("steuer_id_typ")
+    if steuer_id_typ not in ("steuernummer", "ust_id"):
+        raise ValueError(
+            "Pflichtfeld 'finanzen.steuer_id_typ' muss "
+            "'steuernummer' oder 'ust_id' sein."
+        )
+
+    if not finanzen.get(steuer_id_typ):
+        raise ValueError(f"Pflichtfeld fehlt: 'finanzen.{steuer_id_typ}'")
 
 
 def lade_mail_umgebung(pfad: Path) -> dict:
