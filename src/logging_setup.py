@@ -3,6 +3,28 @@ from datetime import datetime
 from pathlib import Path
 
 
+class LauffehlerSammler(logging.Handler):
+    """Sammelt schwere Laufmeldungen fuer den Cron-Fehlerbericht."""
+
+    def __init__(self) -> None:
+        """Initialisiert einen leeren ERROR-/CRITICAL-Sammler."""
+        super().__init__(level=logging.ERROR)
+        self.fehler: list[dict[str, str]] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        """Speichert eine bereinigte schwere Logmeldung."""
+        self.fehler.append(
+            {
+                "zeit": datetime.fromtimestamp(record.created).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
+                "level": record.levelname,
+                "quelle": record.name,
+                "meldung": record.getMessage(),
+            }
+        )
+
+
 def konfiguriere_logging(logging_config: dict, base_dir: Path) -> Path | None:
     """Konfiguriert Konsolen- und optional Datei-Logging."""
     if not isinstance(logging_config, dict):
@@ -38,6 +60,13 @@ def konfiguriere_logging(logging_config: dict, base_dir: Path) -> Path | None:
     logger.addHandler(file_handler)
 
     return log_file
+
+
+def aktiviere_lauffehler_sammler() -> LauffehlerSammler:
+    """Haengt einen Sammler fuer ERROR- und CRITICAL-Meldungen ein."""
+    sammler = LauffehlerSammler()
+    logging.getLogger().addHandler(sammler)
+    return sammler
 
 
 def _resolve_log_dir(base_dir: Path, log_dir_value: str) -> Path:

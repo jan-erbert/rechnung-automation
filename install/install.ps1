@@ -7,6 +7,7 @@ Set-StrictMode -Version Latest
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = (Resolve-Path (Join-Path $ScriptDir "..")).Path
 $RequirementsFile = Join-Path $ScriptDir "requirements.txt"
+$EnvWriter = Join-Path $ScriptDir "write_env.py"
 $VenvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
 
 Set-Location $ProjectRoot
@@ -37,6 +38,48 @@ function Read-RequiredInt {
     } until ($IsValid)
 
     return $ParsedValue
+}
+
+function Read-Port {
+    param([string]$Prompt)
+
+    do {
+        $Value = Read-RequiredInt $Prompt
+        $IsValid = $Value -ge 1 -and $Value -le 65535
+        if (-not $IsValid) {
+            Write-Host "Bitte einen Port zwischen 1 und 65535 eingeben."
+        }
+    } until ($IsValid)
+
+    return $Value
+}
+
+function Read-Percentage {
+    param([string]$Prompt)
+
+    do {
+        $Value = Read-RequiredInt $Prompt
+        $IsValid = $Value -ge 0 -and $Value -le 100
+        if (-not $IsValid) {
+            Write-Host "Bitte einen ganzzahligen Prozentsatz zwischen 0 und 100 eingeben."
+        }
+    } until ($IsValid)
+
+    return $Value
+}
+
+function Read-RequiredSecret {
+    param([string]$Prompt)
+
+    do {
+        $SecureValue = Read-Host $Prompt -AsSecureString
+        $Value = [System.Net.NetworkCredential]::new("", $SecureValue).Password
+        if ([string]::IsNullOrWhiteSpace($Value)) {
+            Write-Host "Dieses Feld ist erforderlich."
+        }
+    } until (-not [string]::IsNullOrWhiteSpace($Value))
+
+    return $Value
 }
 
 function Read-YesNo {
@@ -74,7 +117,14 @@ function Read-TaxId {
 
 Write-Host "Starte Einrichtung der virtuellen Umgebung..."
 
-if (-not (Test-Path ".venv")) {
+if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+    throw "Python wurde nicht gefunden. Bitte installiere Python 3."
+}
+
+if (-not (Test-Path $VenvPython -PathType Leaf)) {
+    if (Test-Path ".venv") {
+        throw ".venv ist vorhanden, aber unvollstaendig oder nicht verwendbar. Bitte den Ordner bewusst entfernen und den Installer erneut starten."
+    }
     python -m venv .venv
     Write-Host "Virtuelle Umgebung wurde erstellt."
 } else {
@@ -93,16 +143,23 @@ if (-not (Test-Path $EnvPath)) {
     Write-Host "Lokale Mail-Konfiguration wird erstellt (.env)..."
 
     $MailServer = Read-Required "SMTP-Server"
-    $MailPort = Read-RequiredInt "SMTP-Port"
+    $MailPort = Read-Port "SMTP-Port"
     $MailUser = Read-Required "SMTP-Benutzer"
-    $MailPass = Read-Required "SMTP-Passwort"
+    $MailPass = Read-RequiredSecret "SMTP-Passwort"
 
-    @(
-        "MAIL_SERVER=$MailServer",
-        "MAIL_PORT=$MailPort",
-        "MAIL_USER=$MailUser",
-        "MAIL_PASS=$MailPass"
-    ) | Set-Content -Path $EnvPath -Encoding UTF8
+    if (-not (Test-Path $EnvWriter -PathType Leaf)) {
+        throw "Env-Helfer nicht gefunden: $EnvWriter"
+    }
+
+    $env:MAIL_SERVER = $MailServer
+    $env:MAIL_PORT = [string]$MailPort
+    $env:MAIL_USER = $MailUser
+    $env:MAIL_PASS = $MailPass
+    try {
+        & $VenvPython $EnvWriter $EnvPath
+    } finally {
+        Remove-Item Env:MAIL_SERVER, Env:MAIL_PORT, Env:MAIL_USER, Env:MAIL_PASS -ErrorAction SilentlyContinue
+    }
 
     Write-Host ".env wurde erstellt."
 } else {
@@ -139,7 +196,7 @@ if (-not (Test-Path $ConfigPath)) {
     $Finanzen["kleinunternehmer"] = $Kleinunternehmer
 
     if (-not $Kleinunternehmer) {
-        $Finanzen["mehrwertsteuer_prozent"] = Read-RequiredInt "Mehrwertsteuersatz in Prozent"
+        $Finanzen["mehrwertsteuer_prozent"] = Read-Percentage "Mehrwertsteuersatz in Prozent"
     }
 
     Write-Host "Hinweis: Fuer steuerkonforme Rechnungen muss eine Kopie gemaess Paragraph 14b UStG aufbewahrt werden."

@@ -28,6 +28,9 @@ environment.env
 verlauf*.json
 stunden/
 
+# Deployment Dateien
+AGENTS.md
+
 # Temporäre Dateien
 *.tmp
 old/

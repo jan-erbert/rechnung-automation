@@ -6,6 +6,8 @@ from pathlib import Path
 
 from dateutil.relativedelta import relativedelta
 
+from validierung import validiere_betrag, validiere_einheit
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,6 +22,7 @@ def berechne_stundenleistung(
     heute = datetime.today()
     stunden_total = 0.0
     monate = []
+    fehlende_monate = []
 
     firma_key = firma.strip().lower()
 
@@ -53,6 +56,7 @@ def berechne_stundenleistung(
             )
             if not interactive:
                 logger.info("Nicht-interaktiver Lauf: 0 Stunden angenommen.")
+                fehlende_monate.append(monat_dt.strftime("%Y-%m"))
                 continue
 
             eingabe = input(
@@ -74,6 +78,8 @@ def berechne_stundenleistung(
         "stundensatz": stundensatz,
         "gesamtbetrag": betrag,
         "zeitraum": zeitraum,
+        "vollstaendig": not fehlende_monate,
+        "fehlende_monate": fehlende_monate,
     }
 
 
@@ -88,13 +94,8 @@ def baue_leistungspositionen(
     leistungs_liste = []
 
     beschreibung = hauptleistung.get("beschreibung", "Leistung")
-    einheit = hauptleistung.get("einheit", "Monat").strip().lower()
-    betrag_str = hauptleistung.get("betrag", "0").replace(",", ".").strip()
-
-    try:
-        betrag = float(betrag_str)
-    except ValueError:
-        betrag = 0.0
+    einheit = validiere_einheit(hauptleistung.get("einheit", "Monat"))
+    betrag = validiere_betrag(hauptleistung.get("betrag"), "Hauptleistung.betrag")
 
     stundeninfo = None
     if einheit == "stunde":
@@ -106,7 +107,7 @@ def baue_leistungspositionen(
             interactive=interactive,
         )
 
-        if stundeninfo["stunden"] == 0:
+        if stundeninfo["stunden"] == 0 or not stundeninfo["vollstaendig"]:
             return {
                 "leistungs_liste": leistungs_liste,
                 "gesamtpreis": 0.0,
@@ -140,22 +141,28 @@ def baue_leistungspositionen(
         zeitraum_text = (
             "1 Monat" if abrechnungszyklus == 1 else f"{abrechnungszyklus} Monate"
         )
+        beschreibung_mit_zeitraum = f"{beschreibung} für {zeitraum_text}"
+        webseite = eintrag.get("webseite")
+        if webseite:
+            beschreibung_mit_zeitraum += f" ({webseite})"
+
         leistungs_liste.append(
             {
-                "beschreibung": (
-                    f"{beschreibung} für {zeitraum_text} "
-                    f"({eintrag.get('webseite', '')})"
-                ),
+                "beschreibung": beschreibung_mit_zeitraum,
                 "preis": f"{gesamtpreis:.2f}".replace(".", ",") + " EUR",
             }
         )
 
     for zusatz in eintrag.get("weitere_leistungen", []):
         beschreibung = zusatz.get("beschreibung", "Zusatzleistung")
-        preis_str = zusatz.get("preis", "").strip()
+        preis_str = str(zusatz.get("preis", "")).strip()
+        preis_float = validiere_betrag(
+            preis_str,
+            "Preis der Zusatzleistung",
+            inklusive_erlaubt=True,
+        )
 
-        try:
-            preis_float = float(preis_str.replace(",", "."))
+        if preis_float is not None:
             if einheit == "pauschal":
                 preis_text = f"{preis_float:.2f}".replace(".", ",") + " EUR"
                 zusatz_text = ""
@@ -167,7 +174,7 @@ def baue_leistungspositionen(
                     + f" EUR × {abrechnungszyklus} Monate)"
                 )
                 preis_text = f"{betrag_gesamt:.2f}".replace(".", ",") + " EUR"
-        except ValueError:
+        else:
             zusatz_text = ""
             preis_text = preis_str
             betrag_gesamt = 0.0
@@ -181,7 +188,6 @@ def baue_leistungspositionen(
         )
 
         if isinstance(betrag_gesamt, float) and betrag_gesamt > 0:
-            betrag_gesamt = preis_float * abrechnungszyklus
             gesamtpreis += betrag_gesamt
 
     return {

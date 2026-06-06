@@ -1,9 +1,22 @@
 import json
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 DEFAULT_DATEN_PATH = DATA_DIR / "daten.json"
+SRC_DIR = BASE_DIR / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from validierung import (  # noqa: E402
+    validiere_betrag,
+    validiere_datum,
+    validiere_einheit,
+    validiere_monat,
+    validiere_nichtnegative_ganzzahl,
+    validiere_positive_ganzzahl,
+)
 
 
 def lade_kundendaten(dateiname: Path = DEFAULT_DATEN_PATH) -> list:
@@ -77,6 +90,19 @@ def frage(prompt: str, optional: bool = True) -> str | None:
         print("Dieses Feld darf nicht leer sein.")
 
 
+def frage_validiert(prompt: str, validierung, optional: bool = False):
+    """Fragt einen Wert ab, bis die uebergebene Validierung erfolgreich ist."""
+    while True:
+        wert = frage(prompt, optional=optional)
+        if wert is None:
+            return None
+        try:
+            validierung(wert)
+            return wert
+        except ValueError as err:
+            print(f"Ungueltige Eingabe: {err}")
+
+
 def frage_mehrere_leistungen() -> list | None:
     """Fragt optionale Zusatzleistungen fuer einen Kunden ab."""
     leistungen = []
@@ -87,7 +113,14 @@ def frage_mehrere_leistungen() -> list | None:
         if not beschreibung:
             break
 
-        preis = frage("Preis (z. B. 9,99 oder Inklusive): ", optional=False)
+        preis = frage_validiert(
+            "Preis (z. B. 9,99 oder Inklusive): ",
+            lambda wert: validiere_betrag(
+                wert,
+                "Preis",
+                inklusive_erlaubt=True,
+            ),
+        )
         leistungen.append({"beschreibung": beschreibung, "preis": preis})
 
         nochmal = input("Weitere Leistung hinzufuegen? (j/n): ").strip().lower()
@@ -140,13 +173,18 @@ def _frage_hauptleistung(einmalig: bool) -> dict:
     """Fragt die Hauptleistung fuer einen Kundeneintrag ab."""
     print("\nHauptleistung eintragen:")
     beschreibung = frage("Beschreibung der Hauptleistung: ", optional=False)
-    betrag = frage("Betrag (z. B. 49,99): ", optional=False)
+    betrag = frage_validiert(
+        "Betrag (z. B. 49,99): ",
+        lambda wert: validiere_betrag(wert, "Betrag"),
+    )
 
     if einmalig:
         einheit = "pauschal"
     else:
-        einheit = frage(
-            "Einheit der Abrechnung (Monat, Stunde, pauschal - Standard: Monat): "
+        einheit = frage_validiert(
+            "Einheit der Abrechnung (Monat, Stunde, pauschal - Standard: Monat): ",
+            validiere_einheit,
+            optional=True,
         )
         einheit = einheit or "Monat"
 
@@ -160,24 +198,38 @@ def _frage_hauptleistung(einmalig: bool) -> dict:
 def _frage_optionale_felder(kunde: dict, einmalig: bool) -> None:
     """Ergaenzt optionale Kundenfelder."""
     if not einmalig:
-        zyklus = frage("Abrechnungszyklus in Monaten (Standard: 1): ")
+        zyklus = frage_validiert(
+            "Abrechnungszyklus in Monaten (Standard: 1): ",
+            lambda wert: validiere_positive_ganzzahl(wert, "Abrechnungszyklus"),
+            optional=True,
+        )
         if zyklus:
             kunde["abrechnungszyklus"] = int(zyklus)
 
     optionale_felder = {
-        "rechnungsnummer": "Rechnungsnummer-Praefix (optional): ",
-        "rechnungsdatum": "Rechnungsdatum (z. B. 01.05.2026, optional): ",
-        "faelligkeit": "Faelligkeit in Tagen (z. B. 14, optional): ",
-        "archiv_pfad": "Archiv-Pfad fuer PDF: ",
+        "rechnungsnummer": ("Rechnungsnummer-Praefix (optional): ", None),
+        "rechnungsdatum": (
+            "Rechnungsdatum (z. B. 01.05.2026, optional): ",
+            validiere_datum,
+        ),
+        "faelligkeit": (
+            "Faelligkeit in Tagen (z. B. 14, optional): ",
+            lambda wert: validiere_nichtnegative_ganzzahl(wert, "Faelligkeit"),
+        ),
+        "archiv_pfad": ("Archiv-Pfad fuer PDF: ", None),
     }
 
     if not einmalig:
         optionale_felder["letzte_rechnung"] = (
-            "Letzte zu erstellende Rechnung (YYYY-MM, optional): "
+            "Letzte zu erstellende Rechnung (YYYY-MM, optional): ",
+            validiere_monat,
         )
 
-    for key, prompt in optionale_felder.items():
-        wert = frage(prompt)
+    for key, (prompt, validierung) in optionale_felder.items():
+        if validierung:
+            wert = frage_validiert(prompt, validierung, optional=True)
+        else:
+            wert = frage(prompt)
         if wert:
             kunde[key] = wert
 

@@ -2,6 +2,56 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
+## [1.3.5] - Unreleased
+
+### Fixed
+
+- Leere optionale Webseitenangaben werden in Rechnungen, E-Mails und Leistungspositionen nicht mehr als leere Beschriftungen, Links oder Klammern ausgegeben.
+- Ein fehlendes optionales Logo erzeugt in Rechnungen kein leeres oder defektes Bildelement mehr.
+- Der in `letzte_rechnung` konfigurierte Endmonat löst die noch ausstehende letzte reguläre Rechnung unabhängig vom normalen Abrechnungszyklus aus.
+- Kunden mit erreichtem Endmonat können nach der erfolgreich versendeten letzten Rechnung im interaktiven Lauf entfernt werden.
+- Ungültige Beträge werden nicht mehr stillschweigend als `0,00 EUR` verarbeitet.
+- Fehlerhafte Abrechnungszyklen, Fälligkeiten, Abrechnungseinheiten und Datumsformate werden vor der Rechnungserzeugung verständlich abgelehnt.
+- Pauschale Zusatzleistungen werden unabhängig vom Abrechnungszyklus nur einmal zur Rechnungssumme addiert.
+- Eindeutig fehlgeschlagene Mailversuche werden als `failed` gespeichert und beim nächsten Lauf erneut versucht.
+- Unklare Versandzustände bleiben als `pending` markiert und blockieren automatische Wiederholungen, um Doppelversand zu vermeiden.
+- Fehler bei Archivierung oder Kundenentfernung werden getrennt vom erfolgreichen Mailversand protokolliert.
+- Stundenbasierte Cron-Abrechnungen mit `0` Stunden bleiben im aktuellen Fälligkeitsmonat als `waiting_hours` für nachgetragene Stunden offen.
+- Abgelaufene Nullstunden-Wartezustände werden als `no_invoice` abgeschlossen und lösen keine verspätete oder doppelte Rechnung aus.
+- Nullstunden-Abschlüsse berücksichtigen weiterhin den konfigurierten Abrechnungszyklus.
+- Unvollständige Stundenzeiträume bei mehrmonatigen Cron-Abrechnungen werden nicht mehr als Teilrechnung versendet.
+- Der Linux-Installer schreibt `.env` und `data/konfiguration.json` strukturiert, sodass Sonderzeichen die erzeugten Dateien nicht mehr beschädigen.
+- Der Linux-Installer validiert Pflichtangaben, SMTP-Port, Ja-/Nein-Auswahl und Mehrwertsteuersatz bereits während der Einrichtung.
+- Eine unvollständige `.venv` oder eine fehlende Runtime-Requirements-Datei führt im Linux-Installer jetzt zu einem klaren Abbruch.
+- Der Linux-Installer bereitet nur noch die unterstützten Startskripte `rechnung_generieren.sh` und `rechnung_cron.sh` vor.
+- Der Windows-Installer erkennt unvollständige virtuelle Umgebungen und validiert SMTP-Port sowie Mehrwertsteuersatz innerhalb sinnvoller Grenzen.
+- Der Windows-Installer schreibt `.env` strukturiert, sodass Sonderzeichen in SMTP-Zugangsdaten die Datei nicht mehr beschädigen.
+- Ein unerwarteter Fehler bei einem Kunden bricht den Rechnungslauf nicht mehr für nachfolgende Kunden ab.
+- Fehler beim PDF-Archivieren werden als schwere Fehler protokolliert, da die Rechnung bereits versendet wurde.
+- Unerreichbare Kunden-Archivpfade stoppen nur den betroffenen Kunden, bevor eine Rechnung erzeugt oder versendet wird.
+
+### Added
+
+- Rendering-Tests für optionale Webseitenangaben und Logos ergänzt.
+- Grenzfalltests für den konfigurierten letzten Rechnungsmonat ergänzt.
+- Zentrale Validierung für abrechnungsrelevante Kundendaten ergänzt und in Setup-Check sowie Kundenanlage eingebunden.
+- Berechnungstests für pauschale, monatliche und inklusive Zusatzleistungen ergänzt.
+- Atomare Speicherung und Versandstatus `pending`, `sent` und `failed` für den Rechnungsverlauf ergänzt.
+- Tests für Versandstatus, Wiederholungslogik und atomare Verlaufsaktualisierung ergänzt.
+- Verlaufsstatus `waiting_hours` und `no_invoice` für stundenbasierte Abrechnungen ergänzt.
+- Isolierte Tests für die sichere Erzeugung der lokalen Linux-Setup-Dateien ergänzt.
+- Cron-Fehlerberichte an den konfigurierten BCC-Empfänger für tatsächlich protokollierte `ERROR`- und `CRITICAL`-Meldungen ergänzt.
+- Separates SMTP-Testskript `tools/mailversand_testen.py` ergänzt, das ausschließlich eine Bestätigungsmail an den BCC-Empfänger sendet.
+- Tests für Kundenisolation, schwere Laufmeldungen, Cron-Fehlerberichte und SMTP-Testmails ergänzt.
+- Vollständige Pfadprüfung im Setup-Check für zentrale Dateien, Verzeichnisse und Kundenarchive ergänzt.
+- Echte, sofort entfernte Schreibproben für konfigurierte Daten-, Backup-, Log- und Archivziele ergänzt.
+- Schlanker Mini-Check vor jedem Rechnungslauf für zentrale Dateien sowie Runtime-, PDF- und Mail-Konfiguration ergänzt.
+- Tests für Pfadprüfungen und Startvoraussetzungen ergänzt.
+
+### Changed
+
+- Interne Versionsnummer auf `1.3.5` gesetzt.
+
 ## [1.3.4] - 2026-06-06
 
 ### Added

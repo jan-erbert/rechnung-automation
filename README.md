@@ -39,7 +39,7 @@ Ein flexibles Python-Tool zur automatisierten Erstellung und Versendung von PDF-
 ./install/install.sh
 ```
 
-> Erstellt `.venv`, installiert Abhängigkeiten, fragt zentrale Konfigurationsdaten ab und erstellt unter Windows eine Desktop-Verknüpfung auf das PowerShell-Startskript.
+> Erstellt `.venv`, installiert Abhängigkeiten, fragt zentrale Konfigurationsdaten ab und erstellt unter Windows eine Desktop-Verknüpfung auf das PowerShell-Startskript. Die Installer validieren zentrale Eingaben und schreiben lokale Setup-Dateien sicher mit Sonderzeichen.
 
 ### Entwickler-Abhängigkeiten
 
@@ -177,7 +177,16 @@ Für Rechnungen muss entweder eine Steuernummer oder eine USt-IdNr. konfiguriert
 python tools/check_setup.py
 ```
 
-Der Check liest nur die lokale Konfiguration, prüft Pflichtfelder und gibt keine `.env`-Werte oder Kundendaten aus.
+Der Check gibt keine `.env`-Werte oder Kundendaten aus. Er prüft neben
+Pflichtfeldern auch Beträge, Abrechnungszyklen,
+Fälligkeiten, Abrechnungseinheiten, Datumsformate sowie konfigurierte Lese- und
+Schreibpfade. Für Schreibziele erzeugt und entfernt er unmittelbar eine
+temporäre Testdatei.
+
+Vor jedem Rechnungslauf prüft zusätzlich ein kleiner, rein lesender Mini-Check
+die zentralen Konfigurationsdateien, Vorlagen sowie Runtime-, PDF- und
+Mail-Konfiguration. Ein unerreichbarer Kunden-Archivpfad stoppt nur den
+betroffenen Kunden vor PDF-Erzeugung und Mailversand.
 
 ### Variante A: Manuell im Terminal
 
@@ -210,6 +219,27 @@ Dieses Skript läuft ohne Rückfragen und ist für automatisierte Starts gedacht
 
 Der Python-Prozess schreibt bei aktivem Logging selbst in `logs/`. Eine zusätzliche Shell-Umleitung ist deshalb normalerweise nicht nötig.
 
+Treten während eines Cronlaufs schwere Fehler mit Log-Level `ERROR` oder
+`CRITICAL` auf, wird am Laufende eine Zusammenfassung an den in
+`data/konfiguration.json` hinterlegten BCC-Empfänger gesendet. Warnungen lösen
+keine Fehlerberichtsmail aus. Fehler eines einzelnen Kunden werden protokolliert,
+ohne die Verarbeitung nachfolgender Kunden abzubrechen.
+
+Bei stundenbasierten Cron-Abrechnungen werden fehlende oder unvollständige
+Stundenzeiträume im aktuellen Fälligkeitsmonat erneut geprüft. Nach dem
+Monatswechsel wird der offene Zeitraum ohne Rechnung abgeschlossen. Bereits
+versendete oder abgeschlossene Zeiträume werden durch spätere Änderungen nicht
+erneut versendet.
+
+### Mailversand testen
+
+```bash
+python tools/mailversand_testen.py
+```
+
+> Dieser Befehl sendet eine echte Testmail ausschließlich an den konfigurierten
+> BCC-Empfänger. Er erzeugt keine Rechnungen, PDFs oder Verlaufsdaten.
+
 ---
 
 ## 📁 Projektstruktur
@@ -234,8 +264,7 @@ rechnung-automation/
 │   ├── requirements.txt           # Python-Abhängigkeiten
 │   └── version.py                 # Zentrale Versionsnummer
 ├── licenses/
-│   ├── gpl-2.0.txt
-│   └── LGPL-3.0.txt
+│   └── gpl-2.0.txt
 ├── sample/
 │   ├── daten.sample.jsonc
 │   ├── .env.sample
@@ -260,7 +289,8 @@ rechnung-automation/
 ├── stunden/                       # Stundenlisten pro Monat
 ├── tools/
 │   ├── check_setup.py             # Ungefährlicher Setup-Check
-│   └── kunden_anlegen.py          # Interaktive Kundenerfassung
+│   ├── kunden_anlegen.py          # Interaktive Kundenerfassung
+│   └── mailversand_testen.py      # SMTP-Testmail ausschließlich an BCC
 ├── vorlagen/
 │   ├── mail_template.html         # HTML-Vorlage für E-Mail
 │   └── rechnung_template.html     # HTML-Vorlage für PDF-Rechnung

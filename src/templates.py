@@ -34,7 +34,7 @@ def lade_logo_base64(img_dir: Path) -> str:
         logger.warning(
             "Logo-Datei nicht gefunden. Logo wird in der Rechnung nicht angezeigt."
         )
-        logo_base64 = ""
+        return ""
 
     return f"data:image/png;base64,{logo_base64}"
 

@@ -4,6 +4,83 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REQUIREMENTS_FILE="$SCRIPT_DIR/requirements.txt"
+CONFIG_WRITER="$SCRIPT_DIR/write_config.py"
+ENV_WRITER="$SCRIPT_DIR/write_env.py"
+VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
+
+function pflicht_eingabe() {
+    local prompt="$1"
+    local eingabe=""
+    while [ -z "$eingabe" ]; do
+        read -r -p "$prompt: " eingabe
+        if [ -z "$eingabe" ]; then
+            echo "⚠️  Dieses Feld darf nicht leer sein." >&2
+        fi
+    done
+    printf '%s' "$eingabe"
+}
+
+function port_eingabe() {
+    local prompt="$1"
+    local eingabe=""
+    while true; do
+        eingabe=$(pflicht_eingabe "$prompt")
+        if [[ "$eingabe" =~ ^[0-9]+$ ]] &&
+            [ "$eingabe" -gt 0 ] &&
+            [ "$eingabe" -le 65535 ]; then
+            printf '%s' "$eingabe"
+            return
+        fi
+        echo "⚠️  Bitte einen Port zwischen 1 und 65535 eingeben." >&2
+    done
+}
+
+function pflicht_geheim_eingabe() {
+    local prompt="$1"
+    local eingabe=""
+    while [ -z "$eingabe" ]; do
+        read -r -s -p "$prompt: " eingabe
+        echo "" >&2
+        if [ -z "$eingabe" ]; then
+            echo "⚠️  Dieses Feld darf nicht leer sein." >&2
+        fi
+    done
+    printf '%s' "$eingabe"
+}
+
+function prozent_eingabe() {
+    local prompt="$1"
+    local eingabe=""
+    while true; do
+        eingabe=$(pflicht_eingabe "$prompt")
+        if [[ "$eingabe" =~ ^[0-9]+$ ]] && [ "$eingabe" -le 100 ]; then
+            printf '%s' "$eingabe"
+            return
+        fi
+        echo "⚠️  Bitte einen ganzzahligen Prozentsatz zwischen 0 und 100 eingeben." >&2
+    done
+}
+
+function ja_nein_eingabe() {
+    local prompt="$1"
+    local eingabe=""
+    while true; do
+        read -r -p "$prompt: " eingabe
+        case "${eingabe,,}" in
+            y|yes|j|ja)
+                printf 'y'
+                return
+                ;;
+            n|no|nein)
+                printf 'n'
+                return
+                ;;
+            *)
+                echo "⚠️  Bitte y oder n eingeben." >&2
+                ;;
+        esac
+    done
+}
 
 cd "$PROJECT_ROOT" || exit 1
 
@@ -15,7 +92,12 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 # 1. Virtuelle Umgebung erstellen
-if [ ! -d ".venv" ]; then
+if [ ! -x "$VENV_PYTHON" ]; then
+    if [ -e ".venv" ]; then
+        echo "❌ .venv ist vorhanden, aber unvollständig oder nicht verwendbar."
+        echo "   Bitte den Ordner .venv entfernen und den Installer erneut starten."
+        exit 1
+    fi
     python3 -m venv .venv
     echo "✅ Virtuelle Umgebung wurde erstellt."
 else
@@ -29,12 +111,12 @@ echo "   source .venv/bin/activate"
 echo ""
 
 # 3. Abhängigkeiten installieren
-if [ -f "$REQUIREMENTS_FILE" ]; then
-    echo "📦 Installiere Pakete aus $REQUIREMENTS_FILE..."
-    .venv/bin/python -m pip install -r "$REQUIREMENTS_FILE"
-else
-    echo "⚠️  Keine requirements.txt gefunden unter: $REQUIREMENTS_FILE"
+if [ ! -f "$REQUIREMENTS_FILE" ]; then
+    echo "❌ Requirements-Datei nicht gefunden: $REQUIREMENTS_FILE"
+    exit 1
 fi
+echo "📦 Installiere Pakete aus $REQUIREMENTS_FILE..."
+"$VENV_PYTHON" -m pip install -r "$REQUIREMENTS_FILE"
 
 # 4. Env-Datei erstellen
 ENV_PATH=".env"
@@ -43,25 +125,22 @@ if [ ! -f "$ENV_PATH" ]; then
     echo "📧 Mail-Umgebung wird erstellt ($ENV_PATH)..."
     echo ""
 
-    read -r -p "SMTP-Server: " mail_server
-    read -r -p "SMTP-Port (z. B. 587): " mail_port
-    while ! [[ "$mail_port" =~ ^[0-9]+$ ]]; do
-        echo "⚠️  Bitte eine numerische Portnummer eingeben."
-        read -r -p "SMTP-Port (z. B. 587): " mail_port
-    done
-    read -r -p "SMTP-Benutzer: " mail_user
-    read -r -s -p "SMTP-Passwort: " mail_pass
-    echo ""
+    mail_server=$(pflicht_eingabe "SMTP-Server")
+    mail_port=$(port_eingabe "SMTP-Port (z. B. 587)")
+    mail_user=$(pflicht_eingabe "SMTP-Benutzer")
+    mail_pass=$(pflicht_geheim_eingabe "SMTP-Passwort")
 
-    old_umask="$(umask)"
-    umask 077
-    cat > "$ENV_PATH" <<EOF
-MAIL_SERVER=$mail_server
-MAIL_PORT=$mail_port
-MAIL_USER=$mail_user
-MAIL_PASS=$mail_pass
-EOF
-    umask "$old_umask"
+    if [ ! -f "$ENV_WRITER" ]; then
+        echo "❌ Env-Helfer nicht gefunden: $ENV_WRITER"
+        exit 1
+    fi
+
+    export MAIL_SERVER="$mail_server"
+    export MAIL_PORT="$mail_port"
+    export MAIL_USER="$mail_user"
+    export MAIL_PASS="$mail_pass"
+    "$VENV_PYTHON" "$ENV_WRITER" "$ENV_PATH"
+    unset MAIL_SERVER MAIL_PORT MAIL_USER MAIL_PASS
 
     echo "✅ .env wurde gespeichert unter: $ENV_PATH"
 else
@@ -74,18 +153,6 @@ if [ ! -f "$KONFIG_PATH" ]; then
     echo ""
     echo "🛠️  Konfigurationsdatei wird erstellt ($KONFIG_PATH)..."
     echo ""
-
-    function pflicht_eingabe() {
-        local prompt="$1"
-        local eingabe=""
-        while [ -z "$eingabe" ]; do
-            read -r -p "$prompt: " eingabe
-            if [ -z "$eingabe" ]; then
-                echo "⚠️  Dieses Feld ist gesetzlich erforderlich."
-            fi
-        done
-        echo "$eingabe"
-    }
 
     name=$(pflicht_eingabe "👤 Dein Name (z. B. Jan Erbert)")
     firma=$(pflicht_eingabe "🏢 Firmenname (z. B. Web Development)")
@@ -124,14 +191,13 @@ if [ ! -f "$KONFIG_PATH" ]; then
     done
     finanzamt=$(pflicht_eingabe "🏛️  Finanzamt")
 
-    read -r -p "❓ Kleinunternehmerregelung nach § 19 UStG? (y/n): " ku
-    if [ "$ku" == "y" ]; then
+    ku=$(ja_nein_eingabe "❓ Kleinunternehmerregelung nach § 19 UStG? (y/n)")
+    if [ "$ku" = "y" ]; then
         kleinunternehmer=true
-        mwst_part=""
+        mwst=""
     else
         kleinunternehmer=false
-        mwst=$(pflicht_eingabe "💰 Mehrwertsteuersatz in % (z. B. 19)")
-        mwst_part=", \"mehrwertsteuer_prozent\": $mwst"
+        mwst=$(prozent_eingabe "💰 Mehrwertsteuersatz in % (z. B. 19)")
     fi
 
     echo "⚠️  Hinweis: Für steuerkonforme Rechnungen muss eine Kopie gemäß § 14b UStG aufbewahrt werden."
@@ -142,36 +208,36 @@ if [ ! -f "$KONFIG_PATH" ]; then
 
     mkdir -p data
 
-    # JSON schreiben
-    cat > "$KONFIG_PATH" <<EOF
-{
-  "absender": {
-    "name": "$name",
-    "firma": "$firma",
-    "straße": "$strasse",
-    "plz": "$plz",
-    "ort": "$ort",
-    "telefon": "$telefon",
-    "email": "$email",
-    "website": "$website"
-  },
-  "bank": {
-    "bankname": "$bankname",
-    "kontoinhaber": "$kontoinhaber",
-    "iban": "$iban",
-    "bic": "$bic"
-  },
-  "finanzen": {
-    "steuer_id_typ": "$steuer_id_typ",
-    "$steuer_id_typ": "$steuer_id_wert",
-    "finanzamt": "$finanzamt",
-    "kleinunternehmer": $kleinunternehmer$mwst_part
-  },
-  "mail": {
-    "bcc": "$bcc"
-  }
-}
-EOF
+    if [ ! -f "$CONFIG_WRITER" ]; then
+        echo "❌ Konfigurationshelfer nicht gefunden: $CONFIG_WRITER"
+        exit 1
+    fi
+
+    export SETUP_NAME="$name"
+    export SETUP_FIRMA="$firma"
+    export SETUP_STRASSE="$strasse"
+    export SETUP_PLZ="$plz"
+    export SETUP_ORT="$ort"
+    export SETUP_TELEFON="$telefon"
+    export SETUP_EMAIL="$email"
+    export SETUP_WEBSITE="$website"
+    export SETUP_BANKNAME="$bankname"
+    export SETUP_KONTOINHABER="$kontoinhaber"
+    export SETUP_IBAN="$iban"
+    export SETUP_BIC="$bic"
+    export SETUP_STEUER_ID_TYP="$steuer_id_typ"
+    export SETUP_STEUER_ID_WERT="$steuer_id_wert"
+    export SETUP_FINANZAMT="$finanzamt"
+    export SETUP_KLEINUNTERNEHMER="$kleinunternehmer"
+    export SETUP_MWST="$mwst"
+    export SETUP_BCC="$bcc"
+
+    "$VENV_PYTHON" "$CONFIG_WRITER" "$KONFIG_PATH"
+    unset SETUP_NAME SETUP_FIRMA SETUP_STRASSE SETUP_PLZ SETUP_ORT
+    unset SETUP_TELEFON SETUP_EMAIL SETUP_WEBSITE SETUP_BANKNAME
+    unset SETUP_KONTOINHABER SETUP_IBAN SETUP_BIC SETUP_STEUER_ID_TYP
+    unset SETUP_STEUER_ID_WERT SETUP_FINANZAMT SETUP_KLEINUNTERNEHMER
+    unset SETUP_MWST SETUP_BCC
 
     echo ""
     echo "✅ konfiguration.json wurde gespeichert unter: $KONFIG_PATH"
@@ -181,18 +247,11 @@ fi
 
 echo ""
 
-# 6. Start-Skript für Linux erzeugen
-START_SCRIPT="start-rechnung.sh"
-if [ ! -f "$START_SCRIPT" ]; then
-    cat > "$START_SCRIPT" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
+# 6. Linux-Startskripte ausführbar machen
+for start_script in rechnung_generieren.sh rechnung_cron.sh; do
+    if [ -f "$start_script" ]; then
+        chmod +x "$start_script"
+    fi
+done
 
-SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
-"\$SCRIPT_DIR/.venv/bin/python" "\$SCRIPT_DIR/src/main.py"
-EOF
-    chmod +x "$START_SCRIPT"
-    echo "🚀 $START_SCRIPT wurde erstellt."
-fi
-
-echo "✅ Projekt ist bereit! Du kannst jetzt './start-rechnung.sh' ausführen."
+echo "✅ Projekt ist bereit! Du kannst jetzt './rechnung_generieren.sh' ausführen."

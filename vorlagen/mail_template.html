@@ -110,8 +110,10 @@
         <strong>{{ absender.name }} – {{ absender.firma }}</strong><br>
         📍 {{ absender.straße }}, {{ absender.plz }} {{ absender.ort }}<br>
         📧 <a href="mailto:{{ absender.email }}" style="color: #007BFF; text-decoration: none;">{{ absender.email }}</a> |
-        📞 <a href="tel:{{ absender.telefon | replace(' ', '') }}" style="color: #007BFF; text-decoration: none;">{{ absender.telefon }}</a> |
+        📞 <a href="tel:{{ absender.telefon | replace(' ', '') }}" style="color: #007BFF; text-decoration: none;">{{ absender.telefon }}</a>
+        {% if absender.website %} |
         🌐 <a href="{{ absender.website }}" style="color: #007BFF; text-decoration: none;">{{ absender.website }}</a>
+        {% endif %}
       </p>
     </div>
   </body>

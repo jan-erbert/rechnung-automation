@@ -80,7 +80,9 @@
           <div style="font-size: 14pt; color: #dbe2ea;">{{ absender.firma }}</div>
         </td>
         <td style="padding: 0.5cm 1cm; text-align: right; border: none;">
+          {% if logo_base64 %}
           <img src="{{ logo_base64 }}" alt="Logo" style="height: 40px;">
+          {% endif %}
         </td>
       </tr>
     </table>
@@ -105,7 +107,11 @@
           {{ absender.plz }} {{ absender.ort }}<br><br>
           Tel.: {{ absender.telefon }}<br>
           E-Mail: {{ absender.email }}<br>
+          {% if absender.website %}
           Internet: {{ absender.website }}<br><br>
+          {% else %}
+          <br>
+          {% endif %}
           Rechnungsdatum: {{ rechnungsdatum }}
         </td>
       </tr>

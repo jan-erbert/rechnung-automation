@@ -4,6 +4,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from validierung import validiere_nichtnegative_ganzzahl, validiere_positive_ganzzahl
+
 
 def lade_konfiguration(pfad: Path) -> dict:
     """Laedt und prueft die zentrale Rechnungs-Konfiguration."""
@@ -31,6 +33,10 @@ def lade_konfiguration(pfad: Path) -> dict:
     if not config["finanzen"].get("kleinunternehmer", False):
         if "mehrwertsteuer_prozent" not in config["finanzen"]:
             raise ValueError("Mehrwertsteuersatz fehlt bei Nicht-Kleinunternehmern.")
+        config["finanzen"]["mehrwertsteuer_prozent"] = validiere_nichtnegative_ganzzahl(
+            config["finanzen"]["mehrwertsteuer_prozent"],
+            "Mehrwertsteuersatz",
+        )
 
     return config
 
@@ -61,10 +67,7 @@ def lade_mail_umgebung(pfad: Path) -> dict:
         felder = ", ".join(fehlende_felder)
         raise ValueError(f"Pflichtfelder fehlen in der Env-Datei: {felder}")
 
-    try:
-        mail_port = int(os.getenv("MAIL_PORT"))
-    except ValueError as err:
-        raise ValueError("MAIL_PORT muss eine Zahl sein.") from err
+    mail_port = validiere_positive_ganzzahl(os.getenv("MAIL_PORT"), "MAIL_PORT")
 
     return {
         "server": os.getenv("MAIL_SERVER"),

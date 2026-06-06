@@ -35,7 +35,7 @@ def _erzeuge_mit_weasyprint(pdf_html: str) -> bytes:
 
 def archiviere_pdf(archiv_pfad: str, anhang_name: str, pdf_bytes: bytes) -> None:
     """Speichert eine erzeugte PDF optional im Kundenarchiv."""
-    archiv_pfad_path = Path(archiv_pfad)
+    archiv_pfad_path = Path(archiv_pfad).expanduser()
     archiv_datei = archiv_pfad_path / anhang_name
     archiv_pfad_path.mkdir(parents=True, exist_ok=True)
     with open(archiv_datei, "wb") as f:

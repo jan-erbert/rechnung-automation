@@ -14,7 +14,7 @@
     "rechnungsdatum": "07.05.2025",          // optional, sonst automatisch -> empfehlung: weglassen!
     "faelligkeit": "14",                     // optional (Tage), Standard: 14
     "abrechnungszyklus": 6,                  // optional, in Monaten (Standard: 1)
-    "letzte_rechnung": "2026-12",            // optional, Datum der letzten Rechnung welche erstellt werden darf im Format YYYY-MM
+    "letzte_rechnung": "2026-12",            // optional, Monat der letzten zu erstellenden Rechnung im Format YYYY-MM
     // "einmalig": true,                     // optional – setzt den Modus auf „einmalige Rechnung“ Standard: false
     "hauptleistung": {
       "beschreibung": "Individuelle Beratung",

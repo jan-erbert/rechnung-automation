@@ -2,18 +2,21 @@ from datetime import datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
 
+from validierung import validiere_datum, validiere_nichtnegative_ganzzahl
+
 
 def baue_rechnungsdaten(eintrag: dict, heute: datetime) -> dict:
     """Ermittelt Datum, Nummer und Faelligkeit fuer eine Rechnung."""
     rechnungsdatum = eintrag.get("rechnungsdatum")
     if not rechnungsdatum:
         rechnungsdatum = heute.strftime("%d.%m.%Y")
+    else:
+        rechnungsdatum = validiere_datum(rechnungsdatum)
 
-    faelligkeit_tage = eintrag.get("faelligkeit", 14)
-    try:
-        faelligkeit_tage = int(faelligkeit_tage)
-    except ValueError:
-        faelligkeit_tage = 14
+    faelligkeit_tage = validiere_nichtnegative_ganzzahl(
+        eintrag.get("faelligkeit", 14),
+        "Faelligkeit",
+    )
 
     rechnungsdatum_obj = datetime.strptime(rechnungsdatum, "%d.%m.%Y")
     faelligkeit_datum = (

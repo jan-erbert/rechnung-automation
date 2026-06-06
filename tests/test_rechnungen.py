@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import pytest
+
 from rechnungen import baue_rechnungsdaten, berechne_steuerwerte
 
 
@@ -41,3 +43,18 @@ def test_berechne_steuerwerte_with_mwst():
     assert steuerdaten["steuerbetrag"] == 19.0
     assert steuerdaten["gesamtpreis_mit_mwst"] == 119.0
     assert steuerdaten["gesamtpreis_str"] == "119,00"
+
+
+def test_baue_rechnungsdaten_rejects_invalid_due_days():
+    """Eine fehlerhafte Faelligkeit wird nicht still ersetzt."""
+    with pytest.raises(ValueError, match="Faelligkeit"):
+        baue_rechnungsdaten({"faelligkeit": "vierzehn"}, datetime(2026, 6, 4))
+
+
+def test_baue_rechnungsdaten_rejects_invalid_invoice_date():
+    """Ein ungueltiges Rechnungsdatum wird verstaendlich abgelehnt."""
+    with pytest.raises(ValueError, match="Rechnungsdatum"):
+        baue_rechnungsdaten(
+            {"rechnungsdatum": "31.02.2026"},
+            datetime(2026, 6, 4),
+        )
