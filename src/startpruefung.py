@@ -1,3 +1,5 @@
+from branding import validiere_branding_config
+from design import validiere_design_config
 from pdf import validiere_pdf_config
 from pfadpruefung import pruefe_lesbare_datei, pruefe_lesbares_verzeichnis
 
@@ -13,6 +15,8 @@ def pruefe_startvoraussetzungen(
     if not isinstance(runtime_config, dict):
         raise ValueError("Der YAML-Bereich 'runtime' muss eine Map sein.")
     validiere_pdf_config(settings.get("pdf", {}))
+    validiere_design_config(settings.get("design", {}))
+    validiere_branding_config(settings.get("branding", {}))
     _pruefe_mail_config(mail_config)
     if not isinstance(daten, list):
         raise ValueError("data/daten.json muss eine JSON-Liste sein.")
@@ -27,13 +31,13 @@ def pruefe_startvoraussetzungen(
         pfade.data_dir / "konfiguration.json",
         "data/konfiguration.json",
     )
-    pruefe_lesbares_verzeichnis(pfade.vorlagen_dir, "Vorlagenverzeichnis")
+    pruefe_lesbares_verzeichnis(pfade.templates_dir, "Template-Verzeichnis")
     pruefe_lesbare_datei(
-        pfade.vorlagen_dir / "mail_template.html",
+        pfade.templates_dir / "mail_template.html",
         "Mailvorlage",
     )
     pruefe_lesbare_datei(
-        pfade.vorlagen_dir / "rechnung_template.html",
+        pfade.templates_dir / "rechnung_template.html",
         "Rechnungsvorlage",
     )
 

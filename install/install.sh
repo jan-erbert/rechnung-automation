@@ -202,6 +202,7 @@ if [ ! -f "$KONFIG_PATH" ]; then
 
     echo "⚠️  Hinweis: Für steuerkonforme Rechnungen muss eine Kopie gemäß § 14b UStG aufbewahrt werden."
     read -r -p "📧 BCC-Empfänger (optional, z.B. empfohlen zur Archivierung): " bcc
+    read -r -p "📨 Sichtbarer Mail-Absendername (optional): " mail_from_name
     if [ -z "$bcc" ]; then
         echo "📌 Es wird empfohlen, eine BCC-Adresse zur revisionssicheren Archivierung anzugeben."
     fi
@@ -231,13 +232,14 @@ if [ ! -f "$KONFIG_PATH" ]; then
     export SETUP_KLEINUNTERNEHMER="$kleinunternehmer"
     export SETUP_MWST="$mwst"
     export SETUP_BCC="$bcc"
+    export SETUP_MAIL_FROM_NAME="$mail_from_name"
 
     "$VENV_PYTHON" "$CONFIG_WRITER" "$KONFIG_PATH"
     unset SETUP_NAME SETUP_FIRMA SETUP_STRASSE SETUP_PLZ SETUP_ORT
     unset SETUP_TELEFON SETUP_EMAIL SETUP_WEBSITE SETUP_BANKNAME
     unset SETUP_KONTOINHABER SETUP_IBAN SETUP_BIC SETUP_STEUER_ID_TYP
     unset SETUP_STEUER_ID_WERT SETUP_FINANZAMT SETUP_KLEINUNTERNEHMER
-    unset SETUP_MWST SETUP_BCC
+    unset SETUP_MWST SETUP_BCC SETUP_MAIL_FROM_NAME
 
     echo ""
     echo "✅ konfiguration.json wurde gespeichert unter: $KONFIG_PATH"

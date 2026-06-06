@@ -23,6 +23,7 @@
     "mehrwertsteuer_prozent": 19
   },
   "mail": {
-    "bcc": "rechnung@mustermann.de"
+    "bcc": "rechnung@mustermann.de",
+    "from_name": "Musterfirma Rechnungen"
   }
 }

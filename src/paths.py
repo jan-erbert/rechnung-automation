@@ -10,8 +10,8 @@ class ProjektPfade:
 
     base_dir: Path
     data_dir: Path
-    stunden_dir: Path
-    vorlagen_dir: Path
+    hours_dir: Path
+    templates_dir: Path
     img_dir: Path
     backup_dir: Path
 
@@ -35,9 +35,9 @@ def erstelle_pfade(
     return ProjektPfade(
         base_dir=base_dir,
         data_dir=_resolve_path(base_dir, paths_config.get("data_dir", "data")),
-        stunden_dir=_resolve_path(base_dir, paths_config.get("hours_dir", "stunden")),
-        vorlagen_dir=_resolve_path(
-            base_dir, paths_config.get("templates_dir", "vorlagen")
+        hours_dir=_resolve_path(base_dir, paths_config.get("hours_dir", "hours")),
+        templates_dir=_resolve_path(
+            base_dir, paths_config.get("templates_dir", "templates")
         ),
         img_dir=_resolve_path(base_dir, paths_config.get("image_dir", "img")),
         backup_dir=_resolve_path(base_dir, paths_config.get("backup_dir", "backup")),

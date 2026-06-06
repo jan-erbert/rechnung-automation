@@ -4,10 +4,12 @@ from email import message_from_string
 
 import pytest
 
+from branding import LogoAsset
 from mail import (
     MailversandFehler,
     baue_fehlerbericht_mail,
     baue_mailtest_mail,
+    baue_rechnungsmail,
     sende_mail,
 )
 
@@ -111,3 +113,37 @@ def test_mail_test_confirms_without_invoice_content():
     assert msg["To"] == "bcc@example.com"
     assert "Mailversand erfolgreich" in html
     assert "keine Rechnungen erzeugt" in html
+
+
+def test_invoice_mail_embeds_configured_cid_logo():
+    """Die Rechnungsmail bettet ein konfiguriertes Logo als CID-Bild ein."""
+    msg = baue_rechnungsmail(
+        mail_user="sender@example.com",
+        empfaenger="kunde@example.com",
+        betreff="Rechnung",
+        mail_html='<img src="cid:rechnung-logo">',
+        pdf_bytes=b"pdf",
+        anhang_name="rechnung.pdf",
+        mail_logo=LogoAsset(data=b"image", subtype="png"),
+    )
+
+    related = msg.get_payload()[0]
+    logo = related.get_payload()[1]
+    assert related.get_content_subtype() == "related"
+    assert logo["Content-ID"] == "<rechnung-logo>"
+    assert logo.get_content_subtype() == "png"
+
+
+def test_invoice_mail_uses_optional_visible_sender_name():
+    """Ein optionaler Absendername wird mit der SMTP-Adresse formatiert."""
+    msg = baue_rechnungsmail(
+        mail_user="sender@example.com",
+        empfaenger="kunde@example.com",
+        betreff="Rechnung",
+        mail_html="Mail",
+        pdf_bytes=b"pdf",
+        anhang_name="rechnung.pdf",
+        from_name="Musterfirma Rechnungen",
+    )
+
+    assert msg["From"] == "Musterfirma Rechnungen <sender@example.com>"

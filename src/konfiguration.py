@@ -29,6 +29,7 @@ def lade_konfiguration(pfad: Path) -> dict:
             raise ValueError(f"Pflichtfeld fehlt: '{bereich}.{feld}'")
 
     _validiere_steuer_id(config["finanzen"])
+    _validiere_mail_optionen(config.get("mail", {}))
 
     if not config["finanzen"].get("kleinunternehmer", False):
         if "mehrwertsteuer_prozent" not in config["finanzen"]:
@@ -39,6 +40,17 @@ def lade_konfiguration(pfad: Path) -> dict:
         )
 
     return config
+
+
+def _validiere_mail_optionen(mail_config: dict) -> None:
+    """Prueft optionale Einstellungen fuer erzeugte E-Mails."""
+    if not isinstance(mail_config, dict):
+        raise ValueError("Der Bereich 'mail' muss ein Objekt sein.")
+    from_name = mail_config.get("from_name")
+    if from_name not in (None, "") and (
+        not isinstance(from_name, str) or not from_name.strip()
+    ):
+        raise ValueError("mail.from_name muss ein Text sein oder leer bleiben.")
 
 
 def _validiere_steuer_id(finanzen: dict) -> None:

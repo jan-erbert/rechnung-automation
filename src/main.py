@@ -6,6 +6,8 @@ import logging
 import os
 from datetime import datetime
 
+from branding import validiere_branding_config
+from design import validiere_design_config
 from konfiguration import lade_konfiguration, lade_mail_umgebung
 from logging_setup import (
     LauffehlerSammler,
@@ -65,6 +67,8 @@ def main():
         konfig = lade_konfiguration(pfade.data_dir / "konfiguration.json")
 
         pruefe_startvoraussetzungen(settings, pfade, daten, mail_config)
+        design_config = validiere_design_config(settings.get("design", {}))
+        branding_config = validiere_branding_config(settings.get("branding", {}))
         logger.info("Mini-Check vor dem Rechnungslauf erfolgreich.")
 
         # ⏳ Verlauf laden
@@ -95,7 +99,7 @@ def main():
         )
 
         # 📩 Jinja2-Templates laden
-        templates = lade_templates(pfade.vorlagen_dir)
+        templates = lade_templates(pfade.templates_dir)
 
         verarbeite_rechnungen(
             daten=daten,
@@ -103,6 +107,8 @@ def main():
             konfig=konfig,
             mail_config=mail_config,
             pdf_config=settings.get("pdf", {}),
+            design_config=design_config,
+            branding_config=branding_config,
             templates=templates,
             rechnungsverlauf=rechnungsverlauf,
             rechnungsverlauf_vorjahr=rechnungsverlauf_vorjahr,
@@ -137,7 +143,12 @@ def _sende_cron_fehlerbericht(
         return
 
     try:
-        msg = baue_fehlerbericht_mail(mail_config["user"], mail_bcc, fehler)
+        msg = baue_fehlerbericht_mail(
+            mail_config["user"],
+            mail_bcc,
+            fehler,
+            from_name=(konfig or {}).get("mail", {}).get("from_name"),
+        )
         sende_mail(
             mail_config["server"],
             mail_config["port"],

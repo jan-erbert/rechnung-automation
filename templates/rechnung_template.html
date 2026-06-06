@@ -26,6 +26,23 @@
         min-height: 100%;
         position: relative;
     }
+    .watermark {
+        position: absolute;
+        top: 42%;
+        left: 8%;
+        width: 84%;
+        transform: rotate(-32deg);
+        transform-origin: center;
+        color: rgba(120, 120, 120, 0.13);
+        font-size: 86pt;
+        font-weight: bold;
+        text-align: center;
+        z-index: 0;
+    }
+    .page-content {
+        position: relative;
+        z-index: 1;
+    }
     .absender-oben {
         font-size: 8pt;
         color: #333;
@@ -67,21 +84,26 @@
         width: calc(100% - 1cm);
         font-size: 9pt;
         padding-bottom: 0;
+        z-index: 1;
     }
   </style>
 </head>
 <body>
   <div class="page">
+    {% if muster_text %}
+    <div class="watermark">{{ muster_text }}</div>
+    {% endif %}
+    <div class="page-content">
 
-    <table style="width: 100%; background: #2f3c50; padding: 0.8cm 1cm; margin-top: 1cm; border: none; border-collapse: collapse; color: #ffffff;">
+    <table style="width: 100%; background: {{ design.pdf.accent_color }}; padding: 0.8cm 1cm; margin-top: 1cm; border: none; border-collapse: collapse; color: {{ design.pdf.accent_text_color }};">
       <tr>
         <td style="padding: 0.5cm 1cm; border: none;">
-          <div style="font-size: 20pt; font-weight: bold;">{{ absender.name }}</div>
-          <div style="font-size: 14pt; color: #dbe2ea;">{{ absender.firma }}</div>
+          <div style="font-size: 20pt; font-weight: bold;">{{ header_title }}</div>
+          <div style="font-size: 14pt; color: {{ design.pdf.accent_muted_text_color }};">{{ header_subtitle }}</div>
         </td>
         <td style="padding: 0.5cm 1cm; text-align: right; border: none;">
           {% if logo_base64 %}
-          <img src="{{ logo_base64 }}" alt="Logo" style="height: 40px;">
+          <img src="{{ logo_base64 }}" alt="Logo" style="height: {{ pdf_logo_height }}px; max-width: 180px;">
           {% endif %}
         </td>
       </tr>
@@ -173,6 +195,7 @@
     <div class="hinweise">
       {{ mwst_hinweis }}<br>
       Bitte begleichen Sie den Rechnungsbetrag bis spätestens <strong>{{ faelligkeit }}</strong>.
+    </div>
     </div>
 
     <div class="footer-fixed">

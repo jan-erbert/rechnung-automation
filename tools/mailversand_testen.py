@@ -29,7 +29,11 @@ def main() -> None:
             "Mailtest nicht moeglich: In data/konfiguration.json fehlt mail.bcc."
         )
 
-    msg = baue_mailtest_mail(mail_config["user"], mail_bcc)
+    msg = baue_mailtest_mail(
+        mail_config["user"],
+        mail_bcc,
+        from_name=konfig.get("mail", {}).get("from_name"),
+    )
     sende_mail(
         mail_config["server"],
         mail_config["port"],

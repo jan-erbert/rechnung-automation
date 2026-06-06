@@ -1,6 +1,6 @@
 <!-- 
 Diese Datei ist ein Beispiel für das HTML-E-Mail-Template.
-Speichere sie als mail_template.html im Ordner /vorlagen.
+Speichere sie als mail_template.html im Ordner /templates.
 Die Platzhalter verwenden Jinja2-Syntax ({{ name }}, {{ rechnungsnummer }} etc.).
 -->
 
@@ -12,10 +12,25 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ name }}, {{ rechnungsnummer }} etc.)
   </head>
   <body style="color: #000000; background-color: #FFFFFF;">
     <div style="max-width: 600px; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); margin: auto;">
-      <div style="background-color: #f4f4f4; padding: 15px; text-align: left;">
-        <h1 style="font-size: 28px; margin: 0; color: #1e3a70; font-weight: bold;">Max Mustermann</h1>
-        <h2 style="font-size: 22px; margin: 0; color: #222; font-weight: normal;">Mustermann <strong style="color: black;">GmbH</strong></h2>
-      </div>
+      <table style="width: 100%; background-color: {{ design.mail.accent_color }}; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 15px; text-align: left;">
+            <h1 style="font-size: 28px; margin: 0; color: {{ design.pdf.accent_text_color }}; font-weight: bold;">{{ header_title }}</h1>
+            <h2 style="font-size: 22px; margin: 0; color: {{ design.pdf.accent_muted_text_color }}; font-weight: normal;">{{ header_subtitle }}</h2>
+          </td>
+          {% if mail_logo_cid %}
+          <td style="padding: 15px; text-align: right; vertical-align: middle;">
+            <img src="cid:{{ mail_logo_cid }}" alt="Logo" style="display: block; max-width: 180px; max-height: {{ mail_logo_height }}px; margin-left: auto;">
+          </td>
+          {% endif %}
+        </tr>
+      </table>
+
+      {% if muster_text %}
+      <p style="margin: 20px 0; padding: 12px; background: #fff4cc; border: 1px solid #e5c04b; color: #5f4a00; font-weight: bold; text-align: center;">
+        Dies ist eine Musterrechnung. Sie ist nicht zur Zahlung bestimmt.
+      </p>
+      {% endif %}
 
       <h2 style="color: #333;">📄 Ihre Rechnung Nr. {{ rechnungsnummer }}</h2>
       <p>Sehr geehrte(r) <strong>{{ name }}</strong>,</p>
@@ -99,9 +114,9 @@ Die Platzhalter verwenden Jinja2-Syntax ({{ name }}, {{ rechnungsnummer }} etc.)
       <p style="text-align: center; font-size: 12px; color: #777;">
         <strong>Max Mustermann GmbH – Web Development</strong><br>
         <strong>📍</strong>Musterstraße 5, 51234 Musterstadt<br>
-        📧 <a href="mailto:Mustermail@mail.de" style="color: #007BFF; text-decoration: none;">Mustermail@mail.de</a> |
-        📞 <a href="tel:0123456789" style="color: #007BFF; text-decoration: none;">0123 456789</a> |
-        🌐 <a href="http://www.max-mustermann.de" style="color: #007BFF; text-decoration: none;">www.max-mustermann.de</a>
+        📧 <a href="mailto:Mustermail@mail.de" style="color: {{ design.mail.link_color }}; text-decoration: none;">Mustermail@mail.de</a> |
+        📞 <a href="tel:0123456789" style="color: {{ design.mail.link_color }}; text-decoration: none;">0123 456789</a> |
+        🌐 <a href="http://www.max-mustermann.de" style="color: {{ design.mail.link_color }}; text-decoration: none;">www.max-mustermann.de</a>
       </p>
     </div>
   </body>

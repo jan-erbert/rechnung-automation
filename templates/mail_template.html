@@ -6,10 +6,25 @@
   </head>
   <body style="color: #000000; background-color: #FFFFFF;">
     <div style="max-width: 600px; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); margin: auto;">
-      <div style="background-color: #f4f4f4; padding: 15px; text-align: left;">
-        <h1 style="font-size: 28px; margin: 0; color: #1e3a70; font-weight: bold;">{{ absender.name }}</h1>
-        <h2 style="font-size: 22px; margin: 0; color: #222; font-weight: normal;">{{ absender.firma }}</h2>
-      </div>
+      <table style="width: 100%; background-color: {{ design.mail.accent_color }}; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 15px; text-align: left;">
+            <h1 style="font-size: 28px; margin: 0; color: {{ design.pdf.accent_text_color }}; font-weight: bold;">{{ header_title }}</h1>
+            <h2 style="font-size: 22px; margin: 0; color: {{ design.pdf.accent_muted_text_color }}; font-weight: normal;">{{ header_subtitle }}</h2>
+          </td>
+          {% if mail_logo_cid %}
+          <td style="padding: 15px; text-align: right; vertical-align: middle;">
+            <img src="cid:{{ mail_logo_cid }}" alt="Logo" style="display: block; max-width: 180px; max-height: {{ mail_logo_height }}px; margin-left: auto;">
+          </td>
+          {% endif %}
+        </tr>
+      </table>
+
+      {% if muster_text %}
+      <p style="margin: 20px 0; padding: 12px; background: #fff4cc; border: 1px solid #e5c04b; color: #5f4a00; font-weight: bold; text-align: center;">
+        Dies ist eine Musterrechnung. Sie ist nicht zur Zahlung bestimmt.
+      </p>
+      {% endif %}
 
       <h2 style="color: #333;">📄 Ihre Rechnung Nr. {{ rechnungsnummer }}</h2>
       <p>Sehr geehrte(r) <strong>{{ name }}</strong>,</p>
@@ -109,10 +124,10 @@
       <p style="text-align: center; font-size: 12px; color: #777;">
         <strong>{{ absender.name }} – {{ absender.firma }}</strong><br>
         📍 {{ absender.straße }}, {{ absender.plz }} {{ absender.ort }}<br>
-        📧 <a href="mailto:{{ absender.email }}" style="color: #007BFF; text-decoration: none;">{{ absender.email }}</a> |
-        📞 <a href="tel:{{ absender.telefon | replace(' ', '') }}" style="color: #007BFF; text-decoration: none;">{{ absender.telefon }}</a>
+        📧 <a href="mailto:{{ absender.email }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ absender.email }}</a> |
+        📞 <a href="tel:{{ absender.telefon | replace(' ', '') }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ absender.telefon }}</a>
         {% if absender.website %} |
-        🌐 <a href="{{ absender.website }}" style="color: #007BFF; text-decoration: none;">{{ absender.website }}</a>
+        🌐 <a href="{{ absender.website }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ absender.website }}</a>
         {% endif %}
       </p>
     </div>

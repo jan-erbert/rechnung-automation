@@ -201,6 +201,7 @@ if (-not (Test-Path $ConfigPath)) {
 
     Write-Host "Hinweis: Fuer steuerkonforme Rechnungen muss eine Kopie gemaess Paragraph 14b UStG aufbewahrt werden."
     $Bcc = Read-Host "BCC-Empfaenger (optional, empfohlen zur Archivierung)"
+    $MailFromName = Read-Host "Sichtbarer Mail-Absendername (optional)"
 
     $Config = [ordered]@{
         absender = $Absender
@@ -208,6 +209,7 @@ if (-not (Test-Path $ConfigPath)) {
         finanzen = $Finanzen
         mail = [ordered]@{
             bcc = $Bcc.Trim()
+            from_name = $MailFromName.Trim()
         }
     }
 

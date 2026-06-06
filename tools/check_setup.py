@@ -8,6 +8,11 @@ SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
+from branding import (  # noqa: E402
+    loese_logo_pfad_auf,
+    validiere_branding_config,
+)
+from design import validiere_design_config  # noqa: E402
 from pdf import validiere_pdf_config  # noqa: E402
 from paths import erstelle_pfade  # noqa: E402
 from pfadpruefung import (  # noqa: E402
@@ -74,6 +79,8 @@ def main() -> int:
 
     if settings:
         _check_pdf_settings(report, settings)
+        _check_design_settings(report, settings)
+        _check_branding_settings(report, settings)
         _check_paths(report, settings, daten)
 
     report.print_summary()
@@ -101,6 +108,37 @@ def _check_pdf_settings(report: CheckReport, settings: dict) -> None:
         validiere_pdf_config(settings.get("pdf", {}))
     except Exception as err:
         report.error(f"PDF-Konfiguration ist ungueltig: {err}")
+
+
+def _check_design_settings(report: CheckReport, settings: dict) -> None:
+    """Prueft die konfigurierten Designfarben."""
+    try:
+        validiere_design_config(settings.get("design", {}))
+    except Exception as err:
+        report.error(f"Design-Konfiguration ist ungueltig: {err}")
+
+
+def _check_branding_settings(report: CheckReport, settings: dict) -> None:
+    """Prueft Branding-Konfiguration und konfigurierte Logo-Dateien."""
+    try:
+        branding = validiere_branding_config(settings.get("branding", {}))
+        pfade = erstelle_pfade(settings, PROJECT_ROOT)
+    except Exception as err:
+        report.error(f"Branding-Konfiguration ist ungueltig: {err}")
+        return
+
+    for name, bezeichnung in (
+        ("pdf_logo", "PDF-Logo"),
+        ("mail_logo", "Mail-Logo"),
+    ):
+        pfad_wert = branding[name]
+        if pfad_wert is None:
+            continue
+        try:
+            logo_pfad = loese_logo_pfad_auf(pfade.img_dir, pfad_wert)
+            pruefe_lesbare_datei(logo_pfad, bezeichnung)
+        except ValueError as err:
+            report.warning(str(err))
 
 
 def _check_env(report: CheckReport) -> None:
@@ -176,6 +214,7 @@ def _check_konfiguration(report: CheckReport) -> None:
         ("steuer_id_typ", "finanzamt", "kleinunternehmer"),
     )
     _check_steuer_id(report, config.get("finanzen", {}))
+    _check_mail_optionen(report, config.get("mail", {}))
     finanzen = config.get("finanzen", {})
     if isinstance(finanzen, dict) and finanzen.get("kleinunternehmer") is False:
         try:
@@ -244,6 +283,18 @@ def _check_steuer_id(report: CheckReport, finanzen: dict) -> None:
         report.error(f"data/konfiguration.json: finanzen.{steuer_id_typ} fehlt.")
 
 
+def _check_mail_optionen(report: CheckReport, mail_config: dict) -> None:
+    """Prueft optionale Mail-Einstellungen ohne Adressen auszugeben."""
+    if not isinstance(mail_config, dict):
+        report.error("data/konfiguration.json: mail muss ein Objekt sein.")
+        return
+    from_name = mail_config.get("from_name")
+    if from_name not in (None, "") and (
+        not isinstance(from_name, str) or not from_name.strip()
+    ):
+        report.error("data/konfiguration.json: mail.from_name ist ungueltig.")
+
+
 def _load_json(path: Path, report: CheckReport, label: str):
     """Laedt JSON-Dateien fuer die Setup-Pruefung."""
     if not path.exists():
@@ -297,17 +348,17 @@ def _check_paths(report: CheckReport, settings: dict, daten: list | None) -> Non
         ),
         (
             pruefe_lesbares_verzeichnis,
-            pfade.vorlagen_dir,
-            "Vorlagenverzeichnis",
+            pfade.templates_dir,
+            "Template-Verzeichnis",
         ),
         (
             pruefe_lesbare_datei,
-            pfade.vorlagen_dir / "mail_template.html",
+            pfade.templates_dir / "mail_template.html",
             "Mailvorlage",
         ),
         (
             pruefe_lesbare_datei,
-            pfade.vorlagen_dir / "rechnung_template.html",
+            pfade.templates_dir / "rechnung_template.html",
             "Rechnungsvorlage",
         ),
     )
@@ -342,11 +393,11 @@ def _check_paths(report: CheckReport, settings: dict, daten: list | None) -> Non
                 "Logverzeichnis",
             )
 
-    if pfade.stunden_dir.exists():
+    if pfade.hours_dir.exists():
         _melde_pfadfehler(
             report,
             pruefe_lesbares_verzeichnis,
-            pfade.stunden_dir,
+            pfade.hours_dir,
             "Stundenverzeichnis",
         )
     elif _hat_stundenkunden(daten):
@@ -363,9 +414,6 @@ def _check_paths(report: CheckReport, settings: dict, daten: list | None) -> Non
             pfade.img_dir,
             "Bildverzeichnis",
         )
-        logo_pfad = pfade.img_dir / "logo.png"
-        if logo_pfad.exists():
-            _melde_pfadfehler(report, pruefe_lesbare_datei, logo_pfad, "Logo")
 
     for index, kunde in enumerate(daten or [], start=1):
         archiv_pfad = kunde.get("archiv_pfad") if isinstance(kunde, dict) else None

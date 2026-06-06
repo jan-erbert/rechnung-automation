@@ -64,3 +64,21 @@ def test_lade_konfiguration_rejects_missing_selected_tax_id(tmp_path):
 
     with pytest.raises(ValueError, match="finanzen.ust_id"):
         lade_konfiguration(config_path)
+
+
+def test_lade_konfiguration_rejects_whitespace_mail_sender_name(tmp_path):
+    """Ein gesetzter Mail-Absendername darf nicht nur Leerzeichen enthalten."""
+    config_path = _write_config(
+        tmp_path,
+        {
+            "steuer_id_typ": "steuernummer",
+            "steuernummer": "12/345/67890",
+            "kleinunternehmer": True,
+        },
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config["mail"] = {"from_name": "   "}
+    config_path.write_text(json.dumps(config), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="mail.from_name"):
+        lade_konfiguration(config_path)

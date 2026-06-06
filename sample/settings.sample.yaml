@@ -18,8 +18,8 @@ design:
     link_color: "#007BFF"
 
 branding:
-  pdf_logo: sample_logo.png
-  mail_logo: sample_logo.png
+  pdf_logo: logo.png
+  mail_logo: null
   pdf_logo_height: 40
   mail_logo_height: 60
   header_title: null

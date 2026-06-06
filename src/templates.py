@@ -1,11 +1,7 @@
-import base64
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -16,27 +12,13 @@ class RechnungsTemplates:
     rechnung: object
 
 
-def lade_templates(vorlagen_dir: Path) -> RechnungsTemplates:
+def lade_templates(templates_dir: Path) -> RechnungsTemplates:
     """Laedt die HTML-Templates fuer Mail und Rechnung."""
-    env = Environment(loader=FileSystemLoader(vorlagen_dir))
+    env = Environment(loader=FileSystemLoader(templates_dir))
     return RechnungsTemplates(
         mail=env.get_template("mail_template.html"),
         rechnung=env.get_template("rechnung_template.html"),
     )
-
-
-def lade_logo_base64(img_dir: Path) -> str:
-    """Laedt das optionale Logo als Base64-Data-URI."""
-    try:
-        with open(img_dir / "logo.png", "rb") as img_file:
-            logo_base64 = base64.b64encode(img_file.read()).decode("utf-8")
-    except FileNotFoundError:
-        logger.warning(
-            "Logo-Datei nicht gefunden. Logo wird in der Rechnung nicht angezeigt."
-        )
-        return ""
-
-    return f"data:image/png;base64,{logo_base64}"
 
 
 def baue_template_context(
@@ -57,7 +39,11 @@ def baue_template_context(
     steuerbetrag: float,
     mwst_hinweis: str,
     logo_base64: str,
+    mail_logo_cid: str,
+    design: dict,
+    branding: dict,
     stundeninfo: dict | None = None,
+    muster_text: str = "",
 ) -> dict:
     """Baut den gemeinsamen Kontext fuer Mail- und PDF-Templates."""
     context = {
@@ -76,6 +62,13 @@ def baue_template_context(
         "leistungen": leistungs_liste,
         "gesamtpreis": gesamtpreis_str,
         "logo_base64": logo_base64,
+        "mail_logo_cid": mail_logo_cid,
+        "muster_text": muster_text,
+        "design": design,
+        "header_title": branding.get("header_title") or absender["name"],
+        "header_subtitle": branding.get("header_subtitle") or absender["firma"],
+        "pdf_logo_height": branding["pdf_logo_height"],
+        "mail_logo_height": branding["mail_logo_height"],
         "abrechnungszyklus": abrechnungszyklus,
         "absender": absender,
         "bank": bank,

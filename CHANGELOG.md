@@ -2,7 +2,39 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
-## [1.3.5] - Unreleased
+## [1.3.6] - 2026-06-06
+
+### Added
+
+- Konfigurierbare Akzentfarben für PDF-Rechnungen und Rechnungsmails unter `design` in `config/settings.yaml` ergänzt.
+- Konfigurierbare PDF- und Mail-Logos unter `branding` in `config/settings.yaml` ergänzt.
+- Optionale Branding-Headertexte für PDF und Rechnungsmail ergänzt, ohne Absenderdaten oder Rechnungsfuß zu verändern.
+- Konfigurierbare Logo-Höhen für PDF und Rechnungsmail ergänzt.
+- Optionalen sichtbaren Mail-Absendernamen `mail.from_name` ergänzt.
+- Optionale Mail-Logos werden als CID-Bilder direkt in Rechnungsmails eingebettet.
+- Relative Logo-Pfade innerhalb von `paths.image_dir`, Unterordner und absolute Pfade werden unterstützt.
+- Zentrale Prüfung der Designfarben im Setup-Check und im Mini-Check vor Rechnungsläufen ergänzt.
+- Branding-Konfiguration und Logo-Dateien werden auf unterstützte Formate und Lesbarkeit geprüft.
+- Tests für Standardfarben, individuelle Akzentfarben und ungültige Farbwerte ergänzt.
+- Tests für Branding-Pfade, Logoformate und eingebettete Mail-Logos ergänzt.
+- Interaktives Tool `tools/testrechnung_versenden.py` für vollständige Musterrechnungen mit Monats-, Pauschal- oder Stundenbeispiel ergänzt.
+- PDF-Musterrechnungen erhalten ein großes diagonales `MUSTER`-Wasserzeichen; Betreff und Mailtext werden ebenfalls eindeutig gekennzeichnet.
+- Tests für Musterarten, Standardempfänger und Musterkennzeichnung ergänzt.
+
+### Changed
+
+- Die bisherigen PDF- und Mailfarben sind jetzt explizite Standardwerte statt fest in den Vorlagen hinterlegt.
+- Die Mail-Akzentfarbe färbt jetzt sichtbar den gesamten Kopfbereich der Rechnungsmail.
+- Interner Standard der Mail-Akzentfarbe an den aktuellen PDF-Akzentfarbton angeglichen.
+- Überholte feste Setup-Prüfung auf `img/logo.png` entfernt; geprüft werden jetzt die konfigurierten Branding-Pfade.
+- Produktiven Template-Ordner von `vorlagen/` nach `templates/` umbenannt.
+- Standardordner fuer Stundenlisten von `stunden/` nach `hours/` umbenannt.
+- Neutrale Settings-Vorlage `sample/settings.sample.yaml` ergänzt.
+- Dokumentation zur Netto-, Mehrwertsteuer- und Bruttoberechnung präzisiert.
+- Runtime-Abhängigkeiten `MarkupSafe` und `python-dotenv` auf aktuelle Versionen angehoben.
+- Interne Versionsnummer auf `1.3.6` gesetzt.
+
+## [1.3.5] - 2026-06-06
 
 ### Fixed
 

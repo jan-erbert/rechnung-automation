@@ -15,7 +15,7 @@ def berechne_stundenleistung(
     firma: str,
     zyklus: int,
     stundensatz: float,
-    stunden_dir: Path,
+    hours_dir: Path,
     interactive: bool = True,
 ):
     """Berechnet stundenbasierte Leistungen fuer den Abrechnungszeitraum."""
@@ -30,7 +30,7 @@ def berechne_stundenleistung(
         monat_dt = heute - relativedelta(months=i + 1)
         monat = monat_dt.month
         jahr = monat_dt.year
-        dateiname = stunden_dir / f"stunden_{jahr}_{monat:02d}.json"
+        dateiname = hours_dir / f"stunden_{jahr}_{monat:02d}.json"
 
         eintrag_gefunden = False
 
@@ -86,7 +86,7 @@ def berechne_stundenleistung(
 def baue_leistungspositionen(
     eintrag: dict,
     abrechnungszyklus: int,
-    stunden_dir: Path,
+    hours_dir: Path,
     interactive: bool = True,
 ) -> dict:
     """Baut Leistungspositionen und Nettosumme fuer einen Kundeneintrag."""
@@ -103,7 +103,7 @@ def baue_leistungspositionen(
             eintrag.get("firma", ""),
             abrechnungszyklus,
             betrag,
-            stunden_dir,
+            hours_dir,
             interactive=interactive,
         )
 

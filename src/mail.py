@@ -1,10 +1,14 @@
 import logging
 import smtplib
 from datetime import datetime
+from email.mime.image import MIMEImage
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formataddr
 from html import escape
+
+from branding import LogoAsset
 
 logger = logging.getLogger(__name__)
 
@@ -26,16 +30,32 @@ def baue_rechnungsmail(
     pdf_bytes: bytes,
     anhang_name: str,
     mail_bcc: str | None = None,
+    mail_logo: LogoAsset | None = None,
+    from_name: str | None = None,
 ) -> MIMEMultipart:
     """Baut die MIME-Mail mit HTML-Inhalt und PDF-Anhang."""
     msg = MIMEMultipart()
-    msg["From"] = mail_user
+    msg["From"] = _formatiere_absender(mail_user, from_name)
     msg["To"] = empfaenger
     msg["Subject"] = betreff
     if mail_bcc:
         msg["Bcc"] = mail_bcc
 
-    msg.attach(MIMEText(mail_html, "html"))
+    if mail_logo:
+        related = MIMEMultipart("related")
+        related.attach(MIMEText(mail_html, "html"))
+        logo_part = MIMEImage(mail_logo.data, _subtype=mail_logo.subtype)
+        logo_part.add_header("Content-ID", "<rechnung-logo>")
+        dateiendung = "jpg" if mail_logo.subtype == "jpeg" else mail_logo.subtype
+        logo_part.add_header(
+            "Content-Disposition",
+            "inline",
+            filename=f"logo.{dateiendung}",
+        )
+        related.attach(logo_part)
+        msg.attach(related)
+    else:
+        msg.attach(MIMEText(mail_html, "html"))
 
     pdf_part = MIMEApplication(pdf_bytes, _subtype="pdf")
     pdf_part.add_header("Content-Disposition", "attachment", filename=anhang_name)
@@ -49,6 +69,7 @@ def baue_fehlerbericht_mail(
     empfaenger: str,
     fehler: list[dict[str, str]],
     zeitpunkt: datetime | None = None,
+    from_name: str | None = None,
 ) -> MIMEMultipart:
     """Baut eine HTML-Mail mit schweren Fehlern eines Cronlaufs."""
     zeitpunkt = zeitpunkt or datetime.now()
@@ -77,6 +98,7 @@ def baue_fehlerbericht_mail(
         empfaenger,
         f"Fehlerbericht Rechnungslauf - {zeitpunkt:%d.%m.%Y %H:%M}",
         html,
+        from_name=from_name,
     )
 
 
@@ -84,6 +106,7 @@ def baue_mailtest_mail(
     mail_user: str,
     empfaenger: str,
     zeitpunkt: datetime | None = None,
+    from_name: str | None = None,
 ) -> MIMEMultipart:
     """Baut eine kurze Bestaetigungsmail fuer den SMTP-Test."""
     zeitpunkt = zeitpunkt or datetime.now()
@@ -102,6 +125,7 @@ def baue_mailtest_mail(
         empfaenger,
         "Mailtest Rechnung-Automation erfolgreich",
         html,
+        from_name=from_name,
     )
 
 
@@ -110,14 +134,20 @@ def baue_html_mail(
     empfaenger: str,
     betreff: str,
     html: str,
+    from_name: str | None = None,
 ) -> MIMEMultipart:
     """Baut eine einfache HTML-Mail ohne Anhang."""
     msg = MIMEMultipart()
-    msg["From"] = mail_user
+    msg["From"] = _formatiere_absender(mail_user, from_name)
     msg["To"] = empfaenger
     msg["Subject"] = betreff
     msg.attach(MIMEText(html, "html"))
     return msg
+
+
+def _formatiere_absender(mail_user: str, from_name: str | None) -> str:
+    """Formatiert die SMTP-Adresse mit einem optionalen sichtbaren Namen."""
+    return formataddr((from_name, mail_user)) if from_name else mail_user
 
 
 def _baue_statusmail_html(

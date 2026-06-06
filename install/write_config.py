@@ -44,6 +44,7 @@ def baue_konfiguration(values: dict[str, str]) -> dict:
         "finanzen": finanzen,
         "mail": {
             "bcc": values.get("SETUP_BCC", ""),
+            "from_name": values.get("SETUP_MAIL_FROM_NAME", ""),
         },
     }
 

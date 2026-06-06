@@ -2,7 +2,7 @@
 
 Ein flexibles Python-Tool zur automatisierten Erstellung und Versendung von PDF-Rechnungen per E-Mail – ideal für Freelancer und Kleinunternehmer.
 
-**Aktuelle stabile Version:** `1.3.4`
+**Aktuelle stabile Version:** `1.3.6`
 
 ## ✅ Funktionen
 
@@ -69,9 +69,43 @@ Enthält nicht-sensitive Projekteinstellungen wie Pfade, Runtime-Optionen und di
 ```yaml
 pdf:
   engine: weasyprint
+
+design:
+  pdf:
+    accent_color: "#2f3c50"
+    accent_text_color: "#ffffff"
+    accent_muted_text_color: "#dbe2ea"
+  mail:
+    accent_color: "#1e3a70"
+    link_color: "#007BFF"
+
+branding:
+  pdf_logo: logo.png
+  mail_logo: null
+  pdf_logo_height: 40
+  mail_logo_height: 60
+  header_title: null
+  header_subtitle: null
 ```
 
 Als PDF-Engine wird `weasyprint` verwendet.
+Unter `design` können die Akzentfarben der PDF-Rechnung und der
+Rechnungsmail als sechsstellige Hex-Farben angepasst werden. Die gezeigten
+Werte entsprechen dem Standarddesign. `design.mail.accent_color` färbt den
+Kopfbereich der Rechnungsmail; dessen Textfarben entsprechen den konfigurierten
+PDF-Akzenttextfarben.
+
+`branding.pdf_logo` und `branding.mail_logo` wählen optionale PNG- oder
+JPEG-Logos aus. Relative Pfade werden innerhalb von `paths.image_dir` gesucht;
+Unterordner wie `branding/mail-logo.png` sind möglich. Alternativ kann ein
+absoluter Pfad angegeben werden. Mit `null` wird das jeweilige Logo deaktiviert.
+Das Mail-Logo wird eingebettet und rechts im Kopf der Rechnungsmail angezeigt.
+Mit `branding.header_title` und `branding.header_subtitle` können die beiden
+Textzeilen im Kopf von PDF und Rechnungsmail unabhängig von den Absenderdaten
+angepasst werden. Bei `null` werden weiterhin `absender.name` und
+`absender.firma` verwendet.
+`branding.pdf_logo_height` und `branding.mail_logo_height` steuern die
+Logo-Höhe in Pixeln. Erlaubt sind Werte von `10` bis `200`.
 
 ### Logging
 
@@ -155,7 +189,8 @@ Beinhaltet die eigenen Daten wie Absender, Bankdaten und Mail. Kann interaktiv �
     "mehrwertsteuer_prozent": 19
   },
   "mail": {
-    "bcc": "rechnung@mustermann.de"
+    "bcc": "rechnung@mustermann.de",
+    "from_name": "Musterfirma Rechnungen"
   }
 }
 ```
@@ -166,6 +201,16 @@ Für Rechnungen muss entweder eine Steuernummer oder eine USt-IdNr. konfiguriert
 "steuer_id_typ": "ust_id",
 "ust_id": "DE123456789"
 ```
+
+`mail.from_name` ist optional und steuert den sichtbaren Namen des
+Mail-Absenders. Ohne Wert wird wie bisher nur die SMTP-Adresse aus `.env`
+verwendet.
+
+Wenn `kleinunternehmer` auf `false` steht, versteht das Tool die bei den
+Leistungen hinterlegten Beträge als Nettopreise. Der konfigurierte
+Mehrwertsteuersatz wird zusätzlich berechnet und Rechnung sowie Mail weisen
+Netto-, Steuer- und Bruttobetrag aus. Bei `kleinunternehmer: true` wird keine
+Mehrwertsteuer addiert.
 
 ---
 
@@ -240,6 +285,20 @@ python tools/mailversand_testen.py
 > Dieser Befehl sendet eine echte Testmail ausschließlich an den konfigurierten
 > BCC-Empfänger. Er erzeugt keine Rechnungen, PDFs oder Verlaufsdaten.
 
+### Darstellung mit einer Musterrechnung testen
+
+```bash
+python tools/testrechnung_versenden.py
+```
+
+> Dieser Befehl erzeugt eine echte PDF-Musterrechnung und versendet eine echte
+> Rechnungsmail. Standardempfänger ist die konfigurierte BCC-Adresse; beim
+> Start kann eine andere Adresse eingegeben werden. Das Tool fragt nach einem
+> Monats-, Pauschal- oder Stundenmuster und verwendet ansonsten die aktuelle
+> Konfiguration, Vorlagen, Farben und Logos. PDF, Betreff und Mailtext sind
+> deutlich als Muster gekennzeichnet. Kundendaten, Verlauf und Archive werden
+> nicht verändert.
+
 ---
 
 ## 📁 Projektstruktur
@@ -256,7 +315,7 @@ rechnung-automation/
 │   ├── konfiguration.json         # Absender-, Steuer- und Bankdaten
 │   └── verlauf-20XX.json          # Automatisch gepflegter Rechnungsverlauf
 ├── img/
-│   └── logo.png                   # Optionales Logo für PDF und Mail
+│   └── logo.png                   # Standardlogo für die PDF
 ├── logs/                          # Lokale Logdateien (nicht ins Git)
 ├── install/
 │   ├── install.ps1                # Einrichtungsskript (Windows PowerShell)
@@ -270,7 +329,8 @@ rechnung-automation/
 │   ├── .env.sample
 │   ├── konfiguration.sample.json
 │   ├── mail_template.sample.html
-│   └── rechnung_template.sample.html
+│   ├── rechnung_template.sample.html
+│   └── settings.sample.yaml
 ├── src/
 │   ├── faelligkeit.py             # Fälligkeitsprüfung für Rechnungen
 │   ├── konfiguration.py           # Konfigurations- und Mail-Env-Laden
@@ -286,12 +346,13 @@ rechnung-automation/
 │   ├── templates.py               # Template-Laden und Kontextaufbau
 │   ├── verlauf.py                 # Rechnungsverlauf laden und absichern
 │   └── workflow.py                # Orchestrierung pro Rechnungslauf
-├── stunden/                       # Stundenlisten pro Monat
+├── hours/                         # Stundenlisten pro Monat
 ├── tools/
 │   ├── check_setup.py             # Ungefährlicher Setup-Check
 │   ├── kunden_anlegen.py          # Interaktive Kundenerfassung
-│   └── mailversand_testen.py      # SMTP-Testmail ausschließlich an BCC
-├── vorlagen/
+│   ├── mailversand_testen.py      # SMTP-Testmail ausschließlich an BCC
+│   └── testrechnung_versenden.py  # Markierte Musterrechnung versenden
+├── templates/
 │   ├── mail_template.html         # HTML-Vorlage für E-Mail
 │   └── rechnung_template.html     # HTML-Vorlage für PDF-Rechnung
 ├── rechnung_generieren.ps1        # Schnellstart-Skript für Windows
@@ -307,9 +368,10 @@ rechnung-automation/
 
 ## 🧩 Templates
 
-- `vorlagen/rechnung_template.html` → PDF-Design
-- `vorlagen/mail_template.html` → E-Mail-Text (HTML)
-- `img/logo.png` → Logo für die PDF
+- `templates/rechnung_template.html` → PDF-Design
+- `templates/mail_template.html` → E-Mail-Text (HTML)
+- `branding.pdf_logo` → optionales Logo für die PDF
+- `branding.mail_logo` → optionales, eingebettetes Logo für die Rechnungsmail
 
 Bearbeite die Templates direkt, um Texte, Farben oder Formatierungen zu ändern.
 

@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 
+from branding import lade_logo_asset
 from faelligkeit import rechnung_fällig
 from kunden import (
     entferne_kunde_aus_daten,
@@ -16,7 +17,7 @@ from rechnungen import (
     berechne_abrechnungszeitraum,
     berechne_steuerwerte,
 )
-from templates import baue_template_context, lade_logo_base64
+from templates import baue_template_context
 from validierung import validiere_kundeneintrag, validiere_positive_ganzzahl
 from verlauf import (
     VERSANDSTATUS_FAILED,
@@ -38,6 +39,8 @@ def verarbeite_rechnungen(
     konfig: dict,
     mail_config: dict,
     pdf_config: dict,
+    design_config: dict,
+    branding_config: dict,
     templates,
     rechnungsverlauf: list,
     rechnungsverlauf_vorjahr: list,
@@ -49,6 +52,7 @@ def verarbeite_rechnungen(
     bank = konfig["bank"]
     finanzen = konfig["finanzen"]
     mail_bcc = konfig.get("mail", {}).get("bcc") or None
+    mail_from_name = konfig.get("mail", {}).get("from_name") or None
 
     for eintrag in daten:
         try:
@@ -60,8 +64,11 @@ def verarbeite_rechnungen(
                 bank=bank,
                 finanzen=finanzen,
                 mail_bcc=mail_bcc,
+                mail_from_name=mail_from_name,
                 mail_config=mail_config,
                 pdf_config=pdf_config,
+                design_config=design_config,
+                branding_config=branding_config,
                 templates=templates,
                 rechnungsverlauf=rechnungsverlauf,
                 rechnungsverlauf_vorjahr=rechnungsverlauf_vorjahr,
@@ -88,8 +95,11 @@ def _verarbeite_kunden_im_lauf(
     bank: dict,
     finanzen: dict,
     mail_bcc: str | None,
+    mail_from_name: str | None,
     mail_config: dict,
     pdf_config: dict,
+    design_config: dict,
+    branding_config: dict,
     templates,
     rechnungsverlauf: list,
     rechnungsverlauf_vorjahr: list,
@@ -135,8 +145,11 @@ def _verarbeite_kunden_im_lauf(
         bank=bank,
         finanzen=finanzen,
         mail_bcc=mail_bcc,
+        mail_from_name=mail_from_name,
         mail_config=mail_config,
         pdf_config=pdf_config,
+        design_config=design_config,
+        branding_config=branding_config,
         templates=templates,
         rechnungsverlauf=rechnungsverlauf,
         verlauf_dateiname=verlauf_dateiname,
@@ -152,8 +165,11 @@ def _verarbeite_kundeneintrag(
     bank: dict,
     finanzen: dict,
     mail_bcc: str | None,
+    mail_from_name: str | None,
     mail_config: dict,
     pdf_config: dict,
+    design_config: dict,
+    branding_config: dict,
     templates,
     rechnungsverlauf: list,
     verlauf_dateiname,
@@ -179,7 +195,7 @@ def _verarbeite_kundeneintrag(
     leistungsdaten = baue_leistungspositionen(
         eintrag,
         abrechnungszyklus,
-        pfade.stunden_dir,
+        pfade.hours_dir,
         interactive=interactive,
     )
     leistungs_liste = leistungsdaten["leistungs_liste"]
@@ -201,7 +217,16 @@ def _verarbeite_kundeneintrag(
         return
 
     steuerdaten = berechne_steuerwerte(gesamtpreis, finanzen)
-    logo_base64 = lade_logo_base64(pfade.img_dir)
+    pdf_logo = lade_logo_asset(
+        pfade.img_dir,
+        branding_config["pdf_logo"],
+        "PDF-Logo",
+    )
+    mail_logo = lade_logo_asset(
+        pfade.img_dir,
+        branding_config["mail_logo"],
+        "Mail-Logo",
+    )
     abrechnungszeitraum = berechne_abrechnungszeitraum(heute, abrechnungszyklus)
 
     context = baue_template_context(
@@ -221,7 +246,10 @@ def _verarbeite_kundeneintrag(
         gesamtpreis_mit_mwst=steuerdaten["gesamtpreis_mit_mwst"],
         steuerbetrag=steuerdaten["steuerbetrag"],
         mwst_hinweis=steuerdaten["mwst_hinweis"],
-        logo_base64=logo_base64,
+        logo_base64=pdf_logo.data_uri if pdf_logo else "",
+        mail_logo_cid="rechnung-logo" if mail_logo else "",
+        design=design_config,
+        branding=branding_config,
         stundeninfo=stundeninfo,
     )
 
@@ -239,6 +267,8 @@ def _verarbeite_kundeneintrag(
         pdf_bytes=pdf_bytes,
         anhang_name=anhang_name,
         mail_bcc=mail_bcc,
+        mail_logo=mail_logo,
+        from_name=mail_from_name,
     )
 
     versandeintrag = baue_verlaufseintrag(

@@ -28,6 +28,7 @@ def _config_values() -> dict[str, str]:
         "SETUP_KLEINUNTERNEHMER": "false",
         "SETUP_MWST": "19",
         "SETUP_BCC": "archiv@example.com",
+        "SETUP_MAIL_FROM_NAME": "Testfirma Rechnungen",
     }
 
 
@@ -41,6 +42,7 @@ def test_write_config_preserves_json_special_characters(tmp_path):
     assert config["absender"]["name"] == 'Jan "Test"'
     assert config["absender"]["firma"] == "Firma\\Nord"
     assert config["finanzen"]["mehrwertsteuer_prozent"] == 19
+    assert config["mail"]["from_name"] == "Testfirma Rechnungen"
 
 
 def test_small_business_config_omits_vat_rate():
