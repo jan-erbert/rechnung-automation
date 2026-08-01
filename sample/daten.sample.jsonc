@@ -6,6 +6,7 @@
     "name": "Herr Mustermann",
     "firma": "Musterfirma GmbH",
     "email": "kunde@example.com",
+    "cc": ["buchhaltung@example.com"],       // optional, eine oder mehrere CC-Adressen
     "strasse": "Musterstraße 1",
     "plz": "12345",
     "ort": "Musterstadt",

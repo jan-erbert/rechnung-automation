@@ -1,4 +1,5 @@
 from datetime import datetime
+from email.utils import parseaddr
 from math import isfinite
 
 ERLAUBTE_EINHEITEN = ("monat", "stunde", "pauschal")
@@ -63,6 +64,27 @@ def validiere_einheit(wert) -> str:
     return einheit
 
 
+def normalisiere_mail_liste(wert, feld: str = "E-Mail") -> list[str]:
+    """Prueft und normalisiert eine optionale Mailadresse oder Mailadressliste."""
+    if wert in (None, ""):
+        return []
+
+    if isinstance(wert, str):
+        adressen = [wert]
+    elif isinstance(wert, list):
+        adressen = wert
+    else:
+        raise ValueError(f"{feld} muss eine Mailadresse oder eine Liste sein.")
+
+    normalisierte_adressen = []
+    for index, adresse in enumerate(adressen, start=1):
+        if not isinstance(adresse, str) or not adresse.strip():
+            raise ValueError(f"{feld} #{index} muss eine Mailadresse sein.")
+        normalisierte_adressen.append(_validiere_mailadresse(adresse.strip(), feld))
+
+    return normalisierte_adressen
+
+
 def validiere_kundeneintrag(eintrag: dict) -> None:
     """Prueft abrechnungsrelevante Werte eines Kundeneintrags."""
     if not isinstance(eintrag, dict):
@@ -78,6 +100,10 @@ def validiere_kundeneintrag(eintrag: dict) -> None:
         eintrag.get("abrechnungszyklus", 1),
         "Abrechnungszyklus",
     )
+    if not isinstance(eintrag.get("email"), str):
+        raise ValueError("email muss eine Mailadresse sein.")
+    normalisiere_mail_liste(eintrag.get("email"), "email")
+    normalisiere_mail_liste(eintrag.get("cc"), "cc")
 
     if eintrag.get("faelligkeit") not in (None, ""):
         validiere_nichtnegative_ganzzahl(eintrag["faelligkeit"], "Faelligkeit")
@@ -113,6 +139,17 @@ def _parse_ganzzahl(wert, feld: str) -> int:
     if not text or not text.lstrip("-").isdigit():
         raise ValueError(f"{feld} muss eine ganze Zahl sein.")
     return int(text)
+
+
+def _validiere_mailadresse(adresse: str, feld: str) -> str:
+    """Prueft eine einfache Mailadresse mit der Standardbibliothek."""
+    name, parsed = parseaddr(adresse)
+    if name or parsed != adresse or "@" not in parsed:
+        raise ValueError(f"{feld} enthaelt eine ungueltige Mailadresse.")
+    lokaler_teil, domain = parsed.rsplit("@", 1)
+    if not lokaler_teil or "." not in domain or domain.startswith("."):
+        raise ValueError(f"{feld} enthaelt eine ungueltige Mailadresse.")
+    return parsed
 
 
 def _validiere_datumsformat(

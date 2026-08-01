@@ -1,6 +1,7 @@
 import pytest
 
 from validierung import (
+    normalisiere_mail_liste,
     validiere_betrag,
     validiere_datum,
     validiere_kundeneintrag,
@@ -51,11 +52,12 @@ def test_validiere_monat_rejects_invalid_formats(wert):
 def test_validiere_kundeneintrag_rejects_invalid_main_amount():
     """Ein fehlerhafter Hauptbetrag stoppt den Kundeneintrag."""
     eintrag = {
+        "email": "kunde@example.com",
         "hauptleistung": {
             "beschreibung": "Hosting",
             "einheit": "Monat",
             "betrag": "49,9O",
-        }
+        },
     }
 
     with pytest.raises(ValueError, match="Hauptleistung.betrag"):
@@ -65,6 +67,7 @@ def test_validiere_kundeneintrag_rejects_invalid_main_amount():
 def test_validiere_kundeneintrag_accepts_inclusive_additional_service():
     """Eine inklusive Zusatzleistung bleibt ein gueltiger Hinweis."""
     eintrag = {
+        "email": "kunde@example.com",
         "hauptleistung": {
             "beschreibung": "Hosting",
             "einheit": "Monat",
@@ -79,3 +82,33 @@ def test_validiere_kundeneintrag_accepts_inclusive_additional_service():
     }
 
     validiere_kundeneintrag(eintrag)
+
+
+def test_normalisiere_mail_liste_accepts_single_and_multiple_addresses():
+    """CC-Adressen duerfen als einzelne Adresse oder Liste gepflegt werden."""
+    assert normalisiere_mail_liste("cc@example.com", "cc") == ["cc@example.com"]
+    assert normalisiere_mail_liste(
+        ["cc@example.com", "buchhaltung@example.com"],
+        "cc",
+    ) == ["cc@example.com", "buchhaltung@example.com"]
+
+
+def test_normalisiere_mail_liste_rejects_invalid_address():
+    """Ungueltige CC-Adressen werden vor dem Versand abgelehnt."""
+    with pytest.raises(ValueError, match="cc"):
+        normalisiere_mail_liste(["ungueltig"], "cc")
+
+
+def test_validiere_kundeneintrag_rejects_multiple_main_recipients():
+    """Die Hauptadresse bleibt eine einzelne To-Adresse."""
+    eintrag = {
+        "email": ["kunde@example.com", "team@example.com"],
+        "hauptleistung": {
+            "beschreibung": "Hosting",
+            "einheit": "Monat",
+            "betrag": "49,90",
+        },
+    }
+
+    with pytest.raises(ValueError, match="email"):
+        validiere_kundeneintrag(eintrag)

@@ -137,6 +137,7 @@ Beinhaltet die Kunden-, Leistungs- und Abrechnungsdaten. Kann interaktiv über `
     "name": "Herr Mustermann",
     "firma": "Musterfirma GmbH",
     "email": "kunde@example.com",
+    "cc": ["buchhaltung@example.com"],
     "strasse": "Musterstraße 1",
     "plz": "12345",
     "ort": "Musterstadt",
@@ -158,6 +159,9 @@ Beinhaltet die Kunden-, Leistungs- und Abrechnungsdaten. Kann interaktiv über `
   }
 ]
 ```
+
+`cc` ist optional. Es kann eine einzelne Adresse oder eine Liste mehrerer
+Adressen enthalten. Die globale `mail.bcc`-Adresse bleibt davon unberuehrt.
 
 ### `konfiguration.json`
 

@@ -167,6 +167,22 @@ def test_invoice_mail_uses_optional_visible_sender_name():
     assert msg["From"] == "Musterfirma Rechnungen <sender@example.com>"
 
 
+def test_invoice_mail_sets_optional_cc_header():
+    """Optionale CC-Adressen werden als sichtbarer Mail-Header gesetzt."""
+    msg = baue_rechnungsmail(
+        mail_user="sender@example.com",
+        empfaenger="kunde@example.com",
+        betreff="Rechnung",
+        mail_html="Mail",
+        pdf_bytes=b"pdf",
+        anhang_name="rechnung.pdf",
+        mail_cc=["buchhaltung@example.com", "team@example.com"],
+    )
+
+    assert msg["To"] == "kunde@example.com"
+    assert msg["Cc"] == "buchhaltung@example.com, team@example.com"
+
+
 def test_invoice_mail_from_header_uses_technical_smtp_address():
     """Der technische Mail-Absender kommt aus der SMTP-Adresse."""
     msg = baue_rechnungsmail(

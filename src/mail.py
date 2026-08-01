@@ -31,6 +31,7 @@ def baue_rechnungsmail(
     pdf_bytes: bytes,
     anhang_name: str,
     mail_bcc: str | None = None,
+    mail_cc: list[str] | None = None,
     mail_logo: LogoAsset | None = None,
     from_name: str | None = None,
 ) -> MIMEMultipart:
@@ -39,6 +40,8 @@ def baue_rechnungsmail(
     msg["From"] = _formatiere_absender(mail_user, from_name)
     msg["To"] = empfaenger
     msg["Subject"] = betreff
+    if mail_cc:
+        msg["Cc"] = ", ".join(mail_cc)
     if mail_bcc:
         msg["Bcc"] = mail_bcc
 

@@ -10,6 +10,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from validierung import (  # noqa: E402
+    normalisiere_mail_liste,
     validiere_betrag,
     validiere_datum,
     validiere_einheit,
@@ -143,6 +144,9 @@ def neuer_kunde() -> dict:
         "ort": frage("Ort: ", optional=False),
         "webseite": frage("Webseite (optional, nur bei Hosting relevant): "),
     }
+    cc_adressen = frage_mail_cc()
+    if cc_adressen:
+        kunde["cc"] = cc_adressen
 
     einmalig = (
         input(
@@ -167,6 +171,19 @@ def neuer_kunde() -> dict:
         kunde["aktiv"] = False
 
     return kunde
+
+
+def frage_mail_cc() -> list[str]:
+    """Fragt optionale CC-Empfaenger fuer einen Kundeneintrag ab."""
+    cc_adressen = []
+    while True:
+        cc = frage("CC-E-Mail (optional, leer zum Fortfahren): ")
+        if not cc:
+            return cc_adressen
+        try:
+            cc_adressen.extend(normalisiere_mail_liste(cc, "CC-E-Mail"))
+        except ValueError as err:
+            print(f"Ungueltige Eingabe: {err}")
 
 
 def _frage_hauptleistung(einmalig: bool) -> dict:

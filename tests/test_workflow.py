@@ -13,6 +13,20 @@ from workflow import (
 )
 
 
+class DummyTemplates:
+    """Stellt minimale Render-Methoden fuer Workflow-Tests bereit."""
+
+    class Template:
+        """Rendert einen festen HTML-Platzhalter."""
+
+        def render(self, context):
+            """Gibt testbares HTML ohne echte Vorlage zurueck."""
+            return "<html></html>"
+
+    mail = Template()
+    rechnung = Template()
+
+
 def test_failed_mail_is_marked_for_retry(tmp_path, monkeypatch, caplog):
     """Ein SMTP-Fehler setzt failed und kuendigt den erneuten Versuch an."""
     verlauf_pfad = tmp_path / "verlauf.json"
@@ -50,6 +64,78 @@ def test_failed_mail_is_marked_for_retry(tmp_path, monkeypatch, caplog):
     assert erfolgreich is False
     assert verlauf[0]["versandstatus"] == "failed"
     assert "beim naechsten Lauf erneut versucht" in caplog.text
+
+
+def test_customer_cc_recipients_are_sent_with_invoice(tmp_path, monkeypatch):
+    """Kundenbezogene CC-Adressen werden beim SMTP-Versand beruecksichtigt."""
+    gesendete_empfaenger = []
+    verlauf_pfad = tmp_path / "verlauf.json"
+
+    class DummyPaths:
+        """Enthaelt die fuer den Workflow benoetigten Testpfade."""
+
+        img_dir = tmp_path
+        hours_dir = tmp_path
+
+    monkeypatch.setattr("workflow.lade_logo_asset", lambda *args: None)
+    monkeypatch.setattr("workflow.erzeuge_pdf_bytes", lambda *args: b"pdf")
+    monkeypatch.setattr(
+        "workflow.sende_mail",
+        lambda *args: gesendete_empfaenger.extend(args[-1]),
+    )
+
+    _verarbeite_kundeneintrag(
+        daten=[],
+        eintrag={
+            "name": "Erika Beispiel",
+            "firma": "Beispielfirma",
+            "email": "erika@example.com",
+            "cc": ["buchhaltung@example.com", "team@example.com"],
+            "strasse": "Beispielweg 1",
+            "plz": "12345",
+            "ort": "Beispielstadt",
+            "hauptleistung": {
+                "beschreibung": "Hosting",
+                "einheit": "Monat",
+                "betrag": "10,00",
+            },
+        },
+        pfade=DummyPaths(),
+        absender={
+            "name": "Max Mustermann",
+            "firma": "Musterfirma",
+            "email": "kontakt@example.com",
+        },
+        bank={},
+        finanzen={"kleinunternehmer": True},
+        mail_bcc="bcc@example.com",
+        mail_from_name=None,
+        mail_config={
+            "server": "smtp.example.com",
+            "port": 587,
+            "user": "sender@example.com",
+            "passwort": "test",
+        },
+        pdf_config={},
+        design_config={},
+        branding_config={
+            "pdf_logo": None,
+            "mail_logo": None,
+            "pdf_logo_height": 40,
+            "mail_logo_height": 60,
+        },
+        templates=DummyTemplates(),
+        rechnungsverlauf=[],
+        verlauf_dateiname=verlauf_pfad,
+        interactive=False,
+    )
+
+    assert gesendete_empfaenger == [
+        "erika@example.com",
+        "buchhaltung@example.com",
+        "team@example.com",
+        "bcc@example.com",
+    ]
 
 
 def test_ambiguous_mail_failure_remains_pending(tmp_path, monkeypatch, caplog):
@@ -256,6 +342,7 @@ def test_unreachable_archive_skips_customer_before_due_check(
         daten=[],
         eintrag={
             "firma": "Beispielfirma",
+            "email": "kunde@example.com",
             "archiv_pfad": str(tmp_path / "fehlt"),
             "hauptleistung": {
                 "beschreibung": "Hosting",

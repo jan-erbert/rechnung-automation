@@ -8,6 +8,7 @@ Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgef�
 
 - Erwartbare SMTP-Verbindungs- und Anmeldefehler werden ohne Python-Traceback als klare Fehlermeldung mit konkretem Hinweis protokolliert.
 - Das SMTP-Testskript beendet bekannte Mailversandfehler mit einer verständlichen Meldung statt einer unlesbaren Stacktrace-Ausgabe.
+- Kundeneintraege koennen optional eine oder mehrere CC-Adressen fuer Rechnungsmails enthalten.
 
 ### Clarified
 

@@ -18,7 +18,11 @@ from rechnungen import (
     berechne_steuerwerte,
 )
 from templates import baue_template_context
-from validierung import validiere_kundeneintrag, validiere_positive_ganzzahl
+from validierung import (
+    normalisiere_mail_liste,
+    validiere_kundeneintrag,
+    validiere_positive_ganzzahl,
+)
 from verlauf import (
     VERSANDSTATUS_FAILED,
     VERSANDSTATUS_NO_INVOICE,
@@ -217,6 +221,7 @@ def _verarbeite_kundeneintrag(
         return
 
     steuerdaten = berechne_steuerwerte(gesamtpreis, finanzen)
+    mail_cc = normalisiere_mail_liste(eintrag.get("cc"), "cc")
     pdf_logo = lade_logo_asset(
         pfade.img_dir,
         branding_config["pdf_logo"],
@@ -267,6 +272,7 @@ def _verarbeite_kundeneintrag(
         pdf_bytes=pdf_bytes,
         anhang_name=anhang_name,
         mail_bcc=mail_bcc,
+        mail_cc=mail_cc,
         mail_logo=mail_logo,
         from_name=mail_from_name,
     )
@@ -287,7 +293,7 @@ def _verarbeite_kundeneintrag(
     ):
         return
 
-    empfaenger_liste = [eintrag["email"]]
+    empfaenger_liste = [eintrag["email"], *mail_cc]
     if mail_bcc:
         empfaenger_liste.append(mail_bcc)
 
