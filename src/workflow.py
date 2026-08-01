@@ -359,11 +359,13 @@ def _sende_mail_mit_status(
             empfaenger_liste,
         )
     except MailversandFehler as err:
-        logger.exception(
+        logger.error(
             "Mailversand an %s ist fehlgeschlagen: %s",
             eintrag["email"],
             err,
         )
+        if err.hinweis:
+            logger.warning("Hinweis zum Mailversand: %s", err.hinweis)
         if not err.retry_sicher:
             logger.critical(
                 "Der Versandstatus ist unklar. Pending bleibt bestehen und "

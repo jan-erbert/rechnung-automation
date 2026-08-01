@@ -206,6 +206,11 @@ Für Rechnungen muss entweder eine Steuernummer oder eine USt-IdNr. konfiguriert
 Mail-Absenders. Ohne Wert wird wie bisher nur die SMTP-Adresse aus `.env`
 verwendet.
 
+Die SMTP-Adresse aus `.env` (`MAIL_USER`) ist die technische Versand- und
+Absenderadresse der E-Mail. Die Adresse unter `absender.email` bleibt davon
+getrennt und wird als formelle Kontaktadresse in PDF-Rechnung und
+HTML-Mailinhalt angezeigt.
+
 Wenn `kleinunternehmer` auf `false` steht, versteht das Tool die bei den
 Leistungen hinterlegten Beträge als Nettopreise. Der konfigurierte
 Mehrwertsteuersatz wird zusätzlich berechnet und Rechnung sowie Mail weisen

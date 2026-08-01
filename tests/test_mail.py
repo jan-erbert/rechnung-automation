@@ -17,16 +17,19 @@ from mail import (
 class FakeSmtp:
     """Simuliert die fuer den Mailversand benoetigten SMTP-Methoden."""
 
-    def __init__(self, send_error=None, refused=None):
+    def __init__(self, send_error=None, refused=None, login_error=None):
         """Initialisiert einen optionalen Versandfehler."""
         self.send_error = send_error
         self.refused = refused or {}
+        self.login_error = login_error
 
     def starttls(self):
         """Simuliert den TLS-Start."""
 
     def login(self, user, password):
         """Simuliert die SMTP-Anmeldung."""
+        if self.login_error:
+            raise self.login_error
 
     def send_message(self, msg, from_addr, to_addrs):
         """Simuliert die Mailuebergabe."""
@@ -47,6 +50,21 @@ def test_explicit_smtp_rejection_is_safe_to_retry(monkeypatch):
         sende_mail("smtp.example.com", 587, "sender", "secret", object(), ["to"])
 
     assert exc_info.value.retry_sicher is True
+
+
+def test_smtp_authentication_error_gets_clear_hint(monkeypatch):
+    """Falsche SMTP-Zugangsdaten erhalten einen klaren Nutzerhinweis."""
+    smtp = FakeSmtp(
+        login_error=smtplib.SMTPAuthenticationError(535, b"authentication failed")
+    )
+    monkeypatch.setattr("mail.smtplib.SMTP", lambda server, port: smtp)
+
+    with pytest.raises(MailversandFehler) as exc_info:
+        sende_mail("smtp.example.com", 587, "sender", "secret", object(), ["to"])
+
+    assert str(exc_info.value) == "SMTP-Anmeldung fehlgeschlagen."
+    assert exc_info.value.retry_sicher is True
+    assert "MAIL_USER und MAIL_PASS" in exc_info.value.hinweis
 
 
 def test_connection_loss_during_send_is_ambiguous(monkeypatch):
@@ -147,3 +165,18 @@ def test_invoice_mail_uses_optional_visible_sender_name():
     )
 
     assert msg["From"] == "Musterfirma Rechnungen <sender@example.com>"
+
+
+def test_invoice_mail_from_header_uses_technical_smtp_address():
+    """Der technische Mail-Absender kommt aus der SMTP-Adresse."""
+    msg = baue_rechnungsmail(
+        mail_user="smtp-login@example.com",
+        empfaenger="kunde@example.com",
+        betreff="Rechnung",
+        mail_html="Kontakt: kontakt@example.com",
+        pdf_bytes=b"pdf",
+        anhang_name="rechnung.pdf",
+        from_name="Musterfirma Rechnungen",
+    )
+
+    assert msg["From"] == "Musterfirma Rechnungen <smtp-login@example.com>"

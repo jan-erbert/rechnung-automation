@@ -9,7 +9,7 @@ if str(SRC_DIR) not in sys.path:
 
 from konfiguration import lade_konfiguration, lade_mail_umgebung  # noqa: E402
 from logging_setup import konfiguriere_logging  # noqa: E402
-from mail import baue_mailtest_mail, sende_mail  # noqa: E402
+from mail import MailversandFehler, baue_mailtest_mail, sende_mail  # noqa: E402
 from paths import erstelle_pfade  # noqa: E402
 from settings_loader import lade_settings  # noqa: E402
 
@@ -34,14 +34,21 @@ def main() -> None:
         mail_bcc,
         from_name=konfig.get("mail", {}).get("from_name"),
     )
-    sende_mail(
-        mail_config["server"],
-        mail_config["port"],
-        mail_config["user"],
-        mail_config["passwort"],
-        msg,
-        [mail_bcc],
-    )
+    try:
+        sende_mail(
+            mail_config["server"],
+            mail_config["port"],
+            mail_config["user"],
+            mail_config["passwort"],
+            msg,
+            [mail_bcc],
+        )
+    except MailversandFehler as err:
+        logger.error("SMTP-Test fehlgeschlagen: %s", err)
+        if err.hinweis:
+            logger.error("Hinweis: %s", err.hinweis)
+        sys.exit(1)
+
     logger.info("SMTP-Testmail wurde erfolgreich an den BCC-Empfaenger gesendet.")
 
 

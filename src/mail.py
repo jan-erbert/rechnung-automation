@@ -16,10 +16,11 @@ logger = logging.getLogger(__name__)
 class MailversandFehler(RuntimeError):
     """Beschreibt einen SMTP-Fehler mit sicherer Retry-Einordnung."""
 
-    def __init__(self, message: str, retry_sicher: bool) -> None:
+    def __init__(self, message: str, retry_sicher: bool, hinweis: str = "") -> None:
         """Initialisiert einen klassifizierten Mailversandfehler."""
         super().__init__(message)
         self.retry_sicher = retry_sicher
+        self.hinweis = hinweis
 
 
 def baue_rechnungsmail(
@@ -190,15 +191,38 @@ def sende_mail(
         server = smtplib.SMTP(mail_server, mail_port)
         server.starttls()
         server.login(mail_user, mail_pass)
+    except smtplib.SMTPAuthenticationError as err:
+        _schliesse_smtp_verbindung(server)
+        raise MailversandFehler(
+            "SMTP-Anmeldung fehlgeschlagen.",
+            retry_sicher=True,
+            hinweis=(
+                "Bitte MAIL_USER und MAIL_PASS in .env sowie die SMTP-Freigabe "
+                "beim Mailanbieter pruefen."
+            ),
+        ) from err
+    except (
+        OSError,
+        smtplib.SMTPConnectError,
+        smtplib.SMTPHeloError,
+        smtplib.SMTPNotSupportedError,
+        smtplib.SMTPServerDisconnected,
+    ) as err:
+        _schliesse_smtp_verbindung(server)
+        raise MailversandFehler(
+            "SMTP-Verbindung oder TLS-Start ist fehlgeschlagen.",
+            retry_sicher=True,
+            hinweis=(
+                "Bitte MAIL_SERVER, MAIL_PORT und die geforderte "
+                "Verschluesselungsart des Mailanbieters pruefen."
+            ),
+        ) from err
     except Exception as err:
-        if server is not None:
-            try:
-                server.close()
-            except Exception:
-                pass
+        _schliesse_smtp_verbindung(server)
         raise MailversandFehler(
             "SMTP-Verbindung oder Anmeldung ist fehlgeschlagen.",
             retry_sicher=True,
+            hinweis="Bitte die SMTP-Zugangsdaten und Servereinstellungen pruefen.",
         ) from err
 
     try:
@@ -235,3 +259,13 @@ def sende_mail(
             logger.warning(
                 "SMTP-Verbindung konnte nicht sauber beendet werden: %s", err
             )
+
+
+def _schliesse_smtp_verbindung(server) -> None:
+    """Schliesst eine teilweise geoeffnete SMTP-Verbindung bestmoeglich."""
+    if server is None:
+        return
+    try:
+        server.close()
+    except Exception:
+        pass

@@ -2,6 +2,18 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
+## [1.3.7] - Unreleased
+
+### Fixed
+
+- Erwartbare SMTP-Verbindungs- und Anmeldefehler werden ohne Python-Traceback als klare Fehlermeldung mit konkretem Hinweis protokolliert.
+- Das SMTP-Testskript beendet bekannte Mailversandfehler mit einer verständlichen Meldung statt einer unlesbaren Stacktrace-Ausgabe.
+
+### Clarified
+
+- Die SMTP-Adresse aus `.env` ist die technische Versand- und Absenderadresse der Mail.
+- `absender.email` bleibt die formelle Kontaktadresse in PDF-Rechnungen und HTML-Mailinhalten.
+
 ## [1.3.6] - 2026-06-06
 
 ### Added
