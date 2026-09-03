@@ -9,6 +9,7 @@ from workflow import (
     _speichere_pending_status,
     _verarbeite_kundeneintrag,
     _verarbeite_kunden_im_lauf,
+    LaufKontext,
     verarbeite_rechnungen,
 )
 
@@ -25,6 +26,48 @@ class DummyTemplates:
 
     mail = Template()
     rechnung = Template()
+
+
+def _laufkontext(tmp_path, **aenderungen):
+    """Erstellt einen minimalen gebuendelten Workflow-Kontext."""
+
+    class DummyPaths:
+        img_dir = tmp_path
+        hours_dir = tmp_path
+
+    werte = {
+        "pfade": DummyPaths(),
+        "absender": {
+            "name": "Max Mustermann",
+            "firma": "Musterfirma",
+            "email": "kontakt@example.com",
+        },
+        "bank": {},
+        "finanzen": {"kleinunternehmer": True},
+        "mail_bcc": [],
+        "mail_from_name": None,
+        "mail_config": {
+            "server": "smtp.example.com",
+            "port": 587,
+            "user": "sender@example.com",
+            "passwort": "test",
+        },
+        "pdf_config": {},
+        "design_config": {},
+        "branding_config": {
+            "pdf_logo": None,
+            "mail_logo": None,
+            "pdf_logo_height": 40,
+            "mail_logo_height": 60,
+        },
+        "templates": DummyTemplates(),
+        "rechnungsverlauf": [],
+        "rechnungsverlauf_vorjahr": [],
+        "verlauf_dateiname": tmp_path / "verlauf.json",
+        "interactive": False,
+    }
+    werte.update(aenderungen)
+    return LaufKontext(**werte)
 
 
 def test_failed_mail_is_marked_for_retry(tmp_path, monkeypatch, caplog):
@@ -71,22 +114,17 @@ def test_customer_cc_recipients_are_sent_with_invoice(tmp_path, monkeypatch):
     gesendete_empfaenger = []
     verlauf_pfad = tmp_path / "verlauf.json"
 
-    class DummyPaths:
-        """Enthaelt die fuer den Workflow benoetigten Testpfade."""
-
-        img_dir = tmp_path
-        hours_dir = tmp_path
-
     monkeypatch.setattr("workflow.lade_logo_asset", lambda *args: None)
     monkeypatch.setattr("workflow.erzeuge_pdf_bytes", lambda *args: b"pdf")
     monkeypatch.setattr(
         "workflow.sende_mail",
-        lambda *args: gesendete_empfaenger.extend(args[-1]),
+        lambda *args, **kwargs: gesendete_empfaenger.extend(args[-1]),
     )
 
     _verarbeite_kundeneintrag(
         daten=[],
         eintrag={
+            "id": "beispielfirma",
             "name": "Erika Beispiel",
             "firma": "Beispielfirma",
             "email": "erika@example.com",
@@ -100,34 +138,11 @@ def test_customer_cc_recipients_are_sent_with_invoice(tmp_path, monkeypatch):
                 "betrag": "10,00",
             },
         },
-        pfade=DummyPaths(),
-        absender={
-            "name": "Max Mustermann",
-            "firma": "Musterfirma",
-            "email": "kontakt@example.com",
-        },
-        bank={},
-        finanzen={"kleinunternehmer": True},
-        mail_bcc="bcc@example.com",
-        mail_from_name=None,
-        mail_config={
-            "server": "smtp.example.com",
-            "port": 587,
-            "user": "sender@example.com",
-            "passwort": "test",
-        },
-        pdf_config={},
-        design_config={},
-        branding_config={
-            "pdf_logo": None,
-            "mail_logo": None,
-            "pdf_logo_height": 40,
-            "mail_logo_height": 60,
-        },
-        templates=DummyTemplates(),
-        rechnungsverlauf=[],
-        verlauf_dateiname=verlauf_pfad,
-        interactive=False,
+        kontext=_laufkontext(
+            tmp_path,
+            mail_bcc=["bcc@example.com"],
+            verlauf_dateiname=verlauf_pfad,
+        ),
     )
 
     assert gesendete_empfaenger == [
@@ -350,28 +365,14 @@ def test_unreachable_archive_skips_customer_before_due_check(
                 "betrag": "10,00",
             },
         },
-        pfade=object(),
-        absender={},
-        bank={},
-        finanzen={},
-        mail_bcc=None,
-        mail_from_name=None,
-        mail_config={},
-        pdf_config={},
-        design_config={},
-        branding_config={},
-        templates=object(),
-        rechnungsverlauf=[],
-        rechnungsverlauf_vorjahr=[],
-        verlauf_dateiname=object(),
-        interactive=False,
+        kontext=_laufkontext(tmp_path),
     )
 
     assert faelligkeit_geprueft == []
     assert "Archivpfad ist nicht erreichbar" in caplog.text
 
 
-def test_archive_write_probe_stops_before_invoice_creation(monkeypatch):
+def test_archive_write_probe_stops_before_invoice_creation(monkeypatch, tmp_path):
     """Eine fehlgeschlagene Archiv-Schreibprobe stoppt vor der Rechnung."""
     rechnungsdaten_gebaut = []
 
@@ -388,20 +389,7 @@ def test_archive_write_probe_stops_before_invoice_creation(monkeypatch):
         _verarbeite_kundeneintrag(
             daten=[],
             eintrag={"archiv_pfad": "/archiv"},
-            pfade=object(),
-            absender={},
-            bank={},
-            finanzen={},
-            mail_bcc=None,
-            mail_from_name=None,
-            mail_config={},
-            pdf_config={},
-            design_config={},
-            branding_config={},
-            templates=object(),
-            rechnungsverlauf=[],
-            verlauf_dateiname=object(),
-            interactive=False,
+            kontext=_laufkontext(tmp_path),
         )
 
     assert rechnungsdaten_gebaut == []

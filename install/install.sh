@@ -148,7 +148,7 @@ else
 fi
 
 # 5. Konfigurationsdatei erstellen
-KONFIG_PATH="data/konfiguration.json"
+KONFIG_PATH="config/invoice.yaml"
 if [ ! -f "$KONFIG_PATH" ]; then
     echo ""
     echo "🛠️  Konfigurationsdatei wird erstellt ($KONFIG_PATH)..."
@@ -175,12 +175,12 @@ if [ ! -f "$KONFIG_PATH" ]; then
         read -r -p "Auswahl (1/2): " steuer_id_auswahl
         case "$steuer_id_auswahl" in
             1)
-                steuer_id_typ="steuernummer"
+                steuer_id_typ="tax_number"
                 steuer_id_wert=$(pflicht_eingabe "🧾 Steuernummer")
                 break
                 ;;
             2)
-                steuer_id_typ="ust_id"
+                steuer_id_typ="vat_id"
                 steuer_id_wert=$(pflicht_eingabe "🧾 Umsatzsteuer-Identifikationsnummer (USt-IdNr.)")
                 break
                 ;;
@@ -207,7 +207,7 @@ if [ ! -f "$KONFIG_PATH" ]; then
         echo "📌 Es wird empfohlen, eine BCC-Adresse zur revisionssicheren Archivierung anzugeben."
     fi
 
-    mkdir -p data
+    mkdir -p config customers data
 
     if [ ! -f "$CONFIG_WRITER" ]; then
         echo "❌ Konfigurationshelfer nicht gefunden: $CONFIG_WRITER"
@@ -242,10 +242,12 @@ if [ ! -f "$KONFIG_PATH" ]; then
     unset SETUP_MWST SETUP_BCC SETUP_MAIL_FROM_NAME
 
     echo ""
-    echo "✅ konfiguration.json wurde gespeichert unter: $KONFIG_PATH"
+    echo "✅ invoice.yaml wurde gespeichert unter: $KONFIG_PATH"
 else
-    echo "🗂️  konfiguration.json ist bereits vorhanden – keine Änderungen vorgenommen."
+    echo "🗂️  invoice.yaml ist bereits vorhanden – keine Änderungen vorgenommen."
 fi
+
+mkdir -p customers data
 
 echo ""
 

@@ -44,7 +44,7 @@ class FakeSmtp:
 def test_explicit_smtp_rejection_is_safe_to_retry(monkeypatch):
     """Eine eindeutige SMTP-Ablehnung darf erneut versucht werden."""
     smtp = FakeSmtp(smtplib.SMTPDataError(550, b"rejected"))
-    monkeypatch.setattr("mail.smtplib.SMTP", lambda server, port: smtp)
+    monkeypatch.setattr("mail.smtplib.SMTP", lambda server, port, timeout: smtp)
 
     with pytest.raises(MailversandFehler) as exc_info:
         sende_mail("smtp.example.com", 587, "sender", "secret", object(), ["to"])
@@ -57,7 +57,7 @@ def test_smtp_authentication_error_gets_clear_hint(monkeypatch):
     smtp = FakeSmtp(
         login_error=smtplib.SMTPAuthenticationError(535, b"authentication failed")
     )
-    monkeypatch.setattr("mail.smtplib.SMTP", lambda server, port: smtp)
+    monkeypatch.setattr("mail.smtplib.SMTP", lambda server, port, timeout: smtp)
 
     with pytest.raises(MailversandFehler) as exc_info:
         sende_mail("smtp.example.com", 587, "sender", "secret", object(), ["to"])
@@ -70,7 +70,7 @@ def test_smtp_authentication_error_gets_clear_hint(monkeypatch):
 def test_connection_loss_during_send_is_ambiguous(monkeypatch):
     """Ein Verbindungsabbruch waehrend der Uebergabe bleibt unklar."""
     smtp = FakeSmtp(ConnectionError("connection lost"))
-    monkeypatch.setattr("mail.smtplib.SMTP", lambda server, port: smtp)
+    monkeypatch.setattr("mail.smtplib.SMTP", lambda server, port, timeout: smtp)
 
     with pytest.raises(MailversandFehler) as exc_info:
         sende_mail("smtp.example.com", 587, "sender", "secret", object(), ["to"])
@@ -81,7 +81,7 @@ def test_connection_loss_during_send_is_ambiguous(monkeypatch):
 def test_partial_delivery_is_ambiguous(monkeypatch):
     """Ein Teilversand darf nicht automatisch wiederholt werden."""
     smtp = FakeSmtp(refused={"kunde@example.com": (550, b"rejected")})
-    monkeypatch.setattr("mail.smtplib.SMTP", lambda server, port: smtp)
+    monkeypatch.setattr("mail.smtplib.SMTP", lambda server, port, timeout: smtp)
 
     with pytest.raises(MailversandFehler) as exc_info:
         sende_mail(
@@ -94,6 +94,30 @@ def test_partial_delivery_is_ambiguous(monkeypatch):
         )
 
     assert exc_info.value.retry_sicher is False
+
+
+def test_implicit_tls_uses_smtp_ssl(monkeypatch):
+    """Der Sicherheitsmodus ssl nutzt eine implizit verschluesselte Verbindung."""
+    smtp = FakeSmtp()
+    verbindungen = []
+    monkeypatch.setattr(
+        "mail.smtplib.SMTP_SSL",
+        lambda server, port, timeout: verbindungen.append((server, port, timeout))
+        or smtp,
+    )
+
+    sende_mail(
+        "smtp.example.com",
+        465,
+        "sender",
+        "secret",
+        object(),
+        ["to"],
+        security="ssl",
+        timeout=15,
+    )
+
+    assert verbindungen == [("smtp.example.com", 465, 15)]
 
 
 def test_error_report_mail_contains_escaped_errors():
@@ -181,6 +205,21 @@ def test_invoice_mail_sets_optional_cc_header():
 
     assert msg["To"] == "kunde@example.com"
     assert msg["Cc"] == "buchhaltung@example.com, team@example.com"
+
+
+def test_invoice_mail_sets_multiple_bcc_recipients():
+    """Globale BCC-Adressen werden als Liste in den Header uebernommen."""
+    msg = baue_rechnungsmail(
+        mail_user="sender@example.com",
+        empfaenger="kunde@example.com",
+        betreff="Rechnung",
+        mail_html="Mail",
+        pdf_bytes=b"pdf",
+        anhang_name="rechnung.pdf",
+        mail_bcc=["archiv@example.com", "backup@example.com"],
+    )
+
+    assert msg["Bcc"] == "archiv@example.com, backup@example.com"
 
 
 def test_invoice_mail_from_header_uses_technical_smtp_address():

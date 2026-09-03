@@ -1,6 +1,5 @@
-import json
-
 import pytest
+import yaml
 from dotenv import dotenv_values
 
 from install.write_config import baue_konfiguration, schreibe_konfiguration
@@ -22,7 +21,7 @@ def _config_values() -> dict[str, str]:
         "SETUP_KONTOINHABER": "Jan Test",
         "SETUP_IBAN": "DE00000000000000000000",
         "SETUP_BIC": "TESTBIC",
-        "SETUP_STEUER_ID_TYP": "steuernummer",
+        "SETUP_STEUER_ID_TYP": "tax_number",
         "SETUP_STEUER_ID_WERT": "12/345/67890",
         "SETUP_FINANZAMT": "Finanzamt Teststadt",
         "SETUP_KLEINUNTERNEHMER": "false",
@@ -32,17 +31,18 @@ def _config_values() -> dict[str, str]:
     }
 
 
-def test_write_config_preserves_json_special_characters(tmp_path):
-    """Installer-Werte mit Sonderzeichen bleiben gueltiges JSON."""
-    config_path = tmp_path / "konfiguration.json"
+def test_write_config_preserves_yaml_special_characters(tmp_path):
+    """Installer-Werte mit Sonderzeichen bleiben gueltiges YAML."""
+    config_path = tmp_path / "invoice.yaml"
 
     schreibe_konfiguration(config_path, _config_values())
 
-    config = json.loads(config_path.read_text(encoding="utf-8"))
-    assert config["absender"]["name"] == 'Jan "Test"'
-    assert config["absender"]["firma"] == "Firma\\Nord"
-    assert config["finanzen"]["mehrwertsteuer_prozent"] == 19
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    assert config["sender"]["name"] == 'Jan "Test"'
+    assert config["sender"]["company"] == "Firma\\Nord"
+    assert config["tax"]["vat_rate"] == "19"
     assert config["mail"]["from_name"] == "Testfirma Rechnungen"
+    assert config_path.stat().st_mode & 0o777 == 0o600
 
 
 def test_small_business_config_omits_vat_rate():
@@ -53,7 +53,7 @@ def test_small_business_config_omits_vat_rate():
 
     config = baue_konfiguration(values)
 
-    assert "mehrwertsteuer_prozent" not in config["finanzen"]
+    assert "vat_rate" not in config["tax"]
 
 
 def test_config_rejects_invalid_vat_rate():

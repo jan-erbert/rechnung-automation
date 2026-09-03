@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
@@ -33,10 +34,10 @@ def baue_template_context(
     abrechnungszeitraum: str,
     monat_jahr: str,
     abrechnungszyklus: int,
-    gesamtpreis: float,
+    gesamtpreis: Decimal,
     gesamtpreis_str: str,
-    gesamtpreis_mit_mwst: float,
-    steuerbetrag: float,
+    gesamtpreis_mit_mwst: Decimal,
+    steuerbetrag: Decimal,
     mwst_hinweis: str,
     logo_base64: str,
     mail_logo_cid: str,
@@ -75,7 +76,9 @@ def baue_template_context(
         "finanzen": finanzen,
         "mwst_hinweis": mwst_hinweis,
         "steuerbetrag": f"{steuerbetrag:.2f}".replace(".", ","),
-        "mwst_prozent": finanzen.get("mehrwertsteuer_prozent", 0),
+        "mwst_prozent": _formatiere_prozent(
+            finanzen.get("mehrwertsteuer_prozent", Decimal("0"))
+        ),
         "brutto_betrag": f"{gesamtpreis_mit_mwst:.2f}".replace(".", ","),
         "netto_betrag": f"{gesamtpreis:.2f}".replace(".", ","),
     }
@@ -86,3 +89,8 @@ def baue_template_context(
         )
 
     return context
+
+
+def _formatiere_prozent(wert) -> str:
+    """Formatiert einen Dezimal-Prozentsatz ohne unnoetige Nullen."""
+    return format(Decimal(str(wert)), "f").rstrip("0").rstrip(".") or "0"

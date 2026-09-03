@@ -1,20 +1,20 @@
 import importlib.util
-import json
 import sys
 from pathlib import Path
+
+from dotenv import dotenv_values
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from branding import (  # noqa: E402
-    loese_logo_pfad_auf,
-    validiere_branding_config,
-)
+from branding import loese_logo_pfad_auf, validiere_branding_config  # noqa: E402
 from design import validiere_design_config  # noqa: E402
-from pdf import validiere_pdf_config  # noqa: E402
+from konfiguration import lade_konfiguration, lade_mail_umgebung  # noqa: E402
+from kundendateien import lade_kundendateien  # noqa: E402
 from paths import erstelle_pfade  # noqa: E402
+from pdf import validiere_pdf_config  # noqa: E402
 from pfadpruefung import (  # noqa: E402
     pruefe_archiv_pfad,
     pruefe_lesbare_datei,
@@ -22,11 +22,6 @@ from pfadpruefung import (  # noqa: E402
     pruefe_schreibbares_zielverzeichnis,
 )
 from settings_loader import lade_settings  # noqa: E402
-from validierung import (  # noqa: E402
-    validiere_kundeneintrag,
-    validiere_nichtnegative_ganzzahl,
-    validiere_positive_ganzzahl,
-)
 
 REQUIRED_ENV_KEYS = ("MAIL_SERVER", "MAIL_PORT", "MAIL_USER", "MAIL_PASS")
 
@@ -53,12 +48,10 @@ class CheckReport:
             print("Fehler:")
             for message in self.errors:
                 print(f"- {message}")
-
         if self.warnings:
             print("Warnungen:")
             for message in self.warnings:
                 print(f"- {message}")
-
         if not self.errors and not self.warnings:
             print("Setup-Check erfolgreich: keine Probleme gefunden.")
         elif not self.errors:
@@ -70,19 +63,16 @@ class CheckReport:
 def main() -> int:
     """Prueft die lokale Einrichtung ohne produktive Aktionen."""
     report = CheckReport()
-
     settings = _check_settings(report)
-    _check_env(report)
+    _check_env(report, settings)
     _check_weasyprint(report)
-    _check_konfiguration(report)
-    daten = _check_daten(report)
-
+    _check_konfiguration(report, settings)
+    daten = _check_daten(report, settings)
     if settings:
         _check_pdf_settings(report, settings)
         _check_design_settings(report, settings)
         _check_branding_settings(report, settings)
         _check_paths(report, settings, daten)
-
     report.print_summary()
     return 1 if report.errors else 0
 
@@ -91,14 +81,12 @@ def _check_settings(report: CheckReport) -> dict | None:
     """Prueft die YAML-Einstellungen."""
     try:
         settings = lade_settings(PROJECT_ROOT / "config" / "settings.yaml")
+        erstelle_pfade(settings, PROJECT_ROOT)
     except Exception as err:
         report.error(f"config/settings.yaml ist nicht gueltig: {err}")
         return None
-
-    logging_config = settings.get("logging", {})
-    if not isinstance(logging_config, dict):
+    if not isinstance(settings.get("logging", {}), dict):
         report.error("Der YAML-Bereich 'logging' muss eine Map sein.")
-
     return settings
 
 
@@ -126,56 +114,31 @@ def _check_branding_settings(report: CheckReport, settings: dict) -> None:
     except Exception as err:
         report.error(f"Branding-Konfiguration ist ungueltig: {err}")
         return
-
-    for name, bezeichnung in (
-        ("pdf_logo", "PDF-Logo"),
-        ("mail_logo", "Mail-Logo"),
-    ):
-        pfad_wert = branding[name]
-        if pfad_wert is None:
+    for name, bezeichnung in (("pdf_logo", "PDF-Logo"), ("mail_logo", "Mail-Logo")):
+        if branding[name] is None:
             continue
         try:
-            logo_pfad = loese_logo_pfad_auf(pfade.img_dir, pfad_wert)
-            pruefe_lesbare_datei(logo_pfad, bezeichnung)
+            pruefe_lesbare_datei(
+                loese_logo_pfad_auf(pfade.img_dir, branding[name]), bezeichnung
+            )
         except ValueError as err:
             report.warning(str(err))
 
 
-def _check_env(report: CheckReport) -> None:
+def _check_env(report: CheckReport, settings: dict | None = None) -> None:
     """Prueft die lokale .env-Datei ohne Werte auszugeben."""
     env_path = PROJECT_ROOT / ".env"
     if not env_path.exists():
         report.error(".env fehlt.")
         return
-
-    try:
-        env_values = _read_env_keys(env_path)
-    except OSError as err:
-        report.error(f".env ist nicht lesbar: {err}")
-        return
+    values = dotenv_values(env_path)
     for key in REQUIRED_ENV_KEYS:
-        if not env_values.get(key):
+        if not values.get(key):
             report.error(f".env: {key} fehlt oder ist leer.")
-
-    port_value = env_values.get("MAIL_PORT")
-    if port_value:
-        try:
-            validiere_positive_ganzzahl(port_value, "MAIL_PORT")
-        except ValueError as err:
-            report.error(f".env: {err}")
-
-
-def _read_env_keys(env_path: Path) -> dict[str, str]:
-    """Liest nur Schluessel und Rohwerte aus einer Env-Datei."""
-    values = {}
-    with env_path.open("r", encoding="utf-8") as env_file:
-        for line in env_file:
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#") or "=" not in stripped:
-                continue
-            key, value = stripped.split("=", 1)
-            values[key.strip()] = value.strip()
-    return values
+    try:
+        lade_mail_umgebung(env_path, (settings or {}).get("mail", {}))
+    except Exception as err:
+        report.error(f"Mail-Konfiguration ist ungueltig: {err}")
 
 
 def _check_weasyprint(report: CheckReport) -> None:
@@ -184,173 +147,42 @@ def _check_weasyprint(report: CheckReport) -> None:
         report.error("WeasyPrint ist nicht installiert oder nicht importierbar.")
 
 
-def _check_konfiguration(report: CheckReport) -> None:
-    """Prueft die eigene Rechnungskonfiguration."""
-    config_path = PROJECT_ROOT / "data" / "konfiguration.json"
-    config = _load_json(config_path, report, "data/konfiguration.json")
-    if config is None:
-        return
-
-    if not isinstance(config, dict):
-        report.error("data/konfiguration.json muss ein JSON-Objekt sein.")
-        return
-
-    _require_object_keys(
-        report,
-        config,
-        "absender",
-        ("name", "firma", "straße", "plz", "ort", "telefon", "email"),
-    )
-    _require_object_keys(
-        report,
-        config,
-        "bank",
-        ("bankname", "kontoinhaber", "iban", "bic"),
-    )
-    _require_object_keys(
-        report,
-        config,
-        "finanzen",
-        ("steuer_id_typ", "finanzamt", "kleinunternehmer"),
-    )
-    _check_steuer_id(report, config.get("finanzen", {}))
-    _check_mail_optionen(report, config.get("mail", {}))
-    finanzen = config.get("finanzen", {})
-    if isinstance(finanzen, dict) and finanzen.get("kleinunternehmer") is False:
-        try:
-            validiere_nichtnegative_ganzzahl(
-                finanzen.get("mehrwertsteuer_prozent"),
-                "finanzen.mehrwertsteuer_prozent",
-            )
-        except ValueError as err:
-            report.error(f"data/konfiguration.json: {err}")
-
-
-def _check_daten(report: CheckReport) -> list | None:
-    """Prueft die Kundendaten strukturell ohne Werte auszugeben."""
-    daten_path = PROJECT_ROOT / "data" / "daten.json"
-    daten = _load_json(daten_path, report, "data/daten.json")
-    if daten is None:
-        return None
-
-    if not isinstance(daten, list):
-        report.error("data/daten.json muss eine JSON-Liste sein.")
-        return None
-
-    for index, kunde in enumerate(daten, start=1):
-        if not isinstance(kunde, dict):
-            report.error(f"data/daten.json: Eintrag #{index} muss ein Objekt sein.")
-            continue
-        _check_kundeneintrag(report, kunde, index)
-    return daten
-
-
-def _check_kundeneintrag(report: CheckReport, kunde: dict, index: int) -> None:
-    """Prueft einen Kundeneintrag ohne Kundendaten auszugeben."""
-    for key in ("name", "firma", "email", "strasse", "plz", "ort"):
-        if not kunde.get(key):
-            report.error(f"data/daten.json: Eintrag #{index}: {key} fehlt.")
-
-    hauptleistung = kunde.get("hauptleistung")
-    if not isinstance(hauptleistung, dict):
-        report.error(
-            f"data/daten.json: Eintrag #{index}: hauptleistung fehlt oder ist ungueltig."
-        )
-    else:
-        for key in ("beschreibung", "einheit", "betrag"):
-            if not hauptleistung.get(key):
-                report.error(
-                    f"data/daten.json: Eintrag #{index}: hauptleistung.{key} fehlt."
-                )
-
+def _check_konfiguration(
+    report: CheckReport, settings: dict | None = None
+) -> dict | None:
+    """Prueft die eigene YAML-Rechnungskonfiguration."""
     try:
-        validiere_kundeneintrag(kunde)
-    except ValueError as err:
-        report.error(f"data/daten.json: Eintrag #{index}: {err}")
-
-
-def _check_steuer_id(report: CheckReport, finanzen: dict) -> None:
-    """Prueft die ausgewaehlte steuerliche Identifikationsnummer."""
-    steuer_id_typ = finanzen.get("steuer_id_typ")
-    if steuer_id_typ not in ("steuernummer", "ust_id"):
-        report.error(
-            "data/konfiguration.json: finanzen.steuer_id_typ muss "
-            "'steuernummer' oder 'ust_id' sein."
-        )
-        return
-
-    if not finanzen.get(steuer_id_typ):
-        report.error(f"data/konfiguration.json: finanzen.{steuer_id_typ} fehlt.")
-
-
-def _check_mail_optionen(report: CheckReport, mail_config: dict) -> None:
-    """Prueft optionale Mail-Einstellungen ohne Adressen auszugeben."""
-    if not isinstance(mail_config, dict):
-        report.error("data/konfiguration.json: mail muss ein Objekt sein.")
-        return
-    from_name = mail_config.get("from_name")
-    if from_name not in (None, "") and (
-        not isinstance(from_name, str) or not from_name.strip()
-    ):
-        report.error("data/konfiguration.json: mail.from_name ist ungueltig.")
-
-
-def _load_json(path: Path, report: CheckReport, label: str):
-    """Laedt JSON-Dateien fuer die Setup-Pruefung."""
-    if not path.exists():
-        report.error(f"{label} fehlt.")
+        pfade = erstelle_pfade(settings or {}, PROJECT_ROOT)
+        return lade_konfiguration(pfade.invoice_config)
+    except Exception as err:
+        report.error(f"config/invoice.yaml ist ungueltig: {err}")
         return None
 
+
+def _check_daten(report: CheckReport, settings: dict | None = None) -> list | None:
+    """Prueft alle einzelnen YAML-Kundendateien ohne Werte auszugeben."""
     try:
-        with path.open("r", encoding="utf-8") as json_file:
-            return json.load(json_file)
-    except json.JSONDecodeError as err:
-        report.error(f"{label} ist kein gueltiges JSON: {err}")
+        pfade = erstelle_pfade(settings or {}, PROJECT_ROOT)
+        return lade_kundendateien(pfade.customers_dir)
+    except Exception as err:
+        report.error(f"Kundendateien sind ungueltig: {err}")
         return None
-    except OSError as err:
-        report.error(f"{label} ist nicht lesbar: {err}")
-        return None
-
-
-def _require_object_keys(
-    report: CheckReport,
-    parent: dict,
-    section: str,
-    keys: tuple[str, ...],
-) -> None:
-    """Prueft Pflichtfelder in einem JSON-Objektabschnitt."""
-    value = parent.get(section)
-    if not isinstance(value, dict):
-        report.error(f"data/konfiguration.json: {section} fehlt oder ist ungueltig.")
-        return
-
-    for key in keys:
-        if value.get(key) in (None, ""):
-            report.error(f"data/konfiguration.json: {section}.{key} fehlt.")
 
 
 def _check_paths(report: CheckReport, settings: dict, daten: list | None) -> None:
     """Prueft zentrale Lese- und Schreibpfade mit echten Schreibproben."""
     try:
         pfade = erstelle_pfade(settings, PROJECT_ROOT)
-    except Exception as err:
+    except ValueError as err:
         report.error(f"Pfadkonfiguration ist ungueltig: {err}")
         return
 
-    lese_pruefungen = (
+    pruefungen = (
         (pruefe_lesbare_datei, PROJECT_ROOT / ".env", ".env"),
         (pruefe_lesbares_verzeichnis, pfade.data_dir, "Datenverzeichnis"),
-        (pruefe_lesbare_datei, pfade.data_dir / "daten.json", "data/daten.json"),
-        (
-            pruefe_lesbare_datei,
-            pfade.data_dir / "konfiguration.json",
-            "data/konfiguration.json",
-        ),
-        (
-            pruefe_lesbares_verzeichnis,
-            pfade.templates_dir,
-            "Template-Verzeichnis",
-        ),
+        (pruefe_lesbares_verzeichnis, pfade.customers_dir, "Kundenverzeichnis"),
+        (pruefe_lesbare_datei, pfade.invoice_config, "config/invoice.yaml"),
+        (pruefe_lesbares_verzeichnis, pfade.templates_dir, "Template-Verzeichnis"),
         (
             pruefe_lesbare_datei,
             pfade.templates_dir / "mail_template.html",
@@ -362,43 +194,28 @@ def _check_paths(report: CheckReport, settings: dict, daten: list | None) -> Non
             "Rechnungsvorlage",
         ),
     )
-    for pruefung, pfad, bezeichnung in lese_pruefungen:
+    for pruefung, pfad, bezeichnung in pruefungen:
         _melde_pfadfehler(report, pruefung, pfad, bezeichnung)
-
     for pfad, bezeichnung in (
         (pfade.data_dir, "Datenverzeichnis"),
         (pfade.backup_dir, "Backupverzeichnis"),
     ):
         _melde_pfadfehler(
-            report,
-            pruefe_schreibbares_zielverzeichnis,
-            pfad,
-            bezeichnung,
+            report, pruefe_schreibbares_zielverzeichnis, pfad, bezeichnung
         )
 
     logging_config = settings.get("logging", {})
     if isinstance(logging_config, dict) and logging_config.get("enabled", True):
-        try:
-            log_dir = Path(logging_config.get("directory", "logs"))
-        except (TypeError, ValueError) as err:
-            report.error(f"Logverzeichnis ist ungueltig: {err}")
-            log_dir = None
-        if log_dir is not None:
-            if not log_dir.is_absolute():
-                log_dir = PROJECT_ROOT / log_dir
-            _melde_pfadfehler(
-                report,
-                pruefe_schreibbares_zielverzeichnis,
-                log_dir,
-                "Logverzeichnis",
-            )
+        log_dir = Path(logging_config.get("directory", "logs"))
+        if not log_dir.is_absolute():
+            log_dir = PROJECT_ROOT / log_dir
+        _melde_pfadfehler(
+            report, pruefe_schreibbares_zielverzeichnis, log_dir, "Logverzeichnis"
+        )
 
     if pfade.hours_dir.exists():
         _melde_pfadfehler(
-            report,
-            pruefe_lesbares_verzeichnis,
-            pfade.hours_dir,
-            "Stundenverzeichnis",
+            report, pruefe_lesbares_verzeichnis, pfade.hours_dir, "Stundenverzeichnis"
         )
     elif _hat_stundenkunden(daten):
         report.error(
@@ -407,22 +224,14 @@ def _check_paths(report: CheckReport, settings: dict, daten: list | None) -> Non
     else:
         report.warning("Optionales Stundenverzeichnis fehlt.")
 
-    if pfade.img_dir.exists():
-        _melde_pfadfehler(
-            report,
-            pruefe_lesbares_verzeichnis,
-            pfade.img_dir,
-            "Bildverzeichnis",
-        )
-
-    for index, kunde in enumerate(daten or [], start=1):
+    for kunde in daten or []:
         archiv_pfad = kunde.get("archiv_pfad") if isinstance(kunde, dict) else None
         if not archiv_pfad:
             continue
         try:
             pruefe_archiv_pfad(archiv_pfad, schreibprobe=True)
         except ValueError as err:
-            report.error(f"data/daten.json: Eintrag #{index}: {err}")
+            report.error(f"Kunde {kunde.get('id', 'unbekannt')}: {err}")
 
 
 def _melde_pfadfehler(

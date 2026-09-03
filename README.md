@@ -1,429 +1,275 @@
-# 🧾 Rechnung-Automation
+# Rechnung-Automation
 
-Ein flexibles Python-Tool zur automatisierten Erstellung und Versendung von PDF-Rechnungen per E-Mail – ideal für Freelancer und Kleinunternehmer.
+Python-Tool zur automatisierten Erstellung, Archivierung und Versendung von
+PDF-Rechnungen. Linux und Windows werden ueber getrennte Start- und
+Installationsskripte unterstuetzt.
 
-**Aktuelle stabile Version:** `1.3.6`
+**Aktuelle Version:** `1.4.0`
 
-## ✅ Funktionen
+## Funktionen
 
-- 📄 Erstellung von PDF-Rechnungen aus HTML-Vorlagen
-- 📧 Versand der Rechnungen per E-Mail mit BCC-Unterstützung
-- 📁 Automatische Archivierung der PDFs an frei definierbare Pfade
-- 🧾 Logdateien pro Rechnungslauf, optional abschaltbar
-- 🧠 Automatische Generierung von Rechnungsnummer, Abrechnungszeitraum, Fälligkeitsdatum
-- 🕒 Unterstützung stundenbasierter Abrechnung (mit Monatsdateien)
-- 🔁 Zyklische oder einmalige Abrechnung, je nach Kundeneinstellung
-- 💡 Rückfrage bei fehlenden Daten, z. B. Stunden oder fehlerhaften Dateien
-- 🖼 Anpassbares HTML/CSS-Design (Logo, Farben, Templates)
-- 🩺 Setup-Check ohne Rechnungserzeugung
-- ⚙️ Interaktive Einrichtung über `install/install.ps1` (Windows) oder `install/install.sh` (Linux)
-- 🖱 Desktop-Verknüpfung für Windows-Nutzer wird automatisch erstellt
+- PDF-Erzeugung aus HTML-Vorlagen mit WeasyPrint
+- Versand per SMTP mit optionalen CC- und BCC-Empfaengern
+- STARTTLS oder implizites TLS/SSL
+- Monatliche, pauschale, einmalige und stundenbasierte Abrechnung
+- Sichere Versandzustaende `pending`, `sent` und `failed`
+- Atomare Speicherung von Verlauf und Kundendateien
+- Eine uebersichtliche YAML-Datei pro Kunde
+- Konfigurierbares Design, Branding und Logging
+- Nicht-interaktiver Cronbetrieb mit Fehlerbericht
+- Ungefaehrlicher Setup-Check ohne Rechnungs- oder Mailerzeugung
 
----
-
-## 🚀 Schnellstart
-
-### 1. Voraussetzungen
+## Voraussetzungen
 
 - Python 3.10 oder neuer
-- Linux: WeasyPrint für die PDF-Erzeugung; je nach Distribution können zusätzlich Systembibliotheken und Fonts für HTML/CSS-Rendering nötig sein.
-- Internetzugang für den Mailversand (SMTP)
+- Linux-Systembibliotheken und Fonts fuer WeasyPrint, distributionsabhaengig
+- SMTP-Zugang fuer den Mailversand
 
-### 2. Einrichtung (abhängig vom Betriebssystem)
+## Installation
 
 ```powershell
 # Windows PowerShell
 ./install/install.ps1
+```
 
-# Linux Terminal
+```bash
+# Linux
 ./install/install.sh
 ```
 
-> Erstellt `.venv`, installiert Abhängigkeiten, fragt zentrale Konfigurationsdaten ab und erstellt unter Windows eine Desktop-Verknüpfung auf das PowerShell-Startskript. Die Installer validieren zentrale Eingaben und schreiben lokale Setup-Dateien sicher mit Sonderzeichen.
+Die Installer erstellen `.venv`, installieren die Abhaengigkeiten und legen
+die lokale `.env` sowie `config/invoice.yaml` an. Bestehende lokale Dateien
+werden nicht ueberschrieben.
 
-### Entwickler-Abhängigkeiten
-
-Nur für Entwicklung und statische Prüfungen:
+Entwicklerabhaengigkeiten:
 
 ```bash
 source .venv/bin/activate
 python -m pip install -r install/requirements-dev.txt
 ```
 
-Empfohlene Prüfungen:
+## Konfiguration
 
-```bash
-python -m black --check .
-python -m flake8 .
-python -m pytest
-```
-
----
-
-## ⚙️ Konfiguration
+Menschengepflegte Daten verwenden YAML. Maschinell erzeugte Verlaufsdaten
+bleiben JSON. Zugangsdaten stehen ausschliesslich in `.env`.
 
 ### `config/settings.yaml`
 
-Enthält nicht-sensitive Projekteinstellungen wie Pfade, Runtime-Optionen und die PDF-Engine-Auswahl. Zugangsdaten und Kundendaten gehören nicht in diese Datei.
+Enthaelt technische Einstellungen fuer Pfade, PDF, Design, Branding, Logging
+und SMTP-Verhalten:
 
 ```yaml
+paths:
+  data_dir: data
+  customers_dir: customers
+  invoice_config: config/invoice.yaml
+  templates_dir: templates
+  image_dir: img
+  hours_dir: hours
+  backup_dir: backup
+
 pdf:
   engine: weasyprint
 
-design:
-  pdf:
-    accent_color: "#2f3c50"
-    accent_text_color: "#ffffff"
-    accent_muted_text_color: "#dbe2ea"
-  mail:
-    accent_color: "#1e3a70"
-    link_color: "#007BFF"
-
-branding:
-  pdf_logo: logo.png
-  mail_logo: null
-  pdf_logo_height: 40
-  mail_logo_height: 60
-  header_title: null
-  header_subtitle: null
+mail:
+  security: starttls
+  timeout_seconds: 30
 ```
 
-Als PDF-Engine wird `weasyprint` verwendet.
-Unter `design` können die Akzentfarben der PDF-Rechnung und der
-Rechnungsmail als sechsstellige Hex-Farben angepasst werden. Die gezeigten
-Werte entsprechen dem Standarddesign. `design.mail.accent_color` färbt den
-Kopfbereich der Rechnungsmail; dessen Textfarben entsprechen den konfigurierten
-PDF-Akzenttextfarben.
+`mail.security` akzeptiert `starttls` oder `ssl`. Die passende Portnummer wird
+weiterhin in `.env` festgelegt.
 
-`branding.pdf_logo` und `branding.mail_logo` wählen optionale PNG- oder
-JPEG-Logos aus. Relative Pfade werden innerhalb von `paths.image_dir` gesucht;
-Unterordner wie `branding/mail-logo.png` sind möglich. Alternativ kann ein
-absoluter Pfad angegeben werden. Mit `null` wird das jeweilige Logo deaktiviert.
-Das Mail-Logo wird eingebettet und rechts im Kopf der Rechnungsmail angezeigt.
-Mit `branding.header_title` und `branding.header_subtitle` können die beiden
-Textzeilen im Kopf von PDF und Rechnungsmail unabhängig von den Absenderdaten
-angepasst werden. Bei `null` werden weiterhin `absender.name` und
-`absender.firma` verwendet.
-`branding.pdf_logo_height` und `branding.mail_logo_height` steuern die
-Logo-Höhe in Pixeln. Erlaubt sind Werte von `10` bis `200`.
+### `config/invoice.yaml`
 
-### Logging
+Enthaelt Absender-, Bank-, Steuer- und sichtbare Mailangaben. Die lokale Datei
+wird wegen personenbezogener Daten nicht versioniert. Eine vollstaendige
+Vorlage liegt unter `sample/invoice.sample.yaml`.
 
 ```yaml
-logging:
-  enabled: true
-  directory: logs
-  level: INFO
+sender:
+  name: Max Mustermann
+  company: Musterfirma GmbH
+  street: Musterstraße 1
+  postal_code: "01234"
+  city: Musterstadt
+  phone: "+49 123 456789"
+  email: max@example.com
+
+bank:
+  name: Musterbank
+  account_holder: Max Mustermann
+  iban: DE12345678901234567890
+  bic: MUSTDE00XXX
+
+tax:
+  identifier_type: tax_number
+  tax_number: 12/345/67890
+  small_business: false
+  vat_rate: "19.00"
+
+mail:
+  bcc:
+    - rechnung@example.com
+  from_name: Musterfirma Rechnungen
 ```
 
-Wenn `logging.enabled` aktiv ist, schreibt jeder Rechnungslauf eine Logdatei mit Zeitstempel in `logs/`. Der Ordner wird nicht versioniert. Mit `enabled: false` wird kein Logfile geschrieben.
+Als `identifier_type` werden `tax_number` und `vat_id` unterstuetzt. Geld- und
+Prozentwerte muessen in Anfuehrungszeichen stehen und werden intern mit
+`Decimal` verarbeitet.
 
 ### `.env`
 
-```env
+```dotenv
 MAIL_SERVER=smtp.example.com
 MAIL_PORT=587
 MAIL_USER=deine@email.de
 MAIL_PASS=dein_passwort
 ```
 
-### `daten.json`
+Diese Datei darf nicht committed werden.
 
-Beinhaltet die Kunden-, Leistungs- und Abrechnungsdaten. Kann interaktiv über `tools/kunden_anlegen.py` erweitert werden.
+## Kundendateien
 
-```json
-[
-  {
-    "name": "Herr Mustermann",
-    "firma": "Musterfirma GmbH",
-    "email": "kunde@example.com",
-    "cc": ["buchhaltung@example.com"],
-    "strasse": "Musterstraße 1",
-    "plz": "12345",
-    "ort": "Musterstadt",
-    "webseite": "www.musterfirma.de",
-    "rechnungsnummer": "MF",
-    "faelligkeit": "14",
-    "abrechnungszyklus": 3,
-    "letzte_rechnung": "2024-12",
-    "hauptleistung": {
-      "beschreibung": "Individuelle Beratung",
-      "einheit": "Monat",
-      "betrag": "65,00"
-    },
-    "weitere_leistungen": [
-      { "beschreibung": "Zusätzliche E-Mail-Adressen", "preis": "9,99" },
-      { "beschreibung": "Support inklusive", "preis": "Inklusive" }
-    ],
-    "archiv_pfad": "C:/Users/DEINNAME/Desktop/test Archiv"
-  }
-]
+Jeder Kunde liegt in einer eigenen Datei unter `customers/`. Die stabile `id`
+entspricht im Normalfall dem Dateinamen. Eine vollstaendige Vorlage befindet
+sich unter `sample/customer.sample.yaml`.
+
+```yaml
+id: musterfirma
+active: true
+
+contact:
+  name: Herr Mustermann
+  company: Musterfirma GmbH
+  email: kunde@example.com
+  cc:
+    - buchhaltung@example.com
+  street: Musterstraße 1
+  postal_code: "12345"
+  city: Musterstadt
+
+billing:
+  invoice_prefix: MF
+  cycle_months: 3
+  due_days: 14
+  end_month: null
+  invoice_date: null
+  one_time: false
+
+main_service:
+  description: Individuelle Beratung
+  unit: month
+  unit_price: "65.00"
+
+additional_services:
+  - description: Zusatzleistung
+    unit: flat
+    unit_price: "9.99"
+  - description: Support inklusive
+    unit: included
+
+archive:
+  directory: null
 ```
 
-`cc` ist optional. Es kann eine einzelne Adresse oder eine Liste mehrerer
-Adressen enthalten. Die globale `mail.bcc`-Adresse bleibt davon unberuehrt.
+Unterstuetzte Einheiten der Hauptleistung sind `month`, `hour` und `flat`.
+Zusatzleistungen verwenden `month`, `flat` oder `included`. Postleitzahlen,
+Telefonnummern, Geldwerte und Prozentwerte sollten immer als Text in
+Anfuehrungszeichen stehen. `billing.invoice_date` verwendet `YYYY-MM-DD`,
+`billing.end_month` verwendet `YYYY-MM`.
 
-### `konfiguration.json`
+Neue Kunden koennen interaktiv angelegt werden:
 
-Beinhaltet die eigenen Daten wie Absender, Bankdaten und Mail. Kann interaktiv über `install/install.sh` oder `install/install.ps1` erstellt werden.
-
-```json
-{
-  "absender": {
-    "name": "Max Mustermann",
-    "firma": "Musterfirma GmbH",
-    "straße": "Musterstraße 1",
-    "plz": "12345",
-    "ort": "Musterstadt",
-    "telefon": "+49 123 456789",
-    "email": "muster.mann@mustermann.de",
-    "website": "www.mustermann.de"
-  },
-  "bank": {
-    "bankname": "Sparkasse XY",
-    "kontoinhaber": "Max Mustermann",
-    "iban": "DE12345678901234567890",
-    "bic": "SPKEXY12XXX"
-  },
-  "finanzen": {
-    "steuer_id_typ": "steuernummer",
-    "steuernummer": "12/345/67890",
-    "finanzamt": "Finanzamt Musterstadt",
-    "kleinunternehmer": false,
-    "mehrwertsteuer_prozent": 19
-  },
-  "mail": {
-    "bcc": "rechnung@mustermann.de",
-    "from_name": "Musterfirma Rechnungen"
-  }
-}
+```bash
+python tools/kunden_anlegen.py
 ```
 
-Für Rechnungen muss entweder eine Steuernummer oder eine USt-IdNr. konfiguriert werden. Der Installer fragt ab, welche Variante verwendet werden soll. Für die USt-IdNr. werden stattdessen folgende Felder verwendet:
+Abgeschlossene einmalige Kunden werden im interaktiven Lauf auf Wunsch durch
+`active: false` deaktiviert, nicht geloescht.
 
-```json
-"steuer_id_typ": "ust_id",
-"ust_id": "DE123456789"
+## Migration von JSON nach YAML
+
+Das Migrationswerkzeug veraendert die alten JSON-Dateien standardmaessig nicht.
+`--apply` erzeugt die YAML-Dateien und vergleicht sie anschliessend mit den
+JSON-Quellen. Eine bestehende Migration kann separat geprueft werden:
+
+```bash
+python tools/migrate_to_yaml.py
+python tools/migrate_to_yaml.py --apply
+python tools/migrate_to_yaml.py --verify
 ```
 
-`mail.from_name` ist optional und steuert den sichtbaren Namen des
-Mail-Absenders. Ohne Wert wird wie bisher nur die SMTP-Adresse aus `.env`
-verwendet.
+Erst wenn dieser Vergleich und die normalen YAML-Loader erfolgreich sind, kann
+das Werkzeug mit folgendem expliziten Schalter die beiden alten Dateien
+`data/daten.json` und `data/konfiguration.json` loeschen:
 
-Die SMTP-Adresse aus `.env` (`MAIL_USER`) ist die technische Versand- und
-Absenderadresse der E-Mail. Die Adresse unter `absender.email` bleibt davon
-getrennt und wird als formelle Kontaktadresse in PDF-Rechnung und
-HTML-Mailinhalt angezeigt.
+```bash
+python tools/migrate_to_yaml.py --delete-legacy
+```
 
-Wenn `kleinunternehmer` auf `false` steht, versteht das Tool die bei den
-Leistungen hinterlegten Beträge als Nettopreise. Der konfigurierte
-Mehrwertsteuersatz wird zusätzlich berechnet und Rechnung sowie Mail weisen
-Netto-, Steuer- und Bruttobetrag aus. Bei `kleinunternehmer: true` wird keine
-Mehrwertsteuer addiert.
+Das Loeschen ist nicht rueckgaengig zu machen. Eine Sicherung der JSON-Dateien
+ist daher sinnvoll. Ohne `--delete-legacy` bleiben sie immer erhalten. Beim
+Erzeugen bricht das Werkzeug ab, sobald eine Zieldatei bereits existiert. Nach
+der Migration sollte zusaetzlich `python tools/check_setup.py` ausgefuehrt
+werden. Erst danach sollte ein Rechnungslauf gestartet werden.
 
----
-
-## 📤 Rechnung erzeugen & versenden
-
-### Setup prüfen
+## Setup pruefen
 
 ```bash
 python tools/check_setup.py
 ```
 
-Der Check gibt keine `.env`-Werte oder Kundendaten aus. Er prüft neben
-Pflichtfeldern auch Beträge, Abrechnungszyklen,
-Fälligkeiten, Abrechnungseinheiten, Datumsformate sowie konfigurierte Lese- und
-Schreibpfade. Für Schreibziele erzeugt und entfernt er unmittelbar eine
-temporäre Testdatei.
+Der Check erzeugt keine Rechnungen und versendet keine E-Mails. Er validiert
+Settings, Rechnungskonfiguration, alle Kundendateien, Templates, Branding,
+SMTP-Schluessel und konfigurierte Pfade. Schreibproben verwenden kurzlebige
+Testdateien und entfernen sie sofort wieder.
 
-Vor jedem Rechnungslauf prüft zusätzlich ein kleiner, rein lesender Mini-Check
-die zentralen Konfigurationsdateien, Vorlagen sowie Runtime-, PDF- und
-Mail-Konfiguration. Ein unerreichbarer Kunden-Archivpfad stoppt nur den
-betroffenen Kunden vor PDF-Erzeugung und Mailversand.
-
-### Variante A: Manuell im Terminal
+## Rechnungslauf
 
 ```bash
-python src/main.py
-```
+# Produktiver interaktiver Lauf
+./rechnung_generieren.sh
 
-> Achtung: Dieser Befehl startet die produktive Verarbeitung. Dabei können PDFs erzeugt, E-Mails versendet, Verlaufsdaten aktualisiert und Archivdateien geschrieben werden.
-
-### Variante B: Per Doppelklick oder Ausführen aus dem Terminal (empfohlen)
-
-- **Windows:** `.\rechnung_generieren.ps1` (Desktop-Verknüpfung wird automatisch angelegt)
-- **Linux:** `./rechnung_generieren.sh`
-
-> Die Startskripte nutzen automatisch die Python-Umgebung aus `.venv` und starten `src/main.py`.
-
-> Erzeugt PDF-Rechnungen, versendet sie per Mail, archiviert sie, aktualisiert den Verlauf und bietet Löschoption für einmalige Kunden.
-
-### Variante C: Cronjob oder Serverbetrieb
-
-```bash
+# Produktiver nicht-interaktiver Lauf
 ./rechnung_cron.sh
 ```
 
-Dieses Skript läuft ohne Rückfragen und ist für automatisierte Starts gedacht. Beispiel für einen monatlichen Cronjob am ersten Tag um 08:00 Uhr:
+Unter Windows wird `rechnung_generieren.ps1` verwendet.
 
-```cron
-0 8 1 * * cd /pfad/rechnung-automation && ./rechnung_cron.sh
-```
+> Achtung: Rechnungsläufe koennen PDFs erzeugen, E-Mails versenden,
+> Verlaufsdaten aktualisieren und Archive beschreiben.
 
-Der Python-Prozess schreibt bei aktivem Logging selbst in `logs/`. Eine zusätzliche Shell-Umleitung ist deshalb normalerweise nicht nötig.
-
-Treten während eines Cronlaufs schwere Fehler mit Log-Level `ERROR` oder
-`CRITICAL` auf, wird am Laufende eine Zusammenfassung an den in
-`data/konfiguration.json` hinterlegten BCC-Empfänger gesendet. Warnungen lösen
-keine Fehlerberichtsmail aus. Fehler eines einzelnen Kunden werden protokolliert,
-ohne die Verarbeitung nachfolgender Kunden abzubrechen.
-
-Bei stundenbasierten Cron-Abrechnungen werden fehlende oder unvollständige
-Stundenzeiträume im aktuellen Fälligkeitsmonat erneut geprüft. Nach dem
-Monatswechsel wird der offene Zeitraum ohne Rechnung abgeschlossen. Bereits
-versendete oder abgeschlossene Zeiträume werden durch spätere Änderungen nicht
-erneut versendet.
-
-### Mailversand testen
+## Tests und Codequalitaet
 
 ```bash
-python tools/mailversand_testen.py
+python -m pytest
+python -m flake8 .
+python -m black --check .
 ```
 
-> Dieser Befehl sendet eine echte Testmail ausschließlich an den konfigurierten
-> BCC-Empfänger. Er erzeugt keine Rechnungen, PDFs oder Verlaufsdaten.
+Black wird in diesem Projekt bewusst vom Nutzer ausgefuehrt.
 
-### Darstellung mit einer Musterrechnung testen
+## Projektstruktur
 
-```bash
-python tools/testrechnung_versenden.py
+```text
+config/
+├── settings.yaml
+└── invoice.yaml              # lokal, nicht versioniert
+customers/
+└── <customer-id>.yaml        # lokal, nicht versioniert
+data/
+└── verlauf-<jahr>.json       # maschinell erzeugter Zustand
+sample/
+├── customer.sample.yaml
+├── invoice.sample.yaml
+└── settings.sample.yaml
+src/                         # Anwendungslogik
+templates/                   # produktive HTML-Vorlagen
+tests/                       # ungefaehrliche Tests
+tools/                       # Setup-, Kunden- und Migrationswerkzeuge
+install/                     # Linux-/Windows-Installer
 ```
 
-> Dieser Befehl erzeugt eine echte PDF-Musterrechnung und versendet eine echte
-> Rechnungsmail. Standardempfänger ist die konfigurierte BCC-Adresse; beim
-> Start kann eine andere Adresse eingegeben werden. Das Tool fragt nach einem
-> Monats-, Pauschal- oder Stundenmuster und verwendet ansonsten die aktuelle
-> Konfiguration, Vorlagen, Farben und Logos. PDF, Betreff und Mailtext sind
-> deutlich als Muster gekennzeichnet. Kundendaten, Verlauf und Archive werden
-> nicht verändert.
+## Lizenz
 
----
-
-## 📁 Projektstruktur
-
-```
-rechnung-automation/
-├── .gitignore                     # Ausschlüsse (z. B. .venv/, data/)
-├── .env                           # SMTP-Zugangsdaten (nicht im Git)
-├── .venv/                         # Virtuelle Umgebung (nicht ins Git)
-├── config/
-│   └── settings.yaml              # Nicht-sensitive Projekteinstellungen
-├── data/
-│   ├── daten.json                 # Kunden- und Rechnungsdaten
-│   ├── konfiguration.json         # Absender-, Steuer- und Bankdaten
-│   └── verlauf-20XX.json          # Automatisch gepflegter Rechnungsverlauf
-├── img/
-│   └── logo.png                   # Standardlogo für die PDF
-├── logs/                          # Lokale Logdateien (nicht ins Git)
-├── install/
-│   ├── install.ps1                # Einrichtungsskript (Windows PowerShell)
-│   ├── install.sh                 # Einrichtungsskript (Linux)
-│   ├── requirements.txt           # Python-Abhängigkeiten
-│   └── version.py                 # Zentrale Versionsnummer
-├── licenses/
-│   └── gpl-2.0.txt
-├── sample/
-│   ├── daten.sample.jsonc
-│   ├── .env.sample
-│   ├── konfiguration.sample.json
-│   ├── mail_template.sample.html
-│   ├── rechnung_template.sample.html
-│   └── settings.sample.yaml
-├── src/
-│   ├── faelligkeit.py             # Fälligkeitsprüfung für Rechnungen
-│   ├── konfiguration.py           # Konfigurations- und Mail-Env-Laden
-│   ├── kunden.py                  # Kundenliste aktualisieren
-│   ├── leistungen.py              # Leistungs- und Stundenberechnung
-│   ├── logging_setup.py           # Zentrale Logging-Konfiguration
-│   ├── mail.py                    # Mail-Aufbau und SMTP-Versand
-│   ├── main.py                    # Hauptskript zur Rechnungserstellung
-│   ├── pdf.py                     # PDF-Erzeugung per konfigurierter Engine
-│   ├── paths.py                   # Zentrale Projektpfade aus Einstellungen
-│   ├── rechnungen.py              # Rechnungsdatum, Nummer, Zeitraum und Steuer
-│   ├── settings_loader.py         # YAML-Loader für Projekteinstellungen
-│   ├── templates.py               # Template-Laden und Kontextaufbau
-│   ├── verlauf.py                 # Rechnungsverlauf laden und absichern
-│   └── workflow.py                # Orchestrierung pro Rechnungslauf
-├── hours/                         # Stundenlisten pro Monat
-├── tools/
-│   ├── check_setup.py             # Ungefährlicher Setup-Check
-│   ├── kunden_anlegen.py          # Interaktive Kundenerfassung
-│   ├── mailversand_testen.py      # SMTP-Testmail ausschließlich an BCC
-│   └── testrechnung_versenden.py  # Markierte Musterrechnung versenden
-├── templates/
-│   ├── mail_template.html         # HTML-Vorlage für E-Mail
-│   └── rechnung_template.html     # HTML-Vorlage für PDF-Rechnung
-├── rechnung_generieren.ps1        # Schnellstart-Skript für Windows
-├── rechnung_generieren.sh         # Schnellstart-Skript für Linux
-├── rechnung_cron.sh               # Nicht-interaktiver Start für Cron/Server
-├── tests/                         # Ungefährliche Tests für reine Logik
-├── CHANGELOG.md
-├── LICENSE.md
-└── README.md
-```
-
----
-
-## 🧩 Templates
-
-- `templates/rechnung_template.html` → PDF-Design
-- `templates/mail_template.html` → E-Mail-Text (HTML)
-- `branding.pdf_logo` → optionales Logo für die PDF
-- `branding.mail_logo` → optionales, eingebettetes Logo für die Rechnungsmail
-
-Bearbeite die Templates direkt, um Texte, Farben oder Formatierungen zu ändern.
-
----
-
-## 🛠 Erweiterungsmöglichkeiten
-
-- Rechnung mit Steuersatz und Mehrwertsteuer
-- Automatische Verarbeitung von Zahlungseingängen
-- Integration mit Zeiterfassung oder CRM
-
----
-
-## 🔄 Update
-
-```bash
-git pull
-```
-
-Vor einem Update sollten lokale Änderungen committed oder gesichert sein. Persönliche Daten in `.env` und `data/` werden nicht versioniert.
-
----
-
-## 📋 Changelog
-
-Siehe [CHANGELOG.md](CHANGELOG.md)
-
----
-
-## 📚 Dokumentation
-
-Eine vollständige Dokumentation findest du im **[offiziellen GitHub-Wiki](https://github.com/jan-erbert/rechnung-automation/wiki)**.  
-Dort sind alle Bereiche detailliert erklärt:
-
-- Einrichtung & Systemvoraussetzungen
-- Konfigurationsdateien (`daten.json`, `konfiguration.json`, `.env`)
-- Betrieb, Cronjobs und Logging
-- PDF- und E-Mail-Vorlagen
-- Archivierung, Updates & Fehlerbehandlung
-- Technischer Aufbau und Erweiterungsmöglichkeiten
-
----
-
-## ⚖️ Lizenz
-
-MIT License – frei nutzbar, kommerziell verwendbar, keine Gewährleistung.
+Siehe `LICENSE.md` und `licenses/`.

@@ -2,6 +2,8 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
+from zeit import jetzt
+
 
 class LauffehlerSammler(logging.Handler):
     """Sammelt schwere Laufmeldungen fuer den Cron-Fehlerbericht."""
@@ -52,7 +54,7 @@ def konfiguriere_logging(logging_config: dict, base_dir: Path) -> Path | None:
 
     log_dir = _resolve_log_dir(base_dir, logging_config.get("directory", "logs"))
     log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / f"rechnung-{datetime.now():%Y%m%d-%H%M%S}.log"
+    log_file = log_dir / f"rechnung-{jetzt():%Y%m%d-%H%M%S}.log"
 
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setFormatter(formatter)

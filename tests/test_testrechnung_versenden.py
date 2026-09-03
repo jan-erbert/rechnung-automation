@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytest
+from decimal import Decimal
 
 from design import validiere_design_config
 from tools.testrechnung_versenden import (
@@ -57,7 +58,11 @@ def test_sample_type_question_repeats_after_invalid_input(monkeypatch, capsys):
 
 @pytest.mark.parametrize(
     ("musterart", "gesamtpreis"),
-    [("monat", 89.0), ("pauschal", 450.0), ("stunden", 487.5)],
+    [
+        ("monat", Decimal("89.00")),
+        ("pauschal", Decimal("450.00")),
+        ("stunden", Decimal("487.50")),
+    ],
 )
 def test_sample_service_types_have_fixed_synthetic_values(musterart, gesamtpreis):
     """Alle Musterarten verwenden feste synthetische Leistungsdaten."""

@@ -1,11 +1,15 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from decimal import Decimal, ROUND_HALF_UP
 
 from dateutil.relativedelta import relativedelta
 
 from validierung import validiere_datum, validiere_nichtnegative_ganzzahl
+from zeit import formatiere_monat_jahr
+
+CENT = Decimal("0.01")
 
 
-def baue_rechnungsdaten(eintrag: dict, heute: datetime) -> dict:
+def baue_rechnungsdaten(eintrag: dict, heute: date | datetime) -> dict:
     """Ermittelt Datum, Nummer und Faelligkeit fuer eine Rechnung."""
     rechnungsdatum = eintrag.get("rechnungsdatum")
     if not rechnungsdatum:
@@ -31,21 +35,25 @@ def baue_rechnungsdaten(eintrag: dict, heute: datetime) -> dict:
 
     return {
         "rechnungsdatum": rechnungsdatum,
-        "monat_jahr": heute.strftime("%B %Y"),
+        "monat_jahr": formatiere_monat_jahr(heute),
         "faelligkeit_datum": faelligkeit_datum,
         "rechnungsnummer": rechnungsnummer,
         "auto_rechnungsnummer": auto_rechnungsnummer,
     }
 
 
-def berechne_steuerwerte(gesamtpreis: float, finanzen: dict) -> dict:
+def berechne_steuerwerte(gesamtpreis: Decimal, finanzen: dict) -> dict:
     """Berechnet Steuerhinweis und Bruttosumme fuer die Rechnung."""
+    gesamtpreis = Decimal(str(gesamtpreis))
     if finanzen["kleinunternehmer"]:
-        steuerbetrag = 0
+        steuerbetrag = Decimal("0.00")
         mwst_hinweis = "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet."
         gesamtpreis_mit_mwst = gesamtpreis
     else:
-        steuerbetrag = round(gesamtpreis * finanzen["mehrwertsteuer_prozent"] / 100, 2)
+        steuersatz = Decimal(str(finanzen["mehrwertsteuer_prozent"]))
+        steuerbetrag = (gesamtpreis * steuersatz / Decimal("100")).quantize(
+            CENT, rounding=ROUND_HALF_UP
+        )
         mwst_hinweis = (
             f"zzgl. {finanzen['mehrwertsteuer_prozent']}% MwSt "
             f"({steuerbetrag:.2f} EUR)"
@@ -60,14 +68,14 @@ def berechne_steuerwerte(gesamtpreis: float, finanzen: dict) -> dict:
     }
 
 
-def berechne_abrechnungszeitraum(heute: datetime, abrechnungszyklus: int) -> str:
+def berechne_abrechnungszeitraum(heute: date | datetime, abrechnungszyklus: int) -> str:
     """Baut den Text fuer den abgerechneten Monatszeitraum."""
     if abrechnungszyklus < 1:
         return ""
 
-    zeitraum_start = heute.strftime("%B %Y")
+    zeitraum_start = formatiere_monat_jahr(heute)
     zeitraum_ende_dt = heute + relativedelta(months=abrechnungszyklus - 1)
-    zeitraum_ende = zeitraum_ende_dt.strftime("%B %Y")
+    zeitraum_ende = formatiere_monat_jahr(zeitraum_ende_dt)
 
     if abrechnungszyklus == 1:
         return zeitraum_start

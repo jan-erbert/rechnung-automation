@@ -1,5 +1,7 @@
 paths:
   data_dir: data
+  customers_dir: customers
+  invoice_config: config/invoice.yaml
   templates_dir: templates
   image_dir: img
   hours_dir: hours
@@ -25,10 +27,11 @@ branding:
   header_title: null
   header_subtitle: null
 
-runtime:
-  locale: de_DE.UTF-8
-
 logging:
   enabled: true
   directory: logs
   level: INFO
+
+mail:
+  security: starttls
+  timeout_seconds: 30

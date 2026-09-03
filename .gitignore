@@ -26,6 +26,10 @@ data/
 .env
 environment.env
 hours/
+config/invoice.yaml
+customers/*.yaml
+customers/*.yml
+!customers/.gitkeep
 
 # Deployment Dateien
 AGENTS.md

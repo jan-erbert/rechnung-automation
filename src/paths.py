@@ -10,6 +10,8 @@ class ProjektPfade:
 
     base_dir: Path
     data_dir: Path
+    customers_dir: Path
+    invoice_config: Path
     hours_dir: Path
     templates_dir: Path
     img_dir: Path
@@ -35,6 +37,12 @@ def erstelle_pfade(
     return ProjektPfade(
         base_dir=base_dir,
         data_dir=_resolve_path(base_dir, paths_config.get("data_dir", "data")),
+        customers_dir=_resolve_path(
+            base_dir, paths_config.get("customers_dir", "customers")
+        ),
+        invoice_config=_resolve_path(
+            base_dir, paths_config.get("invoice_config", "config/invoice.yaml")
+        ),
         hours_dir=_resolve_path(base_dir, paths_config.get("hours_dir", "hours")),
         templates_dir=_resolve_path(
             base_dir, paths_config.get("templates_dir", "templates")

@@ -15,12 +15,14 @@ def _mail_config() -> dict:
 def test_cron_error_report_is_only_sent_when_errors_exist(monkeypatch):
     """Ein fehlerfreier Cronlauf versendet keinen Fehlerbericht."""
     versendet = []
-    monkeypatch.setattr("main.sende_mail", lambda *args: versendet.append(args))
+    monkeypatch.setattr(
+        "main.sende_mail", lambda *args, **kwargs: versendet.append((args, kwargs))
+    )
 
     _sende_cron_fehlerbericht(
         LauffehlerSammler(),
         _mail_config(),
-        {"mail": {"bcc": "bcc@example.com"}},
+        {"mail": {"bcc": ["bcc@example.com"]}},
     )
 
     assert versendet == []
@@ -38,13 +40,15 @@ def test_cron_error_report_is_sent_only_to_bcc(monkeypatch):
             "meldung": "Kundenverarbeitung fehlgeschlagen",
         }
     )
-    monkeypatch.setattr("main.sende_mail", lambda *args: versendet.append(args))
+    monkeypatch.setattr(
+        "main.sende_mail", lambda *args, **kwargs: versendet.append((args, kwargs))
+    )
 
     _sende_cron_fehlerbericht(
         sammler,
         _mail_config(),
-        {"mail": {"bcc": "bcc@example.com"}},
+        {"mail": {"bcc": ["bcc@example.com"]}},
     )
 
     assert len(versendet) == 1
-    assert versendet[0][-1] == ["bcc@example.com"]
+    assert versendet[0][0][-1] == ["bcc@example.com"]

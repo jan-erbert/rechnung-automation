@@ -1,10 +1,10 @@
-import json
+import re
 import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-DEFAULT_DATEN_PATH = DATA_DIR / "daten.json"
+CUSTOMERS_DIR = BASE_DIR / "customers"
+DEFAULT_DATEN_PATH = CUSTOMERS_DIR
 SRC_DIR = BASE_DIR / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
@@ -14,70 +14,19 @@ from validierung import (  # noqa: E402
     validiere_betrag,
     validiere_datum,
     validiere_einheit,
+    validiere_kundeneintrag,
     validiere_monat,
     validiere_nichtnegative_ganzzahl,
     validiere_positive_ganzzahl,
 )
+from kundendateien import lade_kundendateien, speichere_kundendatei  # noqa: E402
 
 
 def lade_kundendaten(dateiname: Path = DEFAULT_DATEN_PATH) -> list:
-    """Laedt die bestehende Kundenliste oder erstellt eine neue Liste."""
+    """Laedt die bestehenden einzelnen YAML-Kundendateien."""
     if not dateiname.exists():
-        print(f"Datei '{dateiname}' nicht gefunden. Es wird eine neue erstellt.")
         return []
-
-    try:
-        with dateiname.open("r", encoding="utf-8") as daten_file:
-            daten = json.load(daten_file)
-    except json.JSONDecodeError as err:
-        return _behandle_ungueltige_kundendatei(dateiname, err)
-
-    if not isinstance(daten, list):
-        return _behandle_ungueltige_kundendatei(
-            dateiname,
-            ValueError("daten.json ist kein Array."),
-        )
-
-    return daten
-
-
-def _behandle_ungueltige_kundendatei(dateiname: Path, fehler: Exception) -> list:
-    """Fragt nach dem Umgang mit einer ungueltigen Kundendatei."""
-    print(f"\nFehler beim Laden von '{dateiname}': {fehler}")
-    print("Die Datei scheint ungueltig zu sein.")
-
-    while True:
-        entscheidung = (
-            input("Moechtest du die fehlerhafte Datei ueberschreiben? (y/n): ")
-            .strip()
-            .lower()
-        )
-        if entscheidung == "y":
-            _sichere_kundendatei_falls_gewuenscht(dateiname)
-            _schreibe_kundendaten(dateiname, [])
-            print("Neue leere Datei wurde erstellt.")
-            return []
-        if entscheidung == "n":
-            raise SystemExit("Vorgang abgebrochen.")
-        print("Bitte y oder n eingeben.")
-
-
-def _sichere_kundendatei_falls_gewuenscht(dateiname: Path) -> None:
-    """Erstellt optional ein Backup der ungueltigen Kundendatei."""
-    entscheidung = input("Willst du vorher ein Backup speichern? (y/n): ").strip()
-    if entscheidung.lower() != "y":
-        print("Kein Backup erstellt.")
-        return
-
-    backup_dir = BASE_DIR / "backup"
-    backup_dir.mkdir(parents=True, exist_ok=True)
-    backup_pfad = backup_dir / "daten_backup.json"
-    try:
-        dateiname.replace(backup_pfad)
-        print(f"Backup gespeichert unter: {backup_pfad}")
-    except OSError as err:
-        print(f"Backup fehlgeschlagen: {err}")
-        raise SystemExit("Abbruch zur Sicherheit.") from err
+    return lade_kundendateien(dateiname)
 
 
 def frage(prompt: str, optional: bool = True) -> str | None:
@@ -144,6 +93,13 @@ def neuer_kunde() -> dict:
         "ort": frage("Ort: ", optional=False),
         "webseite": frage("Webseite (optional, nur bei Hosting relevant): "),
     }
+    id_vorschlag = _erstelle_kunden_id(kunde["firma"])
+    customer_id = frage(f"Kunden-ID (Standard: {id_vorschlag}): ") or id_vorschlag
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", customer_id):
+        raise ValueError(
+            "Kunden-ID darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten."
+        )
+    kunde["id"] = customer_id
     cc_adressen = frage_mail_cc()
     if cc_adressen:
         kunde["cc"] = cc_adressen
@@ -252,18 +208,20 @@ def _frage_optionale_felder(kunde: dict, einmalig: bool) -> None:
 
 
 def daten_speichern(kunde: dict, dateipfad: Path = DEFAULT_DATEN_PATH) -> None:
-    """Speichert einen neuen Kundeneintrag in daten.json."""
-    daten = lade_kundendaten(dateipfad) if dateipfad.exists() else []
-    daten.append(kunde)
-    _schreibe_kundendaten(dateipfad, daten)
-    print(f"\nKunde gespeichert in {dateipfad.resolve()}.")
+    """Speichert einen neuen Kunden in einer eigenen YAML-Datei."""
+    validiere_kundeneintrag(kunde)
+    zielpfad = dateipfad / f"{kunde['id']}.yaml"
+    if zielpfad.exists():
+        raise FileExistsError(f"Kundendatei existiert bereits: {zielpfad}")
+    speichere_kundendatei(kunde, zielpfad)
+    print(f"\nKunde gespeichert in {zielpfad.resolve()}.")
 
 
-def _schreibe_kundendaten(dateipfad: Path, daten: list) -> None:
-    """Schreibt Kundendaten formatiert als JSON."""
-    dateipfad.parent.mkdir(parents=True, exist_ok=True)
-    with dateipfad.open("w", encoding="utf-8") as daten_file:
-        json.dump(daten, daten_file, indent=2, ensure_ascii=False)
+def _erstelle_kunden_id(firma: str) -> str:
+    """Erzeugt einen einfachen stabilen ID-Vorschlag aus dem Firmennamen."""
+    text = firma.lower().replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
+    text = text.replace("ß", "ss")
+    return re.sub(r"[^a-z0-9]+", "-", text).strip("-") or "kunde"
 
 
 def main() -> None:

@@ -1,30 +1,45 @@
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from email.utils import parseaddr
-from math import isfinite
 
 ERLAUBTE_EINHEITEN = ("monat", "stunde", "pauschal")
+CENT = Decimal("0.01")
 
 
 def validiere_betrag(
     wert,
     feld: str = "Betrag",
     inklusive_erlaubt: bool = False,
-) -> float | None:
+) -> Decimal | None:
     """Prueft einen positiven Geldbetrag oder den Wert Inklusive."""
     text = str(wert).strip() if wert is not None else ""
     if inklusive_erlaubt and text.lower() == "inklusive":
         return None
 
     try:
-        betrag = float(text.replace(",", "."))
-    except ValueError as err:
+        betrag = Decimal(text.replace(",", "."))
+    except InvalidOperation as err:
         zusatz = " oder 'Inklusive'" if inklusive_erlaubt else ""
         raise ValueError(f"{feld} muss ein positiver Betrag{zusatz} sein.") from err
 
-    if not isfinite(betrag) or betrag <= 0:
+    if not betrag.is_finite() or betrag <= 0:
         raise ValueError(f"{feld} muss groesser als 0 sein.")
+    if betrag.quantize(CENT) != betrag:
+        raise ValueError(f"{feld} darf hoechstens zwei Nachkommastellen haben.")
 
-    return betrag
+    return betrag.quantize(CENT)
+
+
+def validiere_prozentsatz(wert, feld: str = "Prozentsatz") -> Decimal:
+    """Prueft einen Dezimal-Prozentsatz zwischen 0 und 100."""
+    text = str(wert).strip() if wert is not None else ""
+    try:
+        prozentsatz = Decimal(text.replace(",", "."))
+    except InvalidOperation as err:
+        raise ValueError(f"{feld} muss eine Dezimalzahl sein.") from err
+    if not prozentsatz.is_finite() or not Decimal("0") <= prozentsatz <= Decimal("100"):
+        raise ValueError(f"{feld} muss zwischen 0 und 100 liegen.")
+    return prozentsatz
 
 
 def validiere_positive_ganzzahl(wert, feld: str) -> int:
@@ -90,6 +105,11 @@ def validiere_kundeneintrag(eintrag: dict) -> None:
     if not isinstance(eintrag, dict):
         raise ValueError("Kundeneintrag muss ein Objekt sein.")
 
+    if not isinstance(eintrag.get("aktiv", True), bool):
+        raise ValueError("active muss true oder false sein.")
+    if not isinstance(eintrag.get("einmalig", False), bool):
+        raise ValueError("billing.one_time muss true oder false sein.")
+
     hauptleistung = eintrag.get("hauptleistung")
     if not isinstance(hauptleistung, dict):
         raise ValueError("Hauptleistung fehlt oder ist ungueltig.")
@@ -121,6 +141,11 @@ def validiere_kundeneintrag(eintrag: dict) -> None:
     for index, leistung in enumerate(weitere_leistungen, start=1):
         if not isinstance(leistung, dict):
             raise ValueError(f"Weitere Leistung #{index} muss ein Objekt sein.")
+        if (
+            not isinstance(leistung.get("beschreibung"), str)
+            or not leistung["beschreibung"].strip()
+        ):
+            raise ValueError(f"Weitere Leistung #{index}.description fehlt.")
         validiere_betrag(
             leistung.get("preis"),
             f"Weitere Leistung #{index}.preis",

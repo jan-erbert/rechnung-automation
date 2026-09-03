@@ -1,7 +1,7 @@
-import locale
 import logging
 import sys
 from datetime import datetime, timedelta
+from decimal import Decimal
 from email.utils import parseaddr
 from pathlib import Path
 
@@ -20,6 +20,7 @@ from pdf import erzeuge_pdf_bytes, validiere_pdf_config  # noqa: E402
 from rechnungen import berechne_steuerwerte  # noqa: E402
 from settings_loader import lade_settings  # noqa: E402
 from templates import baue_template_context, lade_templates  # noqa: E402
+from zeit import formatiere_monat_jahr, jetzt  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -38,13 +39,8 @@ def main() -> None:
     settings = lade_settings()
     pfade = erstelle_pfade(settings)
     konfiguriere_logging(settings.get("logging", {}), pfade.base_dir)
-    runtime_config = settings.get("runtime", {})
-    if not isinstance(runtime_config, dict):
-        raise ValueError("Der YAML-Bereich 'runtime' muss eine Map sein.")
-    locale.setlocale(locale.LC_TIME, runtime_config.get("locale", "de_DE.UTF-8"))
-
-    konfig = lade_konfiguration(pfade.data_dir / "konfiguration.json")
-    mail_config = lade_mail_umgebung(pfade.base_dir / ".env")
+    konfig = lade_konfiguration(pfade.invoice_config)
+    mail_config = lade_mail_umgebung(pfade.base_dir / ".env", settings.get("mail", {}))
     pdf_config = validiere_pdf_config(settings.get("pdf", {}))
     design = validiere_design_config(settings.get("design", {}))
     branding = validiere_branding_config(settings.get("branding", {}))
@@ -53,10 +49,10 @@ def main() -> None:
     standard_empfaenger = konfig.get("mail", {}).get("bcc")
     if not standard_empfaenger:
         raise ValueError(
-            "Testrechnung nicht moeglich: In data/konfiguration.json fehlt mail.bcc."
+            "Testrechnung nicht moeglich: In config/invoice.yaml fehlt mail.bcc."
         )
 
-    empfaenger = frage_empfaenger(standard_empfaenger)
+    empfaenger = frage_empfaenger(standard_empfaenger[0])
     musterart = frage_musterart()
     context, mail_logo = baue_muster_context(
         musterart,
@@ -88,6 +84,8 @@ def main() -> None:
         mail_config["passwort"],
         msg,
         [empfaenger],
+        security=mail_config.get("security", "starttls"),
+        timeout=mail_config.get("timeout", 30),
     )
     logger.info("Musterrechnung wurde erfolgreich versendet.")
 
@@ -125,7 +123,7 @@ def baue_muster_context(
     zeitpunkt: datetime | None = None,
 ) -> tuple[dict, LogoAsset | None]:
     """Baut den Template-Kontext fuer eine synthetische Musterrechnung."""
-    zeitpunkt = zeitpunkt or datetime.today()
+    zeitpunkt = zeitpunkt or jetzt()
     leistungsdaten = baue_muster_leistungsdaten(musterart)
     steuerdaten = berechne_steuerwerte(
         leistungsdaten["gesamtpreis"], konfig["finanzen"]
@@ -149,8 +147,8 @@ def baue_muster_context(
         rechnungsnummer=f"MUSTER-{zeitpunkt:%m-%Y}",
         rechnungsdatum=zeitpunkt.strftime("%d.%m.%Y"),
         faelligkeit_datum=(zeitpunkt + timedelta(days=14)).strftime("%d.%m.%Y"),
-        abrechnungszeitraum=zeitpunkt.strftime("%B %Y"),
-        monat_jahr=zeitpunkt.strftime("%B %Y"),
+        abrechnungszeitraum=formatiere_monat_jahr(zeitpunkt),
+        monat_jahr=formatiere_monat_jahr(zeitpunkt),
         abrechnungszyklus=1,
         gesamtpreis=leistungsdaten["gesamtpreis"],
         gesamtpreis_str=steuerdaten["gesamtpreis_str"],
@@ -177,7 +175,7 @@ def baue_muster_leistungsdaten(musterart: str) -> dict:
                     "preis": "89,00 EUR",
                 }
             ],
-            "gesamtpreis": 89.0,
+            "gesamtpreis": Decimal("89.00"),
             "stundeninfo": None,
         }
     if musterart == "pauschal":
@@ -188,7 +186,7 @@ def baue_muster_leistungsdaten(musterart: str) -> dict:
                     "preis": "450,00 EUR",
                 }
             ],
-            "gesamtpreis": 450.0,
+            "gesamtpreis": Decimal("450.00"),
             "stundeninfo": None,
         }
     if musterart == "stunden":
@@ -199,8 +197,11 @@ def baue_muster_leistungsdaten(musterart: str) -> dict:
                     "preis": "487,50 EUR",
                 }
             ],
-            "gesamtpreis": 487.5,
-            "stundeninfo": {"stunden": 6.5, "stundensatz": 75.0},
+            "gesamtpreis": Decimal("487.50"),
+            "stundeninfo": {
+                "stunden": Decimal("6.5"),
+                "stundensatz": Decimal("75.00"),
+            },
         }
     raise ValueError("Unbekannte Musterart.")
 

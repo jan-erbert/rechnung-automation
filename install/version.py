@@ -1,2 +1,3 @@
-# version.py
-__version__ = "1.3.6"
+"""Zentrale Projektversion."""
+
+__version__ = "1.4.0"

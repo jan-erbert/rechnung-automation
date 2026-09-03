@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 import pytest
 
@@ -24,24 +25,24 @@ def test_baue_rechnungsdaten_uses_prefix_and_due_date():
 def test_berechne_steuerwerte_for_kleinunternehmer():
     """Kleinunternehmer-Rechnungen bleiben ohne Umsatzsteuer."""
     steuerdaten = berechne_steuerwerte(
-        100.0,
+        Decimal("100.00"),
         {"kleinunternehmer": True},
     )
 
-    assert steuerdaten["steuerbetrag"] == 0
-    assert steuerdaten["gesamtpreis_mit_mwst"] == 100.0
+    assert steuerdaten["steuerbetrag"] == Decimal("0.00")
+    assert steuerdaten["gesamtpreis_mit_mwst"] == Decimal("100.00")
     assert steuerdaten["gesamtpreis_str"] == "100,00"
 
 
 def test_berechne_steuerwerte_with_mwst():
     """Regulaere Rechnungen berechnen Steuerbetrag und Bruttosumme."""
     steuerdaten = berechne_steuerwerte(
-        100.0,
+        Decimal("100.00"),
         {"kleinunternehmer": False, "mehrwertsteuer_prozent": 19},
     )
 
-    assert steuerdaten["steuerbetrag"] == 19.0
-    assert steuerdaten["gesamtpreis_mit_mwst"] == 119.0
+    assert steuerdaten["steuerbetrag"] == Decimal("19.00")
+    assert steuerdaten["gesamtpreis_mit_mwst"] == Decimal("119.00")
     assert steuerdaten["gesamtpreis_str"] == "119,00"
 
 

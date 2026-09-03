@@ -1,4 +1,5 @@
 import pytest
+from decimal import Decimal
 
 from leistungen import baue_leistungspositionen, berechne_stundenleistung
 
@@ -77,7 +78,7 @@ def test_pauschale_zusatzleistung_is_added_once(tmp_path):
     ergebnis = baue_leistungspositionen(eintrag, 3, tmp_path)
 
     assert ergebnis["leistungs_liste"][1]["preis"] == "20,00 EUR"
-    assert ergebnis["gesamtpreis"] == 120.0
+    assert ergebnis["gesamtpreis"] == Decimal("120.00")
 
 
 def test_monatliche_zusatzleistung_uses_billing_cycle(tmp_path):
@@ -100,7 +101,7 @@ def test_monatliche_zusatzleistung_uses_billing_cycle(tmp_path):
     ergebnis = baue_leistungspositionen(eintrag, 3, tmp_path)
 
     assert ergebnis["leistungs_liste"][1]["preis"] == "15,00 EUR"
-    assert ergebnis["gesamtpreis"] == 45.0
+    assert ergebnis["gesamtpreis"] == Decimal("45.00")
 
 
 def test_inklusive_zusatzleistung_does_not_change_total(tmp_path):
@@ -123,7 +124,7 @@ def test_inklusive_zusatzleistung_does_not_change_total(tmp_path):
     ergebnis = baue_leistungspositionen(eintrag, 3, tmp_path)
 
     assert ergebnis["leistungs_liste"][1]["preis"] == "Inklusive"
-    assert ergebnis["gesamtpreis"] == 30.0
+    assert ergebnis["gesamtpreis"] == Decimal("30.00")
 
 
 def test_incomplete_multi_month_hours_do_not_create_partial_invoice(
@@ -131,7 +132,6 @@ def test_incomplete_multi_month_hours_do_not_create_partial_invoice(
     monkeypatch,
 ):
     """Fehlende Monatsdaten verhindern eine unvollstaendige Cronrechnung."""
-    monkeypatch.setattr("leistungen.datetime", FixedDatetime)
     (tmp_path / "stunden_2026_06.json").write_text(
         '[{"firma": "Beispielfirma", "stunden": 5}]',
         encoding="utf-8",
@@ -149,17 +149,17 @@ def test_incomplete_multi_month_hours_do_not_create_partial_invoice(
         3,
         tmp_path,
         interactive=False,
+        heute=FixedDatetime.today().date(),
     )
 
     assert ergebnis["stundeninfo"]["stunden"] == 5
     assert ergebnis["stundeninfo"]["vollstaendig"] is False
     assert ergebnis["leistungs_liste"] == []
-    assert ergebnis["gesamtpreis"] == 0.0
+    assert ergebnis["gesamtpreis"] == Decimal("0")
 
 
 def test_complete_multi_month_hours_can_be_billed(tmp_path, monkeypatch):
     """Vollstaendige Monatsdaten bleiben bei Mehrmonatszyklen abrechenbar."""
-    monkeypatch.setattr("leistungen.datetime", FixedDatetime)
     for monat in (4, 5, 6):
         (tmp_path / f"stunden_2026_{monat:02d}.json").write_text(
             '[{"firma": "Beispielfirma", "stunden": 1}]',
@@ -169,9 +169,10 @@ def test_complete_multi_month_hours_can_be_billed(tmp_path, monkeypatch):
     ergebnis = berechne_stundenleistung(
         "Beispielfirma",
         3,
-        100.0,
+        Decimal("100.00"),
         tmp_path,
         interactive=False,
+        heute=FixedDatetime.today().date(),
     )
 
     assert ergebnis["stunden"] == 3

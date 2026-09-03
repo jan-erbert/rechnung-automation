@@ -2,8 +2,10 @@ import json
 import logging
 import os
 import tempfile
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
+
+from zeit import jetzt
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +83,11 @@ def baue_verlaufseintrag(
     versandstatus: str | None = None,
 ) -> dict:
     """Baut einen Eintrag fuer den Rechnungsverlauf."""
+    kunden_id = eintrag.get("id") or (
+        f"{eintrag['firma'].lower().strip()}__{eintrag['name'].lower().strip()}"
+    )
     verlaufseintrag = {
+        "kunden_id": kunden_id,
         "firma": eintrag["firma"],
         "name": eintrag["name"],
         "monat": heute.month,
@@ -89,18 +95,14 @@ def baue_verlaufseintrag(
         "rechnungsnummer": rechnungsnummer,
         "rechnungsdatum": rechnungsdatum,
         "betrag": betrag,
-        "id": (
-            f"{eintrag['firma'].lower().strip()}__"
-            f"{eintrag['name'].lower().strip()}__"
-            f"{heute.strftime('%Y-%m')}"
-        ),
+        "id": f"{kunden_id}__{heute.strftime('%Y-%m')}",
     }
 
     if abrechnungszyklus is not None:
         verlaufseintrag["zyklus_monate"] = abrechnungszyklus
     if versandstatus is not None:
         verlaufseintrag["versandstatus"] = versandstatus
-        verlaufseintrag["versandstatus_zeitpunkt"] = datetime.now().isoformat(
+        verlaufseintrag["versandstatus_zeitpunkt"] = jetzt().isoformat(
             timespec="seconds"
         )
 
@@ -160,9 +162,7 @@ def setze_versandstatus(
     for eintrag in neuer_verlauf:
         if eintrag.get("id") == rechnung_id:
             eintrag["versandstatus"] = versandstatus
-            eintrag["versandstatus_zeitpunkt"] = datetime.now().isoformat(
-                timespec="seconds"
-            )
+            eintrag["versandstatus_zeitpunkt"] = jetzt().isoformat(timespec="seconds")
             speichere_verlauf(verlauf_dateiname, neuer_verlauf)
             rechnungsverlauf[:] = neuer_verlauf
             return
@@ -186,7 +186,7 @@ def ist_abrechnung_abgeschlossen(verlaufseintrag: dict) -> bool:
 def schliesse_abgelaufene_stundenwarteschlangen(
     verlauf_dateiname,
     rechnungsverlauf: list,
-    heute: datetime,
+    heute: date | datetime,
 ) -> int:
     """Schliesst alte Nullstunden-Wartezustaende ohne Rechnung ab."""
     neuer_verlauf = [eintrag.copy() for eintrag in rechnungsverlauf]
@@ -204,9 +204,7 @@ def schliesse_abgelaufene_stundenwarteschlangen(
             continue
 
         eintrag["versandstatus"] = VERSANDSTATUS_NO_INVOICE
-        eintrag["versandstatus_zeitpunkt"] = datetime.now().isoformat(
-            timespec="seconds"
-        )
+        eintrag["versandstatus_zeitpunkt"] = jetzt().isoformat(timespec="seconds")
         abgeschlossen += 1
 
     if abgeschlossen:

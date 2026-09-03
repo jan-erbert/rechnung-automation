@@ -1,12 +1,14 @@
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import date
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from dateutil.relativedelta import relativedelta
 
 from validierung import validiere_betrag, validiere_einheit
+from zeit import formatiere_monat_jahr, heute as aktuelles_datum
 
 logger = logging.getLogger(__name__)
 
@@ -14,13 +16,14 @@ logger = logging.getLogger(__name__)
 def berechne_stundenleistung(
     firma: str,
     zyklus: int,
-    stundensatz: float,
+    stundensatz: Decimal,
     hours_dir: Path,
     interactive: bool = True,
+    heute: date | None = None,
 ):
     """Berechnet stundenbasierte Leistungen fuer den Abrechnungszeitraum."""
-    heute = datetime.today()
-    stunden_total = 0.0
+    heute = heute or aktuelles_datum()
+    stunden_total = Decimal("0")
     monate = []
     fehlende_monate = []
 
@@ -40,9 +43,13 @@ def berechne_stundenleistung(
                     daten = json.load(f)
                     for eintrag in daten:
                         if eintrag.get("firma", "").strip().lower() == firma_key:
-                            stunden = float(eintrag.get("stunden", 0))
+                            stunden = Decimal(str(eintrag.get("stunden", 0)))
+                            if not stunden.is_finite() or stunden < 0:
+                                raise ValueError(
+                                    "Stunden muessen eine nichtnegative Zahl sein."
+                                )
                             stunden_total += stunden
-                            monate.append(monat_dt.strftime("%B %Y"))
+                            monate.append(formatiere_monat_jahr(monat_dt))
                             eintrag_gefunden = True
                             break
             except Exception as e:
@@ -52,7 +59,7 @@ def berechne_stundenleistung(
             logger.warning(
                 "Keine Stunden fuer '%s' im Monat %s gefunden.",
                 firma,
-                monat_dt.strftime("%B %Y"),
+                formatiere_monat_jahr(monat_dt),
             )
             if not interactive:
                 logger.info("Nicht-interaktiver Lauf: 0 Stunden angenommen.")
@@ -63,11 +70,15 @@ def berechne_stundenleistung(
                 "Bitte Stundenanzahl manuell eingeben (Enter für 0): "
             ).strip()
             try:
-                stunden = float(eingabe.replace(",", ".")) if eingabe else 0.0
+                stunden = (
+                    Decimal(eingabe.replace(",", ".")) if eingabe else Decimal("0")
+                )
+                if not stunden.is_finite() or stunden < 0:
+                    raise InvalidOperation
                 stunden_total += stunden
                 if stunden > 0:
-                    monate.append(monat_dt.strftime("%B %Y"))
-            except ValueError:
+                    monate.append(formatiere_monat_jahr(monat_dt))
+            except InvalidOperation:
                 logger.warning("Ungueltige Eingabe - 0 Stunden angenommen.")
 
     betrag = stundensatz * stunden_total
@@ -88,6 +99,7 @@ def baue_leistungspositionen(
     abrechnungszyklus: int,
     hours_dir: Path,
     interactive: bool = True,
+    heute: date | None = None,
 ) -> dict:
     """Baut Leistungspositionen und Nettosumme fuer einen Kundeneintrag."""
     hauptleistung = eintrag.get("hauptleistung", {})
@@ -105,12 +117,13 @@ def baue_leistungspositionen(
             betrag,
             hours_dir,
             interactive=interactive,
+            heute=heute,
         )
 
         if stundeninfo["stunden"] == 0 or not stundeninfo["vollstaendig"]:
             return {
                 "leistungs_liste": leistungs_liste,
-                "gesamtpreis": 0.0,
+                "gesamtpreis": Decimal("0"),
                 "stundeninfo": stundeninfo,
             }
 
@@ -156,28 +169,30 @@ def baue_leistungspositionen(
     for zusatz in eintrag.get("weitere_leistungen", []):
         beschreibung = zusatz.get("beschreibung", "Zusatzleistung")
         preis_str = str(zusatz.get("preis", "")).strip()
-        preis_float = validiere_betrag(
+        preis_betrag = validiere_betrag(
             preis_str,
             "Preis der Zusatzleistung",
             inklusive_erlaubt=True,
         )
 
-        if preis_float is not None:
-            if einheit == "pauschal":
-                preis_text = f"{preis_float:.2f}".replace(".", ",") + " EUR"
+        if preis_betrag is not None:
+            if zusatz.get("einheit") == "flat" or (
+                "einheit" not in zusatz and einheit == "pauschal"
+            ):
+                preis_text = f"{preis_betrag:.2f}".replace(".", ",") + " EUR"
                 zusatz_text = ""
-                betrag_gesamt = preis_float
+                betrag_gesamt = preis_betrag
             else:
-                betrag_gesamt = preis_float * abrechnungszyklus
+                betrag_gesamt = preis_betrag * abrechnungszyklus
                 zusatz_text = (
-                    f"({preis_float:.2f}".replace(".", ",")
+                    f"({preis_betrag:.2f}".replace(".", ",")
                     + f" EUR × {abrechnungszyklus} Monate)"
                 )
                 preis_text = f"{betrag_gesamt:.2f}".replace(".", ",") + " EUR"
         else:
             zusatz_text = ""
             preis_text = preis_str
-            betrag_gesamt = 0.0
+            betrag_gesamt = Decimal("0")
 
         leistungs_liste.append(
             {
@@ -187,7 +202,7 @@ def baue_leistungspositionen(
             }
         )
 
-        if isinstance(betrag_gesamt, float) and betrag_gesamt > 0:
+        if betrag_gesamt > 0:
             gesamtpreis += betrag_gesamt
 
     return {

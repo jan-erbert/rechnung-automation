@@ -6,19 +6,21 @@ def _erstelle_pfade(tmp_path):
     data_dir = tmp_path / "data"
     templates_dir = tmp_path / "templates"
     hours_dir = tmp_path / "hours"
+    customers_dir = tmp_path / "customers"
     archive_dir = tmp_path / "archiv"
-    for pfad in (data_dir, templates_dir, hours_dir, archive_dir):
+    for pfad in (data_dir, templates_dir, hours_dir, customers_dir, archive_dir):
         pfad.mkdir()
 
     (tmp_path / ".env").write_text("MAIL_SERVER=test\n", encoding="utf-8")
-    (data_dir / "daten.json").write_text("[]\n", encoding="utf-8")
-    (data_dir / "konfiguration.json").write_text("{}\n", encoding="utf-8")
+    (tmp_path / "invoice.yaml").write_text("sender: {}\n", encoding="utf-8")
     (templates_dir / "mail_template.html").write_text("Mail", encoding="utf-8")
     (templates_dir / "rechnung_template.html").write_text("PDF", encoding="utf-8")
 
     settings = {
         "paths": {
             "data_dir": str(data_dir),
+            "customers_dir": str(customers_dir),
+            "invoice_config": str(tmp_path / "invoice.yaml"),
             "templates_dir": str(templates_dir),
             "hours_dir": str(hours_dir),
             "backup_dir": str(tmp_path / "backup"),

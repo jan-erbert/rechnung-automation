@@ -10,18 +10,22 @@ def _erstelle_startpfade(tmp_path: Path):
     """Erstellt zentrale Dateien fuer einen erfolgreichen Mini-Check."""
     data_dir = tmp_path / "data"
     templates_dir = tmp_path / "templates"
+    customers_dir = tmp_path / "customers"
     data_dir.mkdir()
     templates_dir.mkdir()
+    customers_dir.mkdir()
     (tmp_path / "config").mkdir()
     (tmp_path / "config" / "settings.yaml").write_text("pdf: {}\n", encoding="utf-8")
     (tmp_path / ".env").write_text("MAIL_SERVER=test\n", encoding="utf-8")
-    (data_dir / "daten.json").write_text("[]\n", encoding="utf-8")
-    (data_dir / "konfiguration.json").write_text("{}\n", encoding="utf-8")
+    invoice_config = tmp_path / "config" / "invoice.yaml"
+    invoice_config.write_text("sender: {}\n", encoding="utf-8")
     (templates_dir / "mail_template.html").write_text("Mail", encoding="utf-8")
     (templates_dir / "rechnung_template.html").write_text("PDF", encoding="utf-8")
     return SimpleNamespace(
         base_dir=tmp_path,
         data_dir=data_dir,
+        customers_dir=customers_dir,
+        invoice_config=invoice_config,
         templates_dir=templates_dir,
     )
 
@@ -66,7 +70,7 @@ def test_start_check_rejects_non_list_customer_data(tmp_path):
     """Kundendaten muessen beim Start eine Liste sein."""
     pfade = _erstelle_startpfade(tmp_path)
 
-    with pytest.raises(ValueError, match="JSON-Liste"):
+    with pytest.raises(ValueError, match="als Liste"):
         pruefe_startvoraussetzungen(
             {"runtime": {}, "pdf": {"engine": "weasyprint"}},
             pfade,

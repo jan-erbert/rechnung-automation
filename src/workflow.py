@@ -1,13 +1,10 @@
 import logging
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import date
 
 from branding import lade_logo_asset
 from faelligkeit import rechnung_fällig
-from kunden import (
-    entferne_kunde_aus_daten,
-    sollte_kunde_entfernt_werden,
-    speichere_kundendaten,
-)
+from kunden import sollte_kunde_entfernt_werden, speichere_kundendaten
 from leistungen import baue_leistungspositionen
 from mail import MailversandFehler, baue_rechnungsmail, sende_mail
 from pfadpruefung import pruefe_archiv_pfad
@@ -33,8 +30,30 @@ from verlauf import (
     setze_versandstatus,
     speichere_oder_ersetze_verlaufseintrag,
 )
+from zeit import heute as aktuelles_datum
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class LaufKontext:
+    """Buendelt unveraenderliche Abhaengigkeiten eines Rechnungslaufs."""
+
+    pfade: object
+    absender: dict
+    bank: dict
+    finanzen: dict
+    mail_bcc: list[str]
+    mail_from_name: str | None
+    mail_config: dict
+    pdf_config: dict
+    design_config: dict
+    branding_config: dict
+    templates: object
+    rechnungsverlauf: list
+    rechnungsverlauf_vorjahr: list
+    verlauf_dateiname: object
+    interactive: bool
 
 
 def verarbeite_rechnungen(
@@ -52,32 +71,30 @@ def verarbeite_rechnungen(
     interactive: bool = True,
 ) -> None:
     """Verarbeitet alle faelligen Kundeneintraege fuer den Rechnungslauf."""
-    absender = konfig["absender"]
-    bank = konfig["bank"]
-    finanzen = konfig["finanzen"]
-    mail_bcc = konfig.get("mail", {}).get("bcc") or None
-    mail_from_name = konfig.get("mail", {}).get("from_name") or None
+    kontext = LaufKontext(
+        pfade=pfade,
+        absender=konfig["absender"],
+        bank=konfig["bank"],
+        finanzen=konfig["finanzen"],
+        mail_bcc=konfig.get("mail", {}).get("bcc") or [],
+        mail_from_name=konfig.get("mail", {}).get("from_name") or None,
+        mail_config=mail_config,
+        pdf_config=pdf_config,
+        design_config=design_config,
+        branding_config=branding_config,
+        templates=templates,
+        rechnungsverlauf=rechnungsverlauf,
+        rechnungsverlauf_vorjahr=rechnungsverlauf_vorjahr,
+        verlauf_dateiname=verlauf_dateiname,
+        interactive=interactive,
+    )
 
     for eintrag in daten:
         try:
             _verarbeite_kunden_im_lauf(
                 daten=daten,
                 eintrag=eintrag,
-                pfade=pfade,
-                absender=absender,
-                bank=bank,
-                finanzen=finanzen,
-                mail_bcc=mail_bcc,
-                mail_from_name=mail_from_name,
-                mail_config=mail_config,
-                pdf_config=pdf_config,
-                design_config=design_config,
-                branding_config=branding_config,
-                templates=templates,
-                rechnungsverlauf=rechnungsverlauf,
-                rechnungsverlauf_vorjahr=rechnungsverlauf_vorjahr,
-                verlauf_dateiname=verlauf_dateiname,
-                interactive=interactive,
+                kontext=kontext,
             )
         except Exception as err:
             logger.exception(
@@ -94,21 +111,7 @@ def verarbeite_rechnungen(
 def _verarbeite_kunden_im_lauf(
     daten: list,
     eintrag: dict,
-    pfade,
-    absender: dict,
-    bank: dict,
-    finanzen: dict,
-    mail_bcc: str | None,
-    mail_from_name: str | None,
-    mail_config: dict,
-    pdf_config: dict,
-    design_config: dict,
-    branding_config: dict,
-    templates,
-    rechnungsverlauf: list,
-    rechnungsverlauf_vorjahr: list,
-    verlauf_dateiname,
-    interactive: bool,
+    kontext: LaufKontext,
 ) -> None:
     """Prueft und verarbeitet einen Kunden innerhalb der sicheren Laufgrenze."""
     if eintrag.get("aktiv") is False:
@@ -137,50 +140,27 @@ def _verarbeite_kunden_im_lauf(
             )
             return
 
-    if not rechnung_fällig(eintrag, rechnungsverlauf, rechnungsverlauf_vorjahr):
+    if not rechnung_fällig(
+        eintrag, kontext.rechnungsverlauf, kontext.rechnungsverlauf_vorjahr
+    ):
         logger.info("%s: Keine Abrechnung faellig.", eintrag["firma"])
         return
 
     _verarbeite_kundeneintrag(
         daten=daten,
         eintrag=eintrag,
-        pfade=pfade,
-        absender=absender,
-        bank=bank,
-        finanzen=finanzen,
-        mail_bcc=mail_bcc,
-        mail_from_name=mail_from_name,
-        mail_config=mail_config,
-        pdf_config=pdf_config,
-        design_config=design_config,
-        branding_config=branding_config,
-        templates=templates,
-        rechnungsverlauf=rechnungsverlauf,
-        verlauf_dateiname=verlauf_dateiname,
-        interactive=interactive,
+        kontext=kontext,
     )
 
 
 def _verarbeite_kundeneintrag(
     daten: list,
     eintrag: dict,
-    pfade,
-    absender: dict,
-    bank: dict,
-    finanzen: dict,
-    mail_bcc: str | None,
-    mail_from_name: str | None,
-    mail_config: dict,
-    pdf_config: dict,
-    design_config: dict,
-    branding_config: dict,
-    templates,
-    rechnungsverlauf: list,
-    verlauf_dateiname,
-    interactive: bool,
+    kontext: LaufKontext,
 ) -> None:
     """Erzeugt und versendet eine Rechnung fuer einen Kundeneintrag."""
-    heute = datetime.today()
+    heute = aktuelles_datum()
+    pfade = kontext.pfade
     archiv_pfad = eintrag.get("archiv_pfad")
     if archiv_pfad:
         pruefe_archiv_pfad(archiv_pfad, schreibprobe=True)
@@ -200,7 +180,8 @@ def _verarbeite_kundeneintrag(
         eintrag,
         abrechnungszyklus,
         pfade.hours_dir,
-        interactive=interactive,
+        interactive=kontext.interactive,
+        heute=heute,
     )
     leistungs_liste = leistungsdaten["leistungs_liste"]
     gesamtpreis = leistungsdaten["gesamtpreis"]
@@ -213,32 +194,32 @@ def _verarbeite_kundeneintrag(
             rechnungsnummer,
             rechnungsdatum,
             abrechnungszyklus,
-            rechnungsverlauf,
-            verlauf_dateiname,
-            interactive,
+            kontext.rechnungsverlauf,
+            kontext.verlauf_dateiname,
+            kontext.interactive,
             stundeninfo.get("fehlende_monate", []),
         )
         return
 
-    steuerdaten = berechne_steuerwerte(gesamtpreis, finanzen)
+    steuerdaten = berechne_steuerwerte(gesamtpreis, kontext.finanzen)
     mail_cc = normalisiere_mail_liste(eintrag.get("cc"), "cc")
     pdf_logo = lade_logo_asset(
         pfade.img_dir,
-        branding_config["pdf_logo"],
+        kontext.branding_config["pdf_logo"],
         "PDF-Logo",
     )
     mail_logo = lade_logo_asset(
         pfade.img_dir,
-        branding_config["mail_logo"],
+        kontext.branding_config["mail_logo"],
         "Mail-Logo",
     )
     abrechnungszeitraum = berechne_abrechnungszeitraum(heute, abrechnungszyklus)
 
     context = baue_template_context(
         eintrag=eintrag,
-        absender=absender,
-        bank=bank,
-        finanzen=finanzen,
+        absender=kontext.absender,
+        bank=kontext.bank,
+        finanzen=kontext.finanzen,
         leistungs_liste=leistungs_liste,
         rechnungsnummer=rechnungsnummer,
         rechnungsdatum=rechnungsdatum,
@@ -253,28 +234,27 @@ def _verarbeite_kundeneintrag(
         mwst_hinweis=steuerdaten["mwst_hinweis"],
         logo_base64=pdf_logo.data_uri if pdf_logo else "",
         mail_logo_cid="rechnung-logo" if mail_logo else "",
-        design=design_config,
-        branding=branding_config,
+        design=kontext.design_config,
+        branding=kontext.branding_config,
         stundeninfo=stundeninfo,
     )
 
-    mail_html = templates.mail.render(context)
-    pdf_html = templates.rechnung.render(context)
-    pdf_bytes = erzeuge_pdf_bytes(pdf_html, pdf_config)
+    mail_html = kontext.templates.mail.render(context)
+    pdf_html = kontext.templates.rechnung.render(context)
+    pdf_bytes = erzeuge_pdf_bytes(pdf_html, kontext.pdf_config)
 
-    firma_slug = eintrag["firma"].lower().replace(" ", "_")
-    anhang_name = f"Rechnung_{firma_slug}_{auto_rechnungsnummer}.pdf"
+    anhang_name = f"Rechnung_{eintrag['id']}_{auto_rechnungsnummer}.pdf"
     msg = baue_rechnungsmail(
-        mail_user=mail_config["user"],
+        mail_user=kontext.mail_config["user"],
         empfaenger=eintrag["email"],
         betreff=f"Ihre Rechnung Nr. {rechnungsnummer} – {eintrag['firma']}",
         mail_html=mail_html,
         pdf_bytes=pdf_bytes,
         anhang_name=anhang_name,
-        mail_bcc=mail_bcc,
+        mail_bcc=kontext.mail_bcc,
         mail_cc=mail_cc,
         mail_logo=mail_logo,
-        from_name=mail_from_name,
+        from_name=kontext.mail_from_name,
     )
 
     versandeintrag = baue_verlaufseintrag(
@@ -288,30 +268,28 @@ def _verarbeite_kundeneintrag(
     )
     if not _speichere_pending_status(
         versandeintrag,
-        rechnungsverlauf,
-        verlauf_dateiname,
+        kontext.rechnungsverlauf,
+        kontext.verlauf_dateiname,
     ):
         return
 
-    empfaenger_liste = [eintrag["email"], *mail_cc]
-    if mail_bcc:
-        empfaenger_liste.append(mail_bcc)
+    empfaenger_liste = [eintrag["email"], *mail_cc, *kontext.mail_bcc]
 
     if not _sende_mail_mit_status(
         eintrag=eintrag,
-        mail_config=mail_config,
+        mail_config=kontext.mail_config,
         msg=msg,
         empfaenger_liste=empfaenger_liste,
-        mail_bcc=mail_bcc,
+        mail_bcc=kontext.mail_bcc,
         rechnung_id=versandeintrag["id"],
-        rechnungsverlauf=rechnungsverlauf,
-        verlauf_dateiname=verlauf_dateiname,
+        rechnungsverlauf=kontext.rechnungsverlauf,
+        verlauf_dateiname=kontext.verlauf_dateiname,
     ):
         return
 
     _archiviere_pdf_falls_noetig(eintrag, anhang_name, pdf_bytes)
     try:
-        _entferne_kunden_falls_noetig(daten, eintrag, heute, pfade, interactive)
+        _entferne_kunden_falls_noetig(daten, eintrag, heute, pfade, kontext.interactive)
     except Exception as err:
         logger.exception(
             "Kunde %s konnte nach erfolgreichem Versand nicht entfernt werden: %s",
@@ -349,7 +327,7 @@ def _sende_mail_mit_status(
     mail_config: dict,
     msg,
     empfaenger_liste: list[str],
-    mail_bcc: str | None,
+    mail_bcc: list[str],
     rechnung_id: str,
     rechnungsverlauf: list,
     verlauf_dateiname,
@@ -363,6 +341,8 @@ def _sende_mail_mit_status(
             mail_config["passwort"],
             msg,
             empfaenger_liste,
+            security=mail_config.get("security", "starttls"),
+            timeout=mail_config.get("timeout", 30),
         )
     except MailversandFehler as err:
         logger.error(
@@ -433,7 +413,7 @@ def _sende_mail_mit_status(
 
 def _speichere_nullstunden_status(
     eintrag: dict,
-    heute: datetime,
+    heute: date,
     rechnungsnummer: str,
     rechnungsdatum: str,
     abrechnungszyklus: int,
@@ -506,7 +486,7 @@ def _archiviere_pdf_falls_noetig(
 def _entferne_kunden_falls_noetig(
     daten: list,
     eintrag: dict,
-    heute: datetime,
+    heute: date,
     pfade,
     interactive: bool,
 ) -> None:
@@ -520,17 +500,17 @@ def _entferne_kunden_falls_noetig(
         eintrag["name"],
     )
     if not interactive:
-        logger.info("Nicht-interaktiver Lauf: Kunde bleibt in daten.json.")
+        logger.info("Nicht-interaktiver Lauf: Kunde bleibt aktiv.")
         return
 
     entscheidung = (
-        input("❓ Möchtest du diesen Kunden jetzt aus daten.json löschen? (y/n): ")
+        input("❓ Moechtest du diesen Kunden jetzt deaktivieren? (y/n): ")
         .strip()
         .lower()
     )
     if entscheidung == "y":
-        daten[:] = entferne_kunde_aus_daten(daten, eintrag)
-        speichere_kundendaten(pfade.data_dir / "daten.json", daten)
-        logger.info("Kunde wurde aus daten.json entfernt.")
+        eintrag["aktiv"] = False
+        speichere_kundendaten(eintrag)
+        logger.info("Kunde wurde in seiner YAML-Datei deaktiviert.")
     else:
         logger.info("Kunde bleibt weiterhin in der Kundendatei.")

@@ -1,0 +1,36 @@
+id: musterfirma
+active: true
+
+contact:
+  name: Herr Mustermann
+  company: Musterfirma GmbH
+  email: kunde@example.com
+  cc:
+    - buchhaltung@example.com
+  street: Musterstraße 1
+  postal_code: "12345"
+  city: Musterstadt
+  website: https://example.com
+
+billing:
+  invoice_prefix: MF
+  cycle_months: 3
+  due_days: 14
+  end_month: null
+  invoice_date: null
+  one_time: false
+
+main_service:
+  description: Individuelle Beratung
+  unit: month
+  unit_price: "65.00"
+
+additional_services:
+  - description: Zusätzliche E-Mail-Adressen
+    unit: flat
+    unit_price: "9.99"
+  - description: Support inklusive
+    unit: included
+
+archive:
+  directory: null

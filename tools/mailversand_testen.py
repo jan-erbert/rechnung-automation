@@ -21,17 +21,17 @@ def main() -> None:
     settings = lade_settings()
     pfade = erstelle_pfade(settings)
     konfiguriere_logging(settings.get("logging", {}), pfade.base_dir)
-    konfig = lade_konfiguration(pfade.data_dir / "konfiguration.json")
-    mail_config = lade_mail_umgebung(pfade.base_dir / ".env")
+    konfig = lade_konfiguration(pfade.invoice_config)
+    mail_config = lade_mail_umgebung(pfade.base_dir / ".env", settings.get("mail", {}))
     mail_bcc = konfig.get("mail", {}).get("bcc")
     if not mail_bcc:
         raise ValueError(
-            "Mailtest nicht moeglich: In data/konfiguration.json fehlt mail.bcc."
+            "Mailtest nicht moeglich: In config/invoice.yaml fehlt mail.bcc."
         )
 
     msg = baue_mailtest_mail(
         mail_config["user"],
-        mail_bcc,
+        mail_bcc[0],
         from_name=konfig.get("mail", {}).get("from_name"),
     )
     try:
@@ -41,7 +41,9 @@ def main() -> None:
             mail_config["user"],
             mail_config["passwort"],
             msg,
-            [mail_bcc],
+            mail_bcc,
+            security=mail_config.get("security", "starttls"),
+            timeout=mail_config.get("timeout", 30),
         )
     except MailversandFehler as err:
         logger.error("SMTP-Test fehlgeschlagen: %s", err)

@@ -8,6 +8,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = (Resolve-Path (Join-Path $ScriptDir "..")).Path
 $RequirementsFile = Join-Path $ScriptDir "requirements.txt"
 $EnvWriter = Join-Path $ScriptDir "write_env.py"
+$ConfigWriter = Join-Path $ScriptDir "write_config.py"
 $VenvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
 
 Set-Location $ProjectRoot
@@ -104,14 +105,14 @@ function Read-TaxId {
 
     if ($Selection -eq "2") {
         return [ordered]@{
-            steuer_id_typ = "ust_id"
-            ust_id = Read-Required "Umsatzsteuer-Identifikationsnummer (USt-IdNr.)"
+            type = "vat_id"
+            value = Read-Required "Umsatzsteuer-Identifikationsnummer (USt-IdNr.)"
         }
     }
 
     return [ordered]@{
-        steuer_id_typ = "steuernummer"
-        steuernummer = Read-Required "Steuernummer"
+        type = "tax_number"
+        value = Read-Required "Steuernummer"
     }
 }
 
@@ -166,9 +167,9 @@ if (-not (Test-Path $EnvPath)) {
     Write-Host ".env ist bereits vorhanden - keine Aenderung vorgenommen."
 }
 
-$ConfigPath = Join-Path $ProjectRoot "data\konfiguration.json"
+$ConfigPath = Join-Path $ProjectRoot "config\invoice.yaml"
 if (-not (Test-Path $ConfigPath)) {
-    Write-Host "Konfigurationsdatei wird erstellt (data/konfiguration.json)..."
+    Write-Host "Konfigurationsdatei wird erstellt (config/invoice.yaml)..."
 
     $Website = Read-Host "Webseite (optional)"
 
@@ -191,34 +192,53 @@ if (-not (Test-Path $ConfigPath)) {
     }
 
     $Kleinunternehmer = Read-YesNo "Kleinunternehmerregelung nach Paragraph 19 UStG? (j/n)"
-    $Finanzen = Read-TaxId
-    $Finanzen["finanzamt"] = Read-Required "Finanzamt"
-    $Finanzen["kleinunternehmer"] = $Kleinunternehmer
+    $TaxId = Read-TaxId
+    $Finanzamt = Read-Required "Finanzamt"
 
     if (-not $Kleinunternehmer) {
-        $Finanzen["mehrwertsteuer_prozent"] = Read-Percentage "Mehrwertsteuersatz in Prozent"
+        $Mehrwertsteuer = Read-Percentage "Mehrwertsteuersatz in Prozent"
+    } else {
+        $Mehrwertsteuer = ""
     }
 
     Write-Host "Hinweis: Fuer steuerkonforme Rechnungen muss eine Kopie gemaess Paragraph 14b UStG aufbewahrt werden."
     $Bcc = Read-Host "BCC-Empfaenger (optional, empfohlen zur Archivierung)"
     $MailFromName = Read-Host "Sichtbarer Mail-Absendername (optional)"
 
-    $Config = [ordered]@{
-        absender = $Absender
-        bank = $Bank
-        finanzen = $Finanzen
-        mail = [ordered]@{
-            bcc = $Bcc.Trim()
-            from_name = $MailFromName.Trim()
-        }
+    if (-not (Test-Path $ConfigWriter -PathType Leaf)) {
+        throw "Konfigurationshelfer nicht gefunden: $ConfigWriter"
     }
 
-    New-Item -Path (Join-Path $ProjectRoot "data") -ItemType Directory -Force | Out-Null
-    $Config | ConvertTo-Json -Depth 5 | Set-Content -Path $ConfigPath -Encoding UTF8
-    Write-Host "konfiguration.json wurde gespeichert."
+    $SetupValues = @{
+        SETUP_NAME = $Absender.name; SETUP_FIRMA = $Absender.firma
+        SETUP_STRASSE = $Absender."straße"; SETUP_PLZ = $Absender.plz
+        SETUP_ORT = $Absender.ort; SETUP_TELEFON = $Absender.telefon
+        SETUP_EMAIL = $Absender.email; SETUP_WEBSITE = $Absender.website
+        SETUP_BANKNAME = $Bank.bankname; SETUP_KONTOINHABER = $Bank.kontoinhaber
+        SETUP_IBAN = $Bank.iban; SETUP_BIC = $Bank.bic
+        SETUP_STEUER_ID_TYP = $TaxId.type; SETUP_STEUER_ID_WERT = $TaxId.value
+        SETUP_FINANZAMT = $Finanzamt
+        SETUP_KLEINUNTERNEHMER = $Kleinunternehmer.ToString().ToLowerInvariant()
+        SETUP_MWST = [string]$Mehrwertsteuer; SETUP_BCC = $Bcc.Trim()
+        SETUP_MAIL_FROM_NAME = $MailFromName.Trim()
+    }
+    foreach ($Entry in $SetupValues.GetEnumerator()) {
+        Set-Item -Path "Env:$($Entry.Key)" -Value $Entry.Value
+    }
+    try {
+        & $VenvPython $ConfigWriter $ConfigPath
+    } finally {
+        foreach ($Entry in $SetupValues.GetEnumerator()) {
+            Remove-Item "Env:$($Entry.Key)" -ErrorAction SilentlyContinue
+        }
+    }
+    Write-Host "invoice.yaml wurde gespeichert."
 } else {
-    Write-Host "konfiguration.json ist bereits vorhanden - keine Aenderung vorgenommen."
+    Write-Host "invoice.yaml ist bereits vorhanden - keine Aenderung vorgenommen."
 }
+
+New-Item -Path (Join-Path $ProjectRoot "customers") -ItemType Directory -Force | Out-Null
+New-Item -Path (Join-Path $ProjectRoot "data") -ItemType Directory -Force | Out-Null
 
 $RunScript = Join-Path $ProjectRoot "rechnung_generieren.ps1"
 if (Test-Path $RunScript) {

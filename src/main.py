@@ -1,14 +1,12 @@
 # src/main.py
 import argparse
-import json
-import locale
 import logging
 import os
-from datetime import datetime
 
 from branding import validiere_branding_config
 from design import validiere_design_config
 from konfiguration import lade_konfiguration, lade_mail_umgebung
+from kundendateien import lade_kundendateien
 from logging_setup import (
     LauffehlerSammler,
     aktiviere_lauffehler_sammler,
@@ -21,6 +19,7 @@ from startpruefung import pruefe_startvoraussetzungen
 from templates import lade_templates
 from verlauf import lade_verlauf_datei, schliesse_abgelaufene_stundenwarteschlangen
 from workflow import verarbeite_rechnungen
+from zeit import heute
 
 logger = logging.getLogger(__name__)
 
@@ -50,21 +49,16 @@ def main():
     mail_config = None
     konfig = None
     try:
-        runtime_config = settings.get("runtime", {})
-        if not isinstance(runtime_config, dict):
-            raise ValueError("Der YAML-Bereich 'runtime' muss eine Map sein.")
-
-        locale.setlocale(locale.LC_TIME, runtime_config.get("locale", "de_DE.UTF-8"))
-
         # 📄 Kundendaten laden
-        with open(pfade.data_dir / "daten.json", "r", encoding="utf-8") as f:
-            daten = json.load(f)
+        daten = lade_kundendateien(pfade.customers_dir, strict=False)
 
         # 📧 E-Mail Konfiguration
-        mail_config = lade_mail_umgebung(pfade.base_dir / ".env")
+        mail_config = lade_mail_umgebung(
+            pfade.base_dir / ".env", settings.get("mail", {})
+        )
 
         # 📥 Konfiguration laden
-        konfig = lade_konfiguration(pfade.data_dir / "konfiguration.json")
+        konfig = lade_konfiguration(pfade.invoice_config)
 
         pruefe_startvoraussetzungen(settings, pfade, daten, mail_config)
         design_config = validiere_design_config(settings.get("design", {}))
@@ -72,7 +66,7 @@ def main():
         logger.info("Mini-Check vor dem Rechnungslauf erfolgreich.")
 
         # ⏳ Verlauf laden
-        jahr = datetime.today().year
+        jahr = heute().year
         verlauf_dateiname = pfade.data_dir / f"verlauf-{jahr}.json"
         rechnungsverlauf = lade_verlauf_datei(
             verlauf_dateiname,
@@ -145,7 +139,7 @@ def _sende_cron_fehlerbericht(
     try:
         msg = baue_fehlerbericht_mail(
             mail_config["user"],
-            mail_bcc,
+            mail_bcc[0],
             fehler,
             from_name=(konfig or {}).get("mail", {}).get("from_name"),
         )
@@ -155,7 +149,9 @@ def _sende_cron_fehlerbericht(
             mail_config["user"],
             mail_config["passwort"],
             msg,
-            [mail_bcc],
+            mail_bcc,
+            security=mail_config.get("security", "starttls"),
+            timeout=mail_config.get("timeout", 30),
         )
         logger.info("Cron-Fehlerbericht wurde an den BCC-Empfaenger gesendet.")
     except Exception as err:
@@ -169,17 +165,17 @@ def _schliesse_abgelaufene_stundenwarteschlangen(
     rechnungsverlauf_vorjahr: list,
 ) -> None:
     """Schliesst alte Nullstunden-Wartezustaende in geladenen Verlaeufen."""
-    heute = datetime.today()
+    aktuelles_datum = heute()
     abgeschlossen = schliesse_abgelaufene_stundenwarteschlangen(
         verlauf_dateiname,
         rechnungsverlauf,
-        heute,
+        aktuelles_datum,
     )
     if rechnungsverlauf_vorjahr:
         abgeschlossen += schliesse_abgelaufene_stundenwarteschlangen(
             vorjahr_dateiname,
             rechnungsverlauf_vorjahr,
-            heute,
+            aktuelles_datum,
         )
 
     if abgeschlossen:

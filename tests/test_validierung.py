@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 
 from validierung import (
@@ -8,6 +10,7 @@ from validierung import (
     validiere_monat,
     validiere_nichtnegative_ganzzahl,
     validiere_positive_ganzzahl,
+    validiere_prozentsatz,
 )
 
 
@@ -112,3 +115,15 @@ def test_validiere_kundeneintrag_rejects_multiple_main_recipients():
 
     with pytest.raises(ValueError, match="email"):
         validiere_kundeneintrag(eintrag)
+
+
+def test_money_rejects_more_than_two_decimal_places():
+    """Geldwerte duerfen keine Bruchteile eines Cents enthalten."""
+    with pytest.raises(ValueError, match="zwei Nachkommastellen"):
+        validiere_betrag("10.001")
+
+
+@pytest.mark.parametrize("wert", ["0", "19.5", "100"])
+def test_percentage_accepts_decimal_range(wert):
+    """Prozentsaetze akzeptieren Dezimalwerte einschliesslich Grenzen."""
+    assert validiere_prozentsatz(wert) == Decimal(wert)

@@ -2,18 +2,45 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
-## [1.3.7] - Unreleased
+## [1.4.0] - Unreleased
+
+### Added
+
+- Menschenlesbare Rechnungskonfiguration unter `config/invoice.yaml`.
+- Eine eigenstaendige YAML-Datei pro Kunde unter `customers/` mit stabiler
+  Kunden-ID.
+- Sicheres Migrationswerkzeug `tools/migrate_to_yaml.py` mit Vorschau,
+  semantischer Nachpruefung und optionalem Entfernen der alten JSON-Dateien.
+- Konfigurierbare SMTP-Sicherheit ueber `starttls` oder `ssl` sowie Verbindungs-Timeout.
+- Locale-unabhaengige deutsche Monatsnamen und zentrale Zeitfunktionen.
+- `.gitattributes` fuer konsistente Zeilenenden und Binaerdateien.
+
+### Changed
+
+- Geld- und Steuerberechnungen verwenden `Decimal` statt `float`.
+- Zusatzleistungen besitzen eindeutige Typen `month`, `flat` oder `included`.
+- Workflow-Abhaengigkeiten werden in einem Laufkontext gebuendelt.
+- Neue Verlaufseintraege identifizieren Kunden ueber die stabile Kunden-ID;
+  alte Eintraege bleiben kompatibel.
+- Abgeschlossene Kunden werden deaktiviert statt aus einer gemeinsamen
+  Kundendatei geloescht.
+- Lokale Konfigurationen werden ohne Veraenderung globaler Umgebungsvariablen geladen.
+- Interne Versionsnummer auf `1.4.0` gesetzt.
 
 ### Fixed
 
-- Erwartbare SMTP-Verbindungs- und Anmeldefehler werden ohne Python-Traceback als klare Fehlermeldung mit konkretem Hinweis protokolliert.
-- Das SMTP-Testskript beendet bekannte Mailversandfehler mit einer verständlichen Meldung statt einer unlesbaren Stacktrace-Ausgabe.
-- Kundeneintraege koennen optional eine oder mehrere CC-Adressen fuer Rechnungsmails enthalten.
+- Erwartbare SMTP-Verbindungs- und Anmeldefehler werden ohne Python-Traceback
+  als klare Fehlermeldung mit konkretem Hinweis protokolliert.
+- Das SMTP-Testskript beendet bekannte Mailversandfehler mit einer
+  verständlichen Meldung statt einer unlesbaren Stacktrace-Ausgabe.
+- Kundeneintraege koennen optional eine oder mehrere CC-Adressen fuer
+  Rechnungsmails enthalten.
 
 ### Clarified
 
 - Die SMTP-Adresse aus `.env` ist die technische Versand- und Absenderadresse der Mail.
-- `absender.email` bleibt die formelle Kontaktadresse in PDF-Rechnungen und HTML-Mailinhalten.
+- `absender.email` bleibt die formelle Kontaktadresse in PDF-Rechnungen und
+  HTML-Mailinhalten.
 
 ## [1.3.6] - 2026-06-06
 

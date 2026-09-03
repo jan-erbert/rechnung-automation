@@ -9,6 +9,7 @@ from email.utils import formataddr
 from html import escape
 
 from branding import LogoAsset
+from zeit import jetzt
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ def baue_rechnungsmail(
     mail_html: str,
     pdf_bytes: bytes,
     anhang_name: str,
-    mail_bcc: str | None = None,
+    mail_bcc: list[str] | None = None,
     mail_cc: list[str] | None = None,
     mail_logo: LogoAsset | None = None,
     from_name: str | None = None,
@@ -43,7 +44,7 @@ def baue_rechnungsmail(
     if mail_cc:
         msg["Cc"] = ", ".join(mail_cc)
     if mail_bcc:
-        msg["Bcc"] = mail_bcc
+        msg["Bcc"] = ", ".join(mail_bcc)
 
     if mail_logo:
         related = MIMEMultipart("related")
@@ -76,7 +77,7 @@ def baue_fehlerbericht_mail(
     from_name: str | None = None,
 ) -> MIMEMultipart:
     """Baut eine HTML-Mail mit schweren Fehlern eines Cronlaufs."""
-    zeitpunkt = zeitpunkt or datetime.now()
+    zeitpunkt = zeitpunkt or jetzt()
     eintraege = "".join(
         (
             "<li style='margin-bottom: 14px;'>"
@@ -113,7 +114,7 @@ def baue_mailtest_mail(
     from_name: str | None = None,
 ) -> MIMEMultipart:
     """Baut eine kurze Bestaetigungsmail fuer den SMTP-Test."""
-    zeitpunkt = zeitpunkt or datetime.now()
+    zeitpunkt = zeitpunkt or jetzt()
     html = _baue_statusmail_html(
         titel="Mailversand erfolgreich",
         einleitung="Die Testmail der Rechnung-Automation wurde erfolgreich zugestellt.",
@@ -187,12 +188,19 @@ def sende_mail(
     mail_pass: str,
     msg: MIMEMultipart,
     empfaenger_liste: list[str],
+    security: str = "starttls",
+    timeout: int = 30,
 ) -> None:
     """Sendet eine vorbereitete MIME-Mail per SMTP."""
     server = None
     try:
-        server = smtplib.SMTP(mail_server, mail_port)
-        server.starttls()
+        if security == "ssl":
+            server = smtplib.SMTP_SSL(mail_server, mail_port, timeout=timeout)
+        elif security == "starttls":
+            server = smtplib.SMTP(mail_server, mail_port, timeout=timeout)
+            server.starttls()
+        else:
+            raise ValueError("SMTP-Sicherheitsmodus muss starttls oder ssl sein.")
         server.login(mail_user, mail_pass)
     except smtplib.SMTPAuthenticationError as err:
         _schliesse_smtp_verbindung(server)

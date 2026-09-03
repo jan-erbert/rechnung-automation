@@ -1,8 +1,9 @@
-import json
-from datetime import datetime
+from datetime import date, datetime
+
+from kundendateien import speichere_kundendatei
 
 
-def sollte_kunde_entfernt_werden(eintrag: dict, heute: datetime) -> bool:
+def sollte_kunde_entfernt_werden(eintrag: dict, heute: date | datetime) -> bool:
     """Prueft, ob ein Kunde nach der aktuellen Rechnung entfernt werden kann."""
     if eintrag.get("einmalig") is True:
         return True
@@ -32,7 +33,9 @@ def entferne_kunde_aus_daten(daten: list, eintrag: dict) -> list:
     ]
 
 
-def speichere_kundendaten(pfad, daten: list) -> None:
-    """Schreibt die Kundendaten als JSON-Datei."""
-    with open(pfad, "w", encoding="utf-8") as daten_file:
-        json.dump(daten, daten_file, indent=2, ensure_ascii=False)
+def speichere_kundendaten(eintrag: dict) -> None:
+    """Schreibt einen geladenen Kunden atomar in seine YAML-Datei."""
+    dateipfad = eintrag.get("_dateipfad")
+    if dateipfad is None:
+        raise ValueError("Quellpfad der Kundendatei fehlt.")
+    speichere_kundendatei(eintrag, dateipfad)

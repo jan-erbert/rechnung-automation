@@ -11,26 +11,20 @@ def pruefe_startvoraussetzungen(
     mail_config: dict,
 ) -> None:
     """Prueft die wichtigsten Voraussetzungen vor einem Rechnungslauf."""
-    runtime_config = settings.get("runtime", {})
-    if not isinstance(runtime_config, dict):
-        raise ValueError("Der YAML-Bereich 'runtime' muss eine Map sein.")
     validiere_pdf_config(settings.get("pdf", {}))
     validiere_design_config(settings.get("design", {}))
     validiere_branding_config(settings.get("branding", {}))
     _pruefe_mail_config(mail_config)
     if not isinstance(daten, list):
-        raise ValueError("data/daten.json muss eine JSON-Liste sein.")
+        raise ValueError("Kundendaten muessen als Liste geladen werden.")
 
     pruefe_lesbare_datei(
         pfade.base_dir / "config" / "settings.yaml",
         "config/settings.yaml",
     )
     pruefe_lesbare_datei(pfade.base_dir / ".env", ".env")
-    pruefe_lesbare_datei(pfade.data_dir / "daten.json", "data/daten.json")
-    pruefe_lesbare_datei(
-        pfade.data_dir / "konfiguration.json",
-        "data/konfiguration.json",
-    )
+    pruefe_lesbares_verzeichnis(pfade.customers_dir, "Kundenverzeichnis")
+    pruefe_lesbare_datei(pfade.invoice_config, "config/invoice.yaml")
     pruefe_lesbares_verzeichnis(pfade.templates_dir, "Template-Verzeichnis")
     pruefe_lesbare_datei(
         pfade.templates_dir / "mail_template.html",

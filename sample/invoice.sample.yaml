@@ -1,0 +1,27 @@
+sender:
+  name: Max Mustermann
+  company: Musterfirma GmbH
+  street: Musterstraße 1
+  postal_code: "12345"
+  city: Musterstadt
+  phone: "+49 123 456789"
+  email: max@example.com
+  website: https://example.com
+
+bank:
+  name: Musterbank
+  account_holder: Max Mustermann
+  iban: DE12345678901234567890
+  bic: MUSTDE00XXX
+
+tax:
+  identifier_type: tax_number
+  tax_number: 12/345/67890
+  tax_office: Finanzamt Musterstadt
+  small_business: false
+  vat_rate: "19.00"
+
+mail:
+  bcc:
+    - rechnung@example.com
+  from_name: Musterfirma Rechnungen
