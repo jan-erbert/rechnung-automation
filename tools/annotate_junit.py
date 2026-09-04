@@ -28,7 +28,9 @@ def build_annotations(report_path: Path) -> list[str]:
         test_name = test_case.get("name", "Unbekannter Test")
         class_name = test_case.get("classname", "")
         title = ".".join(part for part in (class_name, test_name) if part)
-        message = (failure.text or failure.get("message") or "Test fehlgeschlagen").strip()
+        message = (
+            failure.text or failure.get("message") or "Test fehlgeschlagen"
+        ).strip()
         metadata = [
             f"title={_escape_command_value(title)}",
         ]

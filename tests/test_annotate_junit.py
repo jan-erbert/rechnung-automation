@@ -27,7 +27,7 @@ def test_successful_junit_report_creates_no_annotations(tmp_path):
     """Ein erfolgreicher JUnit-Bericht erzeugt keine Fehlerannotation."""
     report = tmp_path / "pytest-results.xml"
     report.write_text(
-        "<testsuite><testcase name=\"test_ok\" /></testsuite>", encoding="utf-8"
+        '<testsuite><testcase name="test_ok" /></testsuite>', encoding="utf-8"
     )
 
     assert build_annotations(report) == []
