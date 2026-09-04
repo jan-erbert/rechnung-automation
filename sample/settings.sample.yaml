@@ -27,6 +27,10 @@ branding:
   header_title: null
   header_subtitle: null
 
+file_naming:
+  invoice_prefix: Rechnung
+  preview_prefix: VORSCHAU
+
 logging:
   enabled: true
   directory: logs

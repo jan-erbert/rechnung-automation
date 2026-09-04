@@ -111,3 +111,19 @@ def test_start_check_rejects_unsupported_logo_format(tmp_path):
             [],
             _mail_config(),
         )
+
+
+def test_start_check_rejects_unsafe_filename_prefix(tmp_path):
+    """Ein unsicheres Dateipraefix stoppt den Rechnungslauf fruehzeitig."""
+    paths = _erstelle_startpfade(tmp_path)
+
+    with pytest.raises(ValueError, match="file_naming.invoice_prefix"):
+        check_start_requirements(
+            {
+                "pdf": {"engine": "weasyprint"},
+                "file_naming": {"invoice_prefix": "../Rechnung"},
+            },
+            paths,
+            [],
+            _mail_config(),
+        )

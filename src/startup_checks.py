@@ -1,5 +1,6 @@
 from branding import validate_branding_config
 from design import validate_design_config
+from file_naming import validate_file_naming_config
 from pdf_service import validate_pdf_config
 from path_checks import check_readable_file, check_readable_directory
 
@@ -14,6 +15,7 @@ def check_start_requirements(
     validate_pdf_config(settings.get("pdf", {}))
     validate_design_config(settings.get("design", {}))
     validate_branding_config(settings.get("branding", {}))
+    validate_file_naming_config(settings.get("file_naming", {}))
     _check_mail_config(mail_config)
     if not isinstance(data, list):
         raise ValueError("Kundendaten muessen als Liste geladen werden.")

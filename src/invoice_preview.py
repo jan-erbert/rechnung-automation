@@ -2,6 +2,7 @@ from datetime import datetime
 from pathlib import Path
 
 from branding import load_logo_asset
+from file_naming import build_preview_filename
 from invoice_templates import InvoiceTemplates, build_template_context
 from invoices import build_invoice_data, calculate_billing_period, calculate_tax_values
 from path_checks import check_archive_path
@@ -21,6 +22,7 @@ def create_customer_invoice_preview(
     pdf_config: dict,
     design_config: dict,
     branding_config: dict,
+    file_naming_config: dict,
     templates: InvoiceTemplates,
     timestamp: datetime | None = None,
 ) -> Path:
@@ -103,6 +105,7 @@ def create_customer_invoice_preview(
         customer["id"],
         invoice_data["automatic_invoice_number"],
         preview_timestamp,
+        file_naming_config,
     )
     archive_pdf(str(archive_directory), target.name, pdf_bytes)
     return target
@@ -113,13 +116,17 @@ def _next_preview_path(
     customer_id: str,
     invoice_number: str,
     timestamp: datetime,
+    file_naming_config: dict,
 ) -> Path:
     """Ermittelt einen kollisionsfreien und gut erkennbaren Vorschaupfad."""
-    base_name = (
-        f"PREVIEW_Invoice_{customer_id}_{invoice_number}_"
-        f"{timestamp:%Y-%m-%d_%H-%M-%S}"
+    file_name = build_preview_filename(
+        customer_id,
+        invoice_number,
+        timestamp,
+        file_naming_config,
     )
-    target = archive_directory / f"{base_name}.pdf"
+    base_name = file_name.removesuffix(".pdf")
+    target = archive_directory / file_name
     number = 2
     while target.exists():
         target = archive_directory / f"{base_name}-{number:02d}.pdf"

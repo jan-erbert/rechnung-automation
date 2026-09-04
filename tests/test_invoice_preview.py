@@ -92,6 +92,14 @@ def _branding() -> dict:
     }
 
 
+def _file_naming() -> dict:
+    """Erstellt die deutsche Dateibenennung fuer Vorschautests."""
+    return {
+        "invoice_prefix": "Rechnung",
+        "preview_prefix": "VORSCHAU",
+    }
+
+
 def test_preview_writes_only_watermarked_pdf_to_customer_archive(tmp_path, monkeypatch):
     """Die Vorschau landet markiert und eindeutig benannt nur im Kundenarchiv."""
     archive_directory = tmp_path / "archive"
@@ -111,11 +119,12 @@ def test_preview_writes_only_watermarked_pdf_to_customer_archive(tmp_path, monke
         pdf_config={"engine": "weasyprint"},
         design_config=validate_design_config({}),
         branding_config=_branding(),
+        file_naming_config=_file_naming(),
         templates=templates,
         timestamp=datetime(2026, 9, 4, 14, 30, 0),
     )
 
-    assert target.name == "PREVIEW_Invoice_example_09-2026_2026-09-04_14-30-00.pdf"
+    assert target.name == "VORSCHAU_Rechnung_example_09-2026_2026-09-04_14-30-00.pdf"
     assert target.read_bytes() == b"pdf"
     assert templates.contexts[0]["sample_text"] == "VORSCHAU"
     assert templates.contexts[0]["invoice_number"] == "09-2026"
@@ -136,6 +145,7 @@ def test_preview_requires_customer_archive(tmp_path):
             pdf_config={"engine": "weasyprint"},
             design_config=validate_design_config({}),
             branding_config=_branding(),
+            file_naming_config=_file_naming(),
             templates=CapturingTemplates(),
         )
 
@@ -147,7 +157,7 @@ def test_preview_resolves_relative_archive_and_avoids_filename_collision(
     archive_directory = tmp_path / "archive"
     archive_directory.mkdir()
     existing_path = archive_directory / (
-        "PREVIEW_Invoice_example_09-2026_2026-09-04_14-30-00.pdf"
+        "VORSCHAU_Rechnung_example_09-2026_2026-09-04_14-30-00.pdf"
     )
     existing_path.write_bytes(b"existing")
     monkeypatch.setattr("invoice_preview.today", lambda: date(2026, 9, 4))
@@ -164,6 +174,7 @@ def test_preview_resolves_relative_archive_and_avoids_filename_collision(
         pdf_config={"engine": "weasyprint"},
         design_config=validate_design_config({}),
         branding_config=_branding(),
+        file_naming_config=_file_naming(),
         templates=CapturingTemplates(),
         timestamp=datetime(2026, 9, 4, 14, 30, 0),
     )

@@ -63,6 +63,10 @@ def _laufkontext(tmp_path, **aenderungen):
             "pdf_logo_height": 40,
             "mail_logo_height": 60,
         },
+        "file_naming_config": {
+            "invoice_prefix": "Invoice",
+            "preview_prefix": "PREVIEW",
+        },
         "templates": DummyTemplates(),
         "history": [],
         "previous_history": [],
@@ -195,6 +199,60 @@ def test_dry_run_renders_without_writes_or_mail(tmp_path, monkeypatch, caplog):
     assert actions == []
     assert "Dry-Run:" in caplog.text
     assert "keine Mail versendet" in caplog.text
+
+
+def test_workflow_uses_configured_invoice_filename(tmp_path, monkeypatch):
+    """Mailanhang und Archivierung erhalten denselben konfigurierten Namen."""
+    captured_mail = {}
+    captured_archive = {}
+    monkeypatch.setattr("workflow.current_date", lambda: datetime(2026, 9, 4))
+    monkeypatch.setattr("workflow.load_logo_asset", lambda *args: None)
+    monkeypatch.setattr("workflow.generate_pdf_bytes", lambda *args: b"pdf")
+    monkeypatch.setattr(
+        "workflow.build_invoice_email",
+        lambda **kwargs: captured_mail.update(kwargs) or object(),
+    )
+    monkeypatch.setattr(
+        "workflow.archive_pdf",
+        lambda archive, name, pdf: captured_archive.update(
+            {"archive": archive, "name": name, "pdf": pdf}
+        ),
+    )
+    monkeypatch.setattr("workflow.send_email", lambda *args, **kwargs: None)
+
+    _process_customer_entry(
+        customers=[],
+        customer={
+            "id": "tv-alzey",
+            "name": "Erika Beispiel",
+            "company": "Beispielfirma",
+            "email": "erika@example.com",
+            "cc": [],
+            "street": "Beispielweg 1",
+            "postal_code": "12345",
+            "city": "Beispielstadt",
+            "archive_directory": str(tmp_path),
+            "main_service": {
+                "description": "Hosting",
+                "unit": "month",
+                "unit_price": "10.00",
+            },
+        },
+        context=_laufkontext(
+            tmp_path,
+            file_naming_config={
+                "invoice_prefix": "Rechnung",
+                "preview_prefix": "VORSCHAU",
+            },
+        ),
+    )
+
+    assert captured_mail["attachment_name"] == "Rechnung_tv-alzey_09-2026.pdf"
+    assert captured_archive == {
+        "archive": str(tmp_path),
+        "name": "Rechnung_tv-alzey_09-2026.pdf",
+        "pdf": b"pdf",
+    }
 
 
 def test_hourly_invoice_uses_service_period_and_records_hours(tmp_path, monkeypatch):
@@ -439,6 +497,7 @@ def test_unexpected_customer_error_does_not_stop_following_customer(
         pdf_config={},
         design_config={},
         branding_config={},
+        file_naming_config={},
         templates=object(),
         history=[],
         previous_history=[],

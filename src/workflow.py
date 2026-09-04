@@ -6,6 +6,7 @@ from pathlib import Path
 from branding import load_logo_asset
 from billing_schedule import is_invoice_due
 from customer_lifecycle import should_deactivate_customer, save_customer_data
+from file_naming import build_invoice_filename
 from services import build_service_items
 from email_service import MailDeliveryError, build_invoice_email, send_email
 from path_checks import check_archive_path
@@ -57,6 +58,7 @@ class RunContext:
     pdf_config: dict
     design_config: dict
     branding_config: dict
+    file_naming_config: dict
     templates: InvoiceTemplates
     history: list
     previous_history: list
@@ -73,6 +75,7 @@ def process_invoices(
     pdf_config: dict,
     design_config: dict,
     branding_config: dict,
+    file_naming_config: dict,
     templates,
     history: list,
     previous_history: list,
@@ -92,6 +95,7 @@ def process_invoices(
         pdf_config=pdf_config,
         design_config=design_config,
         branding_config=branding_config,
+        file_naming_config=file_naming_config,
         templates=templates,
         history=history,
         previous_history=previous_history,
@@ -272,7 +276,11 @@ def _process_customer_entry(
     pdf_html = context.templates.invoice.render(template_context)
     pdf_bytes = generate_pdf_bytes(pdf_html, context.pdf_config)
 
-    attachment_name = f"Invoice_{customer['id']}_{automatic_invoice_number}.pdf"
+    attachment_name = build_invoice_filename(
+        customer["id"],
+        automatic_invoice_number,
+        context.file_naming_config,
+    )
     msg = build_invoice_email(
         mail_user=context.mail_config["user"],
         recipient=customer["email"],

@@ -12,6 +12,7 @@ if str(SRC_DIR) not in sys.path:
 
 from branding import resolve_logo_path, validate_branding_config  # noqa: E402
 from design import validate_design_config  # noqa: E402
+from file_naming import validate_file_naming_config  # noqa: E402
 from configuration import load_invoice_config, load_mail_environment  # noqa: E402
 from customer_files import load_customer_files  # noqa: E402
 from paths import create_paths  # noqa: E402
@@ -76,6 +77,7 @@ def main() -> int:
         _check_pdf_settings(report, settings)
         _check_design_settings(report, settings)
         _check_branding_settings(report, settings)
+        _check_file_naming_settings(report, settings)
         _check_hours_files(report, settings)
         _check_paths(report, settings, data)
     report.print_summary()
@@ -137,6 +139,14 @@ def _check_branding_settings(report: CheckReport, settings: dict) -> None:
             check_readable_file(resolve_logo_path(paths.img_dir, branding[name]), label)
         except ValueError as err:
             report.warning(str(err))
+
+
+def _check_file_naming_settings(report: CheckReport, settings: dict) -> None:
+    """Prueft die Praefixe fuer Rechnungs- und Vorschaudateien."""
+    try:
+        validate_file_naming_config(settings.get("file_naming", {}))
+    except ValueError as err:
+        report.error(f"Dateibenennung ist ungueltig: {err}")
 
 
 def _check_env(report: CheckReport, settings: dict | None = None) -> None:

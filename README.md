@@ -15,7 +15,7 @@ Installationsskripte unterstuetzt.
 - Sichere Versandzustaende `pending`, `sent` und `failed`
 - Atomare Speicherung von Verlauf und Kundendateien
 - Eine uebersichtliche YAML-Datei pro Kunde
-- Konfigurierbares Design, Branding und Logging
+- Konfigurierbares Design, Branding, PDF-Dateinamen und Logging
 - Nicht-interaktiver Cronbetrieb mit Fehlerbericht
 - Seiteneffektfreier Dry-Run inklusive PDF-Rendering
 - Automatische, verifizierte Zustandsbackups mit begrenzter Aufbewahrung
@@ -59,8 +59,8 @@ bleiben JSON. Zugangsdaten stehen ausschliesslich in `.env`.
 
 ### `config/settings.yaml`
 
-Enthaelt technische Einstellungen fuer Pfade, PDF, Design, Branding, Logging
-und SMTP-Verhalten:
+Enthaelt technische Einstellungen fuer Pfade, PDF, Design, Branding,
+Dateibenennung, Logging und SMTP-Verhalten:
 
 ```yaml
 paths:
@@ -74,6 +74,10 @@ paths:
 
 pdf:
   engine: weasyprint
+
+file_naming:
+  invoice_prefix: Rechnung
+  preview_prefix: VORSCHAU
 
 mail:
   security: starttls
@@ -93,14 +97,21 @@ backup:
 `mail.security` akzeptiert `starttls` oder `ssl`. Die passende Portnummer wird
 weiterhin in `.env` festgelegt.
 
+`file_naming.invoice_prefix` bestimmt den Anfang von Archivdatei und
+PDF-Mailanhang. `file_naming.preview_prefix` kennzeichnet Vorschauen. Erlaubt
+sind Buchstaben, Zahlen, Bindestriche und Unterstriche. Ohne diese optionalen
+Angaben bleiben aus Kompatibilitaetsgruenden die bisherigen Werte `Invoice`
+und `PREVIEW` aktiv.
+
 Aktivierte Laufprotokolle erhalten gut lesbare, nach Betriebsart getrennte Namen:
 `invoice-interactive-YYYY-MM-DD_HH-MM-SS.log` fuer interaktive Laeufe,
 `invoice-cron-YYYY-MM-DD_HH-MM-SS.log` fuer Cronlaeufe und `invoice-tool-...`
-fuer Hilfswerkzeuge. Vorschauen verwenden `invoice-dry-run-...`. Falls zwei
-Laeufe in derselben Sekunde starten, wird automatisch ein Zaehlsuffix wie
-`-02` angehaengt. Neue Logs werden unter POSIX mit Dateirechten `0600`
-angelegt. `logging.retention_files` begrenzt die Anzahl automatisch
-aufbewahrter `invoice-*.log`-Dateien; fremde Logdateien bleiben unberuehrt.
+fuer Hilfswerkzeuge. Dry-Runs verwenden `invoice-dry-run-...`, gespeicherte
+Kundenvorschauen `invoice-preview-...`. Falls zwei Laeufe in derselben Sekunde
+starten, wird automatisch ein Zaehlsuffix wie `-02` angehaengt. Neue Logs
+werden unter POSIX mit Dateirechten `0600` angelegt.
+`logging.retention_files` begrenzt die Anzahl automatisch aufbewahrter
+`invoice-*.log`-Dateien; fremde Logdateien bleiben unberuehrt.
 
 ### `config/invoice.yaml`
 
@@ -331,9 +342,9 @@ im konfigurierten Kundenarchiv abgelegt werden:
 python tools/preview_customer_invoice.py <customer-id>
 ```
 
-Die PDF erhaelt ein grosses `VORSCHAU`-Wasserzeichen und einen Dateinamen nach
-dem Schema
-`PREVIEW_Invoice_<customer-id>_<MM-YYYY>_<YYYY-MM-DD_HH-MM-SS>.pdf`.
+Die PDF erhaelt ein grosses `VORSCHAU`-Wasserzeichen und bei der oben gezeigten
+Konfiguration einen Dateinamen nach dem Schema
+`VORSCHAU_Rechnung_<customer-id>_<MM-YYYY>_<YYYY-MM-DD_HH-MM-SS>.pdf`.
 Das Werkzeug versendet keine E-Mail, schreibt keinen Rechnungsverlauf, aendert
 keine Kundendatei und archiviert keine unmarkierte Rechnung. Fehlende
 Stundenwerte werden nicht interaktiv erfragt oder gespeichert, sondern fuehren

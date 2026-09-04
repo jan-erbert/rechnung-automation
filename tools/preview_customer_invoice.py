@@ -12,6 +12,7 @@ from branding import validate_branding_config  # noqa: E402
 from configuration import load_invoice_config  # noqa: E402
 from customer_files import load_customer_files  # noqa: E402
 from design import validate_design_config  # noqa: E402
+from file_naming import validate_file_naming_config  # noqa: E402
 from invoice_preview import create_customer_invoice_preview  # noqa: E402
 from invoice_templates import load_templates  # noqa: E402
 from logging_setup import configure_logging  # noqa: E402
@@ -52,6 +53,9 @@ def main() -> int:
             pdf_config=settings.get("pdf", {}),
             design_config=validate_design_config(settings.get("design", {})),
             branding_config=validate_branding_config(settings.get("branding", {})),
+            file_naming_config=validate_file_naming_config(
+                settings.get("file_naming", {})
+            ),
             templates=load_templates(paths.templates_dir),
         )
         logger.info("Rechnungsvorschau gespeichert: %s", preview_path)

@@ -35,8 +35,10 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
   ein Werkzeug zur sicheren Pruefung und Wiederherstellung in ein leeres Ziel.
 - Nicht-interaktiver PowerShell-Einstieg fuer die Windows-Aufgabenplanung.
 - Kundenbezogene PDF-Vorschauen mit `VORSCHAU`-Wasserzeichen und eindeutigem
-  `PREVIEW_Invoice_...`-Dateinamen, die ausschliesslich in den konfigurierten
+  `VORSCHAU_Rechnung_...`-Dateinamen, die ausschliesslich in den konfigurierten
   Archivpfad schreiben und keinen Versand- oder Rechnungsstatus erzeugen.
+- Zentral konfigurierbare und validierte Dateipraefixe fuer Rechnungen und
+  Vorschauen unter `file_naming`.
 
 ### Changed
 
@@ -58,6 +60,9 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 - Manuell eingegebene Stunden werden atomar in der passenden Monatsdatei
   gespeichert und Stundenmetadaten im Rechnungsverlauf dokumentiert.
 - Interne Versionsnummer auf `1.4.1` gesetzt.
+- Archivdateien und PDF-Mailanhaenge verwenden einheitlich das konfigurierte
+  Rechnungspraefix; die bereitgestellte deutsche Konfiguration nutzt
+  `Rechnung_...`.
 
 ### Fixed
 

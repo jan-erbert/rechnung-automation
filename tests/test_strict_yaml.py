@@ -23,6 +23,17 @@ def test_settings_reject_unknown_keys(tmp_path):
         load_settings(path)
 
 
+def test_settings_accept_file_naming_section(tmp_path):
+    """Die Dateibenennung kann zentral in den Settings gepflegt werden."""
+    path = tmp_path / "settings.yaml"
+    path.write_text(
+        "file_naming:\n  invoice_prefix: Rechnung\n  preview_prefix: VORSCHAU\n",
+        encoding="utf-8",
+    )
+
+    assert load_settings(path)["file_naming"]["invoice_prefix"] == "Rechnung"
+
+
 def test_customer_rejects_unknown_active_field(tmp_path):
     """Ein Tippfehler bei active kann keinen Default aktivieren."""
     (tmp_path / "customer.yaml").write_text(

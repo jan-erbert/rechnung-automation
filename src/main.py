@@ -6,6 +6,7 @@ from configuration import load_invoice_config, load_mail_environment
 from customer_files import load_customer_files
 from design import validate_design_config
 from email_service import build_error_report_email, send_email
+from file_naming import validate_file_naming_config
 from invoice_history import (
     close_expired_hours_waiting_entries,
     load_all_history,
@@ -159,6 +160,7 @@ def _run_invoices(
         for entry in history
     ]
     templates = load_templates(paths.templates_dir)
+    file_naming_config = validate_file_naming_config(settings.get("file_naming", {}))
     return process_invoices(
         customers=customers,
         paths=paths,
@@ -167,6 +169,7 @@ def _run_invoices(
         pdf_config=settings.get("pdf", {}),
         design_config=design_config,
         branding_config=branding_config,
+        file_naming_config=file_naming_config,
         templates=templates,
         history=current_history,
         previous_history=previous_history,

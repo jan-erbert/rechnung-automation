@@ -19,7 +19,16 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> dict:
 
     reject_unknown_keys(
         settings,
-        {"paths", "pdf", "design", "branding", "logging", "mail", "backup"},
+        {
+            "paths",
+            "pdf",
+            "design",
+            "branding",
+            "file_naming",
+            "logging",
+            "mail",
+            "backup",
+        },
         "settings",
     )
     sections = {
@@ -33,6 +42,7 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> dict:
             "backup_dir",
         },
         "pdf": {"engine"},
+        "file_naming": {"invoice_prefix", "preview_prefix"},
         "logging": {"enabled", "directory", "level", "retention_files"},
         "mail": {"security", "timeout_seconds"},
         "backup": {"enabled", "keep_last"},

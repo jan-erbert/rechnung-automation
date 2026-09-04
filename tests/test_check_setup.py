@@ -94,6 +94,18 @@ def test_branding_check_warns_about_missing_configured_logo(tmp_path, monkeypatc
     assert any("Mail-Logo fehlt" in warning for warning in report.warnings)
 
 
+def test_file_naming_check_reports_unsafe_prefix():
+    """Der Setup-Check meldet unsichere Dateipraefixe konkret."""
+    report = check_setup.CheckReport()
+
+    check_setup._check_file_naming_settings(
+        report,
+        {"file_naming": {"invoice_prefix": "Rechnung/2026"}},
+    )
+
+    assert any("Dateibenennung ist ungueltig" in error for error in report.errors)
+
+
 def test_hours_check_reports_invalid_yaml(tmp_path, monkeypatch):
     """Der Setup-Check meldet eine widerspruechliche Stunden-Monatsdatei."""
     settings, _ = _erstelle_pfade(tmp_path)
