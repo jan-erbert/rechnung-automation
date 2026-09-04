@@ -28,7 +28,8 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 - Stundenwerte koennen in YAML bequem als unquotierte Zahlen wie `8.50`
   gepflegt werden und bleiben intern dennoch exakte `Decimal`-Werte.
 - GitHub-Actions-Workflow fuer Linux- und Windows-Tests sowie statische
-  Python-, Bash- und PowerShell-Pruefungen.
+  Python-, Bash- und PowerShell-Pruefungen mit direkt sichtbaren
+  Testfehler-Annotationen.
 - Seiteneffektfreier Dry-Run mit vollstaendigem Template- und PDF-Test.
 - Automatische, verifizierte Zustandsbackups mit begrenzter Aufbewahrung sowie
   ein Werkzeug zur sicheren Pruefung und Wiederherstellung in ein leeres Ziel.

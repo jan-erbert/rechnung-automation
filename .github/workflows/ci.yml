@@ -45,7 +45,11 @@ jobs:
           python -m pip install -r install/requirements-dev.txt
 
       - name: Tests ausfuehren
-        run: python -m pytest
+        run: python -m pytest --junitxml=pytest-results.xml
+
+      - name: Testfehler als Annotationen ausgeben
+        if: failure()
+        run: python tools/annotate_junit.py pytest-results.xml
 
       - name: PowerShell-Syntax pruefen
         if: runner.os == 'Windows'
