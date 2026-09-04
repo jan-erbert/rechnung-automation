@@ -1,0 +1,25 @@
+import pytest
+
+from pdf_service import archive_pdf, validate_pdf_config
+
+
+def test_validiere_pdf_config_accepts_weasyprint():
+    """WeasyPrint ist die einzige gueltige PDF-Engine."""
+    assert validate_pdf_config({"engine": "weasyprint"}) == {"engine": "weasyprint"}
+
+
+def test_validiere_pdf_config_rejects_unknown_engine():
+    """Andere PDF-Engines werden bewusst abgelehnt."""
+    with pytest.raises(ValueError):
+        validate_pdf_config({"engine": "wkhtmltopdf"})
+
+
+def test_archive_does_not_overwrite_different_existing_pdf(tmp_path):
+    """Eine bestehende Archiv-PDF wird niemals still ersetzt."""
+    target = tmp_path / "Invoice_customer_01-2026.pdf"
+    target.write_bytes(b"existing")
+
+    with pytest.raises(FileExistsError):
+        archive_pdf(str(tmp_path), target.name, b"new")
+
+    assert target.read_bytes() == b"existing"

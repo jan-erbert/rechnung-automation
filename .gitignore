@@ -21,22 +21,27 @@ img/
 *.log
 logs/
 
+# Test- und Coverage-Artefakte
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
 # Sensible Daten
 data/
 .env
+.env.*
+!.env.example
 environment.env
 hours/
+backup/
 config/invoice.yaml
 customers/*.yaml
 customers/*.yml
 !customers/.gitkeep
-
-# Deployment Dateien
-AGENTS.md
 
 # Temporäre Dateien
 *.tmp
 old/
 wiki/
 rechnung_automation_v*
-__pycache__

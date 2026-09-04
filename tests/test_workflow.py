@@ -1,16 +1,19 @@
 from datetime import datetime
+from decimal import Decimal
 
 import pytest
 
-from mail import MailversandFehler
+from email_service import MailDeliveryError
+from hours_files import write_hours_month
 from workflow import (
-    _sende_mail_mit_status,
-    _speichere_nullstunden_status,
-    _speichere_pending_status,
-    _verarbeite_kundeneintrag,
-    _verarbeite_kunden_im_lauf,
-    LaufKontext,
-    verarbeite_rechnungen,
+    _send_email_with_status,
+    _save_zero_hours_status,
+    _save_pending_status,
+    _process_customer_entry,
+    _process_customer_in_run,
+    RunContext,
+    InvoiceProcessingError,
+    process_invoices,
 )
 
 
@@ -24,8 +27,8 @@ class DummyTemplates:
             """Gibt testbares HTML ohne echte Vorlage zurueck."""
             return "<html></html>"
 
-    mail = Template()
-    rechnung = Template()
+    email = Template()
+    invoice = Template()
 
 
 def _laufkontext(tmp_path, **aenderungen):
@@ -36,21 +39,21 @@ def _laufkontext(tmp_path, **aenderungen):
         hours_dir = tmp_path
 
     werte = {
-        "pfade": DummyPaths(),
-        "absender": {
+        "paths": DummyPaths(),
+        "sender": {
             "name": "Max Mustermann",
-            "firma": "Musterfirma",
+            "company": "Musterfirma",
             "email": "kontakt@example.com",
         },
         "bank": {},
-        "finanzen": {"kleinunternehmer": True},
+        "tax": {"small_business": True},
         "mail_bcc": [],
         "mail_from_name": None,
         "mail_config": {
             "server": "smtp.example.com",
             "port": 587,
             "user": "sender@example.com",
-            "passwort": "test",
+            "password": "test",
         },
         "pdf_config": {},
         "design_config": {},
@@ -61,87 +64,90 @@ def _laufkontext(tmp_path, **aenderungen):
             "mail_logo_height": 60,
         },
         "templates": DummyTemplates(),
-        "rechnungsverlauf": [],
-        "rechnungsverlauf_vorjahr": [],
-        "verlauf_dateiname": tmp_path / "verlauf.json",
+        "history": [],
+        "previous_history": [],
+        "history_path": tmp_path / "invoice_history.json",
         "interactive": False,
     }
     werte.update(aenderungen)
-    return LaufKontext(**werte)
+    return RunContext(**werte)
 
 
 def test_failed_mail_is_marked_for_retry(tmp_path, monkeypatch, caplog):
     """Ein SMTP-Fehler setzt failed und kuendigt den erneuten Versuch an."""
-    verlauf_pfad = tmp_path / "verlauf.json"
-    verlauf = []
+    invoice_history_pfad = tmp_path / "invoice_history.json"
+    invoice_history = []
     versandeintrag = {
         "id": "rechnung-1",
-        "versandstatus": "pending",
+        "customer_id": "kunde",
+        "year": 2026,
+        "month": 7,
+        "status": "pending",
     }
-    assert _speichere_pending_status(versandeintrag, verlauf, verlauf_pfad) is True
+    _save_pending_status(versandeintrag, invoice_history, invoice_history_pfad)
 
     def smtp_fehler(*args, **kwargs):
-        raise MailversandFehler("SMTP nicht erreichbar", retry_sicher=True)
+        raise MailDeliveryError("SMTP nicht erreichbar", retry_safe=True)
 
-    monkeypatch.setattr("workflow.sende_mail", smtp_fehler)
+    monkeypatch.setattr("workflow.send_email", smtp_fehler)
 
-    erfolgreich = _sende_mail_mit_status(
-        eintrag={
-            "name": "Erika Beispiel",
-            "email": "erika@example.com",
-        },
-        mail_config={
-            "server": "smtp.example.com",
-            "port": 587,
-            "user": "sender@example.com",
-            "passwort": "test",
-        },
-        msg=object(),
-        empfaenger_liste=["erika@example.com"],
-        mail_bcc=None,
-        rechnung_id="rechnung-1",
-        rechnungsverlauf=verlauf,
-        verlauf_dateiname=verlauf_pfad,
-    )
+    with pytest.raises(InvoiceProcessingError):
+        _send_email_with_status(
+            customer={
+                "name": "Erika Beispiel",
+                "email": "erika@example.com",
+            },
+            mail_config={
+                "server": "smtp.example.com",
+                "port": 587,
+                "user": "sender@example.com",
+                "password": "test",
+            },
+            msg=object(),
+            recipients=["erika@example.com"],
+            mail_bcc=None,
+            invoice_id="rechnung-1",
+            history=invoice_history,
+            history_path=invoice_history_pfad,
+        )
 
-    assert erfolgreich is False
-    assert verlauf[0]["versandstatus"] == "failed"
+    assert invoice_history[0]["status"] == "failed"
     assert "beim naechsten Lauf erneut versucht" in caplog.text
 
 
 def test_customer_cc_recipients_are_sent_with_invoice(tmp_path, monkeypatch):
     """Kundenbezogene CC-Adressen werden beim SMTP-Versand beruecksichtigt."""
     gesendete_empfaenger = []
-    verlauf_pfad = tmp_path / "verlauf.json"
+    invoice_history_pfad = tmp_path / "invoice_history.json"
 
-    monkeypatch.setattr("workflow.lade_logo_asset", lambda *args: None)
-    monkeypatch.setattr("workflow.erzeuge_pdf_bytes", lambda *args: b"pdf")
+    monkeypatch.setattr("workflow.load_logo_asset", lambda *args: None)
+    monkeypatch.setattr("workflow.generate_pdf_bytes", lambda *args: b"pdf")
     monkeypatch.setattr(
-        "workflow.sende_mail",
+        "workflow.send_email",
         lambda *args, **kwargs: gesendete_empfaenger.extend(args[-1]),
     )
 
-    _verarbeite_kundeneintrag(
-        daten=[],
-        eintrag={
+    _process_customer_entry(
+        customers=[],
+        customer={
             "id": "beispielfirma",
             "name": "Erika Beispiel",
-            "firma": "Beispielfirma",
+            "company": "Beispielfirma",
             "email": "erika@example.com",
             "cc": ["buchhaltung@example.com", "team@example.com"],
-            "strasse": "Beispielweg 1",
-            "plz": "12345",
-            "ort": "Beispielstadt",
-            "hauptleistung": {
-                "beschreibung": "Hosting",
-                "einheit": "Monat",
-                "betrag": "10,00",
+            "street": "Beispielweg 1",
+            "postal_code": "12345",
+            "city": "Beispielstadt",
+            "main_service": {
+                "description": "Hosting",
+                "unit": "month",
+                "unit_price": "10,00",
             },
         },
-        kontext=_laufkontext(
+        context=_laufkontext(
             tmp_path,
             mail_bcc=["bcc@example.com"],
-            verlauf_dateiname=verlauf_pfad,
+            history_path=invoice_history_pfad,
         ),
     )
 
@@ -153,58 +159,112 @@ def test_customer_cc_recipients_are_sent_with_invoice(tmp_path, monkeypatch):
     ]
 
 
-def test_ambiguous_mail_failure_remains_pending(tmp_path, monkeypatch, caplog):
-    """Ein unklarer SMTP-Abbruch blockiert automatische Wiederholungen."""
-    verlauf_pfad = tmp_path / "verlauf.json"
-    verlauf = []
-    versandeintrag = {
-        "id": "rechnung-1",
-        "versandstatus": "pending",
-    }
-    assert _speichere_pending_status(versandeintrag, verlauf, verlauf_pfad) is True
+def test_hourly_invoice_uses_service_period_and_records_hours(tmp_path, monkeypatch):
+    """Stundenrechnung und Verlauf verwenden den geladenen Leistungsmonat."""
+    write_hours_month(
+        tmp_path / "2026-08.yaml",
+        "2026-08",
+        {"beispielfirma": Decimal("6.50")},
+    )
+    contexts = []
+    monkeypatch.setattr("workflow.current_date", lambda: datetime(2026, 9, 4))
+    monkeypatch.setattr("workflow.load_logo_asset", lambda *args: None)
+    monkeypatch.setattr("workflow.generate_pdf_bytes", lambda *args: b"pdf")
+    monkeypatch.setattr("workflow.send_email", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        "workflow.build_template_context",
+        lambda **kwargs: contexts.append(kwargs) or {},
+    )
+    invoice_history = []
 
-    def smtp_fehler(*args, **kwargs):
-        raise MailversandFehler("Verbindung abgebrochen", retry_sicher=False)
-
-    monkeypatch.setattr("workflow.sende_mail", smtp_fehler)
-
-    erfolgreich = _sende_mail_mit_status(
-        eintrag={
+    _process_customer_entry(
+        customers=[],
+        customer={
+            "id": "beispielfirma",
             "name": "Erika Beispiel",
+            "company": "Beispielfirma",
             "email": "erika@example.com",
+            "cc": [],
+            "street": "Beispielweg 1",
+            "postal_code": "12345",
+            "city": "Beispielstadt",
+            "main_service": {
+                "description": "Beratung",
+                "unit": "hour",
+                "unit_price": "75.00",
+            },
         },
-        mail_config={
-            "server": "smtp.example.com",
-            "port": 587,
-            "user": "sender@example.com",
-            "passwort": "test",
-        },
-        msg=object(),
-        empfaenger_liste=["erika@example.com"],
-        mail_bcc=None,
-        rechnung_id="rechnung-1",
-        rechnungsverlauf=verlauf,
-        verlauf_dateiname=verlauf_pfad,
+        context=_laufkontext(
+            tmp_path,
+            history=invoice_history,
+            history_path=tmp_path / "invoice_history.json",
+        ),
     )
 
-    assert erfolgreich is False
-    assert verlauf[0]["versandstatus"] == "pending"
+    assert contexts[0]["billing_period"] == "August 2026"
+    assert invoice_history[0]["service_period"] == "August 2026"
+    assert invoice_history[0]["hours"] == "6.50"
+    assert invoice_history[0]["hourly_rate"] == "75.00"
+
+
+def test_ambiguous_mail_failure_remains_pending(tmp_path, monkeypatch, caplog):
+    """Ein unklarer SMTP-Abbruch blockiert automatische Wiederholungen."""
+    invoice_history_pfad = tmp_path / "invoice_history.json"
+    invoice_history = []
+    versandeintrag = {
+        "id": "rechnung-1",
+        "customer_id": "kunde",
+        "year": 2026,
+        "month": 7,
+        "status": "pending",
+    }
+    _save_pending_status(versandeintrag, invoice_history, invoice_history_pfad)
+
+    def smtp_fehler(*args, **kwargs):
+        raise MailDeliveryError("Verbindung abgebrochen", retry_safe=False)
+
+    monkeypatch.setattr("workflow.send_email", smtp_fehler)
+
+    with pytest.raises(InvoiceProcessingError):
+        _send_email_with_status(
+            customer={
+                "name": "Erika Beispiel",
+                "email": "erika@example.com",
+            },
+            mail_config={
+                "server": "smtp.example.com",
+                "port": 587,
+                "user": "sender@example.com",
+                "password": "test",
+            },
+            msg=object(),
+            recipients=["erika@example.com"],
+            mail_bcc=None,
+            invoice_id="rechnung-1",
+            history=invoice_history,
+            history_path=invoice_history_pfad,
+        )
+
+    assert invoice_history[0]["status"] == "pending"
     assert "Versandstatus ist unklar" in caplog.text
 
 
 def test_successful_mail_is_marked_as_sent(tmp_path, monkeypatch):
     """Ein bestaetigter SMTP-Versand setzt den Status sent."""
-    verlauf_pfad = tmp_path / "verlauf.json"
-    verlauf = []
+    invoice_history_pfad = tmp_path / "invoice_history.json"
+    invoice_history = []
     versandeintrag = {
         "id": "rechnung-1",
-        "versandstatus": "pending",
+        "customer_id": "kunde",
+        "year": 2026,
+        "month": 7,
+        "status": "pending",
     }
-    assert _speichere_pending_status(versandeintrag, verlauf, verlauf_pfad) is True
-    monkeypatch.setattr("workflow.sende_mail", lambda *args, **kwargs: None)
+    _save_pending_status(versandeintrag, invoice_history, invoice_history_pfad)
+    monkeypatch.setattr("workflow.send_email", lambda *args, **kwargs: None)
 
-    erfolgreich = _sende_mail_mit_status(
-        eintrag={
+    _send_email_with_status(
+        customer={
             "name": "Erika Beispiel",
             "email": "erika@example.com",
         },
@@ -212,99 +272,109 @@ def test_successful_mail_is_marked_as_sent(tmp_path, monkeypatch):
             "server": "smtp.example.com",
             "port": 587,
             "user": "sender@example.com",
-            "passwort": "test",
+            "password": "test",
         },
         msg=object(),
-        empfaenger_liste=["erika@example.com"],
+        recipients=["erika@example.com"],
         mail_bcc=None,
-        rechnung_id="rechnung-1",
-        rechnungsverlauf=verlauf,
-        verlauf_dateiname=verlauf_pfad,
+        invoice_id="rechnung-1",
+        history=invoice_history,
+        history_path=invoice_history_pfad,
     )
 
-    assert erfolgreich is True
-    assert verlauf[0]["versandstatus"] == "sent"
+    assert invoice_history[0]["status"] == "sent"
 
 
 def test_failed_sent_confirmation_remains_pending(tmp_path, monkeypatch, caplog):
     """Fehlt die lokale Versandbestaetigung, bleibt der Status pending."""
-    verlauf_pfad = tmp_path / "verlauf.json"
-    verlauf = []
+    invoice_history_pfad = tmp_path / "invoice_history.json"
+    invoice_history = []
     versandeintrag = {
         "id": "rechnung-1",
-        "versandstatus": "pending",
+        "customer_id": "kunde",
+        "year": 2026,
+        "month": 7,
+        "status": "pending",
     }
-    assert _speichere_pending_status(versandeintrag, verlauf, verlauf_pfad) is True
-    monkeypatch.setattr("workflow.sende_mail", lambda *args, **kwargs: None)
+    _save_pending_status(versandeintrag, invoice_history, invoice_history_pfad)
+    monkeypatch.setattr("workflow.send_email", lambda *args, **kwargs: None)
 
     def status_fehler(*args, **kwargs):
         raise OSError("Verlauf nicht schreibbar")
 
-    monkeypatch.setattr("workflow.setze_versandstatus", status_fehler)
+    monkeypatch.setattr("workflow.set_delivery_status", status_fehler)
 
-    erfolgreich = _sende_mail_mit_status(
-        eintrag={
-            "name": "Erika Beispiel",
-            "email": "erika@example.com",
-        },
-        mail_config={
-            "server": "smtp.example.com",
-            "port": 587,
-            "user": "sender@example.com",
-            "passwort": "test",
-        },
-        msg=object(),
-        empfaenger_liste=["erika@example.com"],
-        mail_bcc=None,
-        rechnung_id="rechnung-1",
-        rechnungsverlauf=verlauf,
-        verlauf_dateiname=verlauf_pfad,
-    )
+    with pytest.raises(InvoiceProcessingError):
+        _send_email_with_status(
+            customer={
+                "name": "Erika Beispiel",
+                "email": "erika@example.com",
+            },
+            mail_config={
+                "server": "smtp.example.com",
+                "port": 587,
+                "user": "sender@example.com",
+                "password": "test",
+            },
+            msg=object(),
+            recipients=["erika@example.com"],
+            mail_bcc=None,
+            invoice_id="rechnung-1",
+            history=invoice_history,
+            history_path=invoice_history_pfad,
+        )
 
-    assert erfolgreich is False
-    assert verlauf[0]["versandstatus"] == "pending"
+    assert invoice_history[0]["status"] == "pending"
     assert "kein automatischer erneuter Versand" in caplog.text
 
 
 def test_cron_null_hours_wait_for_later_hours(tmp_path, caplog):
     """Cron-Nullstunden bleiben im aktuellen Rechnungsmonat offen."""
-    verlauf_pfad = tmp_path / "verlauf.json"
-    verlauf = []
+    invoice_history_pfad = tmp_path / "invoice_history.json"
+    invoice_history = []
 
-    _speichere_nullstunden_status(
-        eintrag={"firma": "Beispielfirma", "name": "Erika Beispiel"},
-        heute=datetime(2026, 7, 1),
-        rechnungsnummer="07-2026",
-        rechnungsdatum="01.07.2026",
-        abrechnungszyklus=3,
-        rechnungsverlauf=verlauf,
-        verlauf_dateiname=verlauf_pfad,
+    _save_zero_hours_status(
+        customer={
+            "id": "beispielfirma",
+            "company": "Beispielfirma",
+            "name": "Erika Beispiel",
+        },
+        today=datetime(2026, 7, 1),
+        invoice_number="07-2026",
+        invoice_date="01.07.2026",
+        cycle_months=3,
+        history=invoice_history,
+        history_path=invoice_history_pfad,
         interactive=False,
     )
 
-    assert verlauf[0]["versandstatus"] == "waiting_hours"
-    assert verlauf[0]["zyklus_monate"] == 3
+    assert invoice_history[0]["status"] == "waiting_hours"
+    assert invoice_history[0]["cycle_months"] == 3
     assert "Keine Rechnung erstellt oder versendet" in caplog.text
 
 
 def test_interactive_null_hours_are_closed_without_invoice(tmp_path, caplog):
     """Bewusst bestaetigte Nullstunden werden direkt abgeschlossen."""
     caplog.set_level("INFO")
-    verlauf_pfad = tmp_path / "verlauf.json"
-    verlauf = []
+    invoice_history_pfad = tmp_path / "invoice_history.json"
+    invoice_history = []
 
-    _speichere_nullstunden_status(
-        eintrag={"firma": "Beispielfirma", "name": "Erika Beispiel"},
-        heute=datetime(2026, 7, 1),
-        rechnungsnummer="07-2026",
-        rechnungsdatum="01.07.2026",
-        abrechnungszyklus=1,
-        rechnungsverlauf=verlauf,
-        verlauf_dateiname=verlauf_pfad,
+    _save_zero_hours_status(
+        customer={
+            "id": "beispielfirma",
+            "company": "Beispielfirma",
+            "name": "Erika Beispiel",
+        },
+        today=datetime(2026, 7, 1),
+        invoice_number="07-2026",
+        invoice_date="01.07.2026",
+        cycle_months=1,
+        history=invoice_history,
+        history_path=invoice_history_pfad,
         interactive=True,
     )
 
-    assert verlauf[0]["versandstatus"] == "no_invoice"
+    assert invoice_history[0]["status"] == "no_invoice"
     assert "no_invoice abgeschlossen" in caplog.text
 
 
@@ -316,29 +386,32 @@ def test_unexpected_customer_error_does_not_stop_following_customer(
     verarbeitet = []
 
     def verarbeite_kunde(**kwargs):
-        firma = kwargs["eintrag"]["firma"]
+        firma = kwargs["customer"]["company"]
         verarbeitet.append(firma)
         if firma == "Fehlerfirma":
             raise RuntimeError("Template defekt")
 
-    monkeypatch.setattr("workflow._verarbeite_kunden_im_lauf", verarbeite_kunde)
+    monkeypatch.setattr("workflow._process_customer_in_run", verarbeite_kunde)
 
-    verarbeite_rechnungen(
-        daten=[{"firma": "Fehlerfirma"}, {"firma": "Folgefirma"}],
-        pfade=object(),
-        konfig={"absender": {}, "bank": {}, "finanzen": {}},
+    fehleranzahl = process_invoices(
+        customers=[{"company": "Fehlerfirma"}, {"company": "Folgefirma"}],
+        paths=object(),
+        invoice_config={"sender": {}, "bank": {}, "tax": {}},
         mail_config={},
         pdf_config={},
         design_config={},
         branding_config={},
         templates=object(),
-        rechnungsverlauf=[],
-        rechnungsverlauf_vorjahr=[],
-        verlauf_dateiname=object(),
+        history=[],
+        previous_history=[],
+        history_path=object(),
     )
 
     assert verarbeitet == ["Fehlerfirma", "Folgefirma"]
-    assert "wird mit dem naechsten Kunden fortgesetzt" in caplog.text
+    assert fehleranzahl == 1
+    assert "Weitere Kunden werden verarbeitet" in caplog.text
+    assert "mit 1 Fehlern bei der Kundenverarbeitung abgeschlossen" in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
 
 
 def test_unreachable_archive_skips_customer_before_due_check(
@@ -347,29 +420,29 @@ def test_unreachable_archive_skips_customer_before_due_check(
     caplog,
 ):
     """Ein unerreichbares Archiv stoppt nur den betroffenen Kunden."""
-    faelligkeit_geprueft = []
+    billing_schedule_geprueft = []
     monkeypatch.setattr(
-        "workflow.rechnung_fällig",
-        lambda *args: faelligkeit_geprueft.append(True),
+        "workflow.is_invoice_due",
+        lambda *args: billing_schedule_geprueft.append(True),
     )
 
-    _verarbeite_kunden_im_lauf(
-        daten=[],
-        eintrag={
-            "firma": "Beispielfirma",
-            "email": "kunde@example.com",
-            "archiv_pfad": str(tmp_path / "fehlt"),
-            "hauptleistung": {
-                "beschreibung": "Hosting",
-                "einheit": "Monat",
-                "betrag": "10,00",
+    with pytest.raises(ValueError, match="Archivpfad existiert nicht"):
+        _process_customer_in_run(
+            customers=[],
+            customer={
+                "company": "Beispielfirma",
+                "email": "kunde@example.com",
+                "archive_directory": str(tmp_path / "fehlt"),
+                "main_service": {
+                    "description": "Hosting",
+                    "unit": "month",
+                    "unit_price": "10,00",
+                },
             },
-        },
-        kontext=_laufkontext(tmp_path),
-    )
+            context=_laufkontext(tmp_path),
+        )
 
-    assert faelligkeit_geprueft == []
-    assert "Archivpfad ist nicht erreichbar" in caplog.text
+    assert billing_schedule_geprueft == []
 
 
 def test_archive_write_probe_stops_before_invoice_creation(monkeypatch, tmp_path):
@@ -379,17 +452,17 @@ def test_archive_write_probe_stops_before_invoice_creation(monkeypatch, tmp_path
     def schreibfehler(*args, **kwargs):
         raise ValueError("Archivpfad ist nicht beschreibbar.")
 
-    monkeypatch.setattr("workflow.pruefe_archiv_pfad", schreibfehler)
+    monkeypatch.setattr("workflow.check_archive_path", schreibfehler)
     monkeypatch.setattr(
-        "workflow.baue_rechnungsdaten",
+        "workflow.build_invoice_data",
         lambda *args: rechnungsdaten_gebaut.append(True),
     )
 
     with pytest.raises(ValueError, match="nicht beschreibbar"):
-        _verarbeite_kundeneintrag(
-            daten=[],
-            eintrag={"archiv_pfad": "/archiv"},
-            kontext=_laufkontext(tmp_path),
+        _process_customer_entry(
+            customers=[],
+            customer={"archive_directory": "/archiv"},
+            context=_laufkontext(tmp_path),
         )
 
     assert rechnungsdaten_gebaut == []

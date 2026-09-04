@@ -2,44 +2,84 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
-## [1.4.0] - Unreleased
+## [1.4.1] - 2026-09-04
 
 ### Added
 
 - Menschenlesbare Rechnungskonfiguration unter `config/invoice.yaml`.
 - Eine eigenstaendige YAML-Datei pro Kunde unter `customers/` mit stabiler
   Kunden-ID.
-- Sicheres Migrationswerkzeug `tools/migrate_to_yaml.py` mit Vorschau,
+- Monatliche Stunden-YAMLs unter `hours/` mit stabilen Kunden-IDs und exakten
+  Dezimalwerten.
+- Sicheres Migrationswerkzeug `tools/migrate_legacy_data.py` mit Vorschau,
   semantischer Nachpruefung und optionalem Entfernen der alten JSON-Dateien.
+- Migrationswerkzeug `tools/migrate_legacy_hours.py` fuer alte
+  `stunden_JJJJ_MM.json`-Dateien.
+- Automatische, idempotente Legacy-Migration beim Programmstart und durch die
+  Installer fuer Konfiguration, Kunden, Stunden, Verlauf und Templates.
+- Prozesssperre gegen parallele Rechnungsläufe und versehentlichen Doppelversand.
+- Strikte YAML-Pruefung auf doppelte und unbekannte Schluessel.
+- Forgejo-Actions-Workflow fuer Tests unter Python 3.10 und 3.12 sowie Black-,
+  Flake8- und Shell-Syntaxpruefungen.
 - Konfigurierbare SMTP-Sicherheit ueber `starttls` oder `ssl` sowie Verbindungs-Timeout.
 - Locale-unabhaengige deutsche Monatsnamen und zentrale Zeitfunktionen.
 - `.gitattributes` fuer konsistente Zeilenenden und Binaerdateien.
+- Reproduzierbar gepinnte Runtime- und Entwicklungsabhaengigkeiten.
+- Stundenwerte koennen in YAML bequem als unquotierte Zahlen wie `8.50`
+  gepflegt werden und bleiben intern dennoch exakte `Decimal`-Werte.
 
 ### Changed
 
 - Geld- und Steuerberechnungen verwenden `Decimal` statt `float`.
 - Zusatzleistungen besitzen eindeutige Typen `month`, `flat` oder `included`.
+- Technische Dateinamen, Modulnamen, Datenfelder, Templatevariablen und
+  Installer-Schnittstellen sind einheitlich englisch benannt; sichtbare Texte
+  bleiben deutsch.
 - Workflow-Abhaengigkeiten werden in einem Laufkontext gebuendelt.
-- Neue Verlaufseintraege identifizieren Kunden ueber die stabile Kunden-ID;
-  alte Eintraege bleiben kompatibel.
+- Verlaufseintraege verwenden stabile Kunden-IDs und englische Felder.
 - Abgeschlossene Kunden werden deaktiviert statt aus einer gemeinsamen
   Kundendatei geloescht.
 - Lokale Konfigurationen werden ohne Veraenderung globaler Umgebungsvariablen geladen.
-- Interne Versionsnummer auf `1.4.0` gesetzt.
+- Logdateien verwenden lesbare Namen nach dem Schema
+  `invoice-YYYY-MM-DD_HH-MM-SS.log`.
+- Manuell eingegebene Stunden werden atomar in der passenden Monatsdatei
+  gespeichert und Stundenmetadaten im Rechnungsverlauf dokumentiert.
+- Interne Versionsnummer auf `1.4.1` gesetzt.
 
 ### Fixed
 
+- Optionale YAML-Werte wie `billing.end_month` und `billing.invoice_prefix`
+  werden bei `null` ohne Laufzeitfehler verarbeitet.
+- Stundenrechnungen weisen den tatsaechlich geladenen Leistungszeitraum statt
+  faelschlich den aktuellen Rechnungsmonat aus.
+- Unerwartete Kundenfehler erzeugen im normalen Rechnungslauf eine kurze,
+  handlungsorientierte Meldung statt eines vollstaendigen Python-Tracebacks.
 - Erwartbare SMTP-Verbindungs- und Anmeldefehler werden ohne Python-Traceback
   als klare Fehlermeldung mit konkretem Hinweis protokolliert.
 - Das SMTP-Testskript beendet bekannte Mailversandfehler mit einer
   verständlichen Meldung statt einer unlesbaren Stacktrace-Ausgabe.
 - Kundeneintraege koennen optional eine oder mehrere CC-Adressen fuer
   Rechnungsmails enthalten.
+- Alte Einmalrechnungen werden auch ueber Jahresgrenzen hinweg sicher als
+  bereits verarbeitet erkannt.
+- PDF-Archive werden vor dem Versand geschrieben und vorhandene abweichende
+  Dateien nicht ueberschrieben.
+- Fehler in Validierung, PDF-Erzeugung, Archivierung, Versand und Statusablage
+  werden kontrolliert gemeldet und fuehren zu einem fehlerhaften Exitcode.
+- Teilweise unterbrochene Legacy-Kundenmigrationen koennen sicher fortgesetzt
+  werden.
+- Das SMTP-Testwerkzeug verwendet den normalisierten englischen Passwortschluessel
+  und beendet Konfigurationsfehler kontrolliert ohne Traceback.
+- Bereinigte alte `waiting_hours`-Zustaende werden noch im selben Lauf korrekt
+  fuer die Faelligkeitsentscheidung verwendet.
+- Fehler beim Schreiben der Prozesssperre hinterlassen keine blockierende
+  unvollstaendige Lockdatei.
+- Die Logdateierzeugung ist auch bei zeitgleichen Prozessstarts kollisionssicher.
 
 ### Clarified
 
 - Die SMTP-Adresse aus `.env` ist die technische Versand- und Absenderadresse der Mail.
-- `absender.email` bleibt die formelle Kontaktadresse in PDF-Rechnungen und
+- `sender.email` bleibt die formelle Kontaktadresse in PDF-Rechnungen und
   HTML-Mailinhalten.
 
 ## [1.3.6] - 2026-06-06

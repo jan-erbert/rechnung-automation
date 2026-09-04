@@ -6,67 +6,69 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REQUIREMENTS_FILE="$SCRIPT_DIR/requirements.txt"
 CONFIG_WRITER="$SCRIPT_DIR/write_config.py"
 ENV_WRITER="$SCRIPT_DIR/write_env.py"
+LEGACY_MIGRATOR="$PROJECT_ROOT/tools/migrate_legacy_layout.py"
+SETUP_CHECK="$PROJECT_ROOT/tools/check_setup.py"
 VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
 
-function pflicht_eingabe() {
+function read_required() {
     local prompt="$1"
-    local eingabe=""
-    while [ -z "$eingabe" ]; do
-        read -r -p "$prompt: " eingabe
-        if [ -z "$eingabe" ]; then
+    local value=""
+    while [ -z "$value" ]; do
+        read -r -p "$prompt: " value
+        if [ -z "$value" ]; then
             echo "⚠️  Dieses Feld darf nicht leer sein." >&2
         fi
     done
-    printf '%s' "$eingabe"
+    printf '%s' "$value"
 }
 
-function port_eingabe() {
+function read_port() {
     local prompt="$1"
-    local eingabe=""
+    local value=""
     while true; do
-        eingabe=$(pflicht_eingabe "$prompt")
-        if [[ "$eingabe" =~ ^[0-9]+$ ]] &&
-            [ "$eingabe" -gt 0 ] &&
-            [ "$eingabe" -le 65535 ]; then
-            printf '%s' "$eingabe"
+        value=$(read_required "$prompt")
+        if [[ "$value" =~ ^[0-9]+$ ]] &&
+            [ "$value" -gt 0 ] &&
+            [ "$value" -le 65535 ]; then
+            printf '%s' "$value"
             return
         fi
         echo "⚠️  Bitte einen Port zwischen 1 und 65535 eingeben." >&2
     done
 }
 
-function pflicht_geheim_eingabe() {
+function read_required_secret() {
     local prompt="$1"
-    local eingabe=""
-    while [ -z "$eingabe" ]; do
-        read -r -s -p "$prompt: " eingabe
+    local value=""
+    while [ -z "$value" ]; do
+        read -r -s -p "$prompt: " value
         echo "" >&2
-        if [ -z "$eingabe" ]; then
+        if [ -z "$value" ]; then
             echo "⚠️  Dieses Feld darf nicht leer sein." >&2
         fi
     done
-    printf '%s' "$eingabe"
+    printf '%s' "$value"
 }
 
-function prozent_eingabe() {
+function read_percentage() {
     local prompt="$1"
-    local eingabe=""
+    local value=""
     while true; do
-        eingabe=$(pflicht_eingabe "$prompt")
-        if [[ "$eingabe" =~ ^[0-9]+$ ]] && [ "$eingabe" -le 100 ]; then
-            printf '%s' "$eingabe"
+        value=$(read_required "$prompt")
+        if [[ "$value" =~ ^[0-9]+$ ]] && [ "$value" -le 100 ]; then
+            printf '%s' "$value"
             return
         fi
         echo "⚠️  Bitte einen ganzzahligen Prozentsatz zwischen 0 und 100 eingeben." >&2
     done
 }
 
-function ja_nein_eingabe() {
+function read_yes_no() {
     local prompt="$1"
-    local eingabe=""
+    local value=""
     while true; do
-        read -r -p "$prompt: " eingabe
-        case "${eingabe,,}" in
+        read -r -p "$prompt: " value
+        case "${value,,}" in
             y|yes|j|ja)
                 printf 'y'
                 return
@@ -118,6 +120,9 @@ fi
 echo "📦 Installiere Pakete aus $REQUIREMENTS_FILE..."
 "$VENV_PYTHON" -m pip install -r "$REQUIREMENTS_FILE"
 
+# Vorhandene Installationen vor dem Anlegen neuer Konfiguration migrieren.
+"$VENV_PYTHON" "$LEGACY_MIGRATOR"
+
 # 4. Env-Datei erstellen
 ENV_PATH=".env"
 if [ ! -f "$ENV_PATH" ]; then
@@ -125,10 +130,10 @@ if [ ! -f "$ENV_PATH" ]; then
     echo "📧 Mail-Umgebung wird erstellt ($ENV_PATH)..."
     echo ""
 
-    mail_server=$(pflicht_eingabe "SMTP-Server")
-    mail_port=$(port_eingabe "SMTP-Port (z. B. 587)")
-    mail_user=$(pflicht_eingabe "SMTP-Benutzer")
-    mail_pass=$(pflicht_geheim_eingabe "SMTP-Passwort")
+    mail_server=$(read_required "SMTP-Server")
+    mail_port=$(read_port "SMTP-Port (z. B. 587)")
+    mail_user=$(read_required "SMTP-Benutzer")
+    mail_pass=$(read_required_secret "SMTP-Passwort")
 
     if [ ! -f "$ENV_WRITER" ]; then
         echo "❌ Env-Helfer nicht gefunden: $ENV_WRITER"
@@ -148,40 +153,40 @@ else
 fi
 
 # 5. Konfigurationsdatei erstellen
-KONFIG_PATH="config/invoice.yaml"
-if [ ! -f "$KONFIG_PATH" ]; then
+CONFIG_PATH="config/invoice.yaml"
+if [ ! -f "$CONFIG_PATH" ]; then
     echo ""
-    echo "🛠️  Konfigurationsdatei wird erstellt ($KONFIG_PATH)..."
+    echo "🛠️  Konfigurationsdatei wird erstellt ($CONFIG_PATH)..."
     echo ""
 
-    name=$(pflicht_eingabe "👤 Dein Name (z. B. Jan Erbert)")
-    firma=$(pflicht_eingabe "🏢 Firmenname (z. B. Web Development)")
-    strasse=$(pflicht_eingabe "📍 Straße und Hausnummer")
-    plz=$(pflicht_eingabe "📮 PLZ")
-    ort=$(pflicht_eingabe "🌆 Ort")
-    telefon=$(pflicht_eingabe "📞 Telefonnummer")
-    email=$(pflicht_eingabe "📧 E-Mail-Adresse")
+    contact_name=$(read_required "👤 Dein Name (z. B. Jan Erbert)")
+    company=$(read_required "🏢 Firmenname (z. B. Web Development)")
+    street=$(read_required "📍 Straße und Hausnummer")
+    postal_code=$(read_required "📮 PLZ")
+    city=$(read_required "🌆 Ort")
+    phone=$(read_required "📞 Telefonnummer")
+    email=$(read_required "📧 E-Mail-Adresse")
     read -r -p "🔗 Webseite (optional): " website
 
-    bankname=$(pflicht_eingabe "🏦 Bankname")
-    kontoinhaber=$(pflicht_eingabe "👤 Kontoinhaber")
-    iban=$(pflicht_eingabe "💳 IBAN")
-    bic=$(pflicht_eingabe "🏷️  BIC")
+    bank_name=$(read_required "🏦 Bankname")
+    account_holder=$(read_required "👤 Kontoinhaber")
+    iban=$(read_required "💳 IBAN")
+    bic=$(read_required "🏷️  BIC")
 
     echo "🧾 Welche steuerliche Identifikationsnummer soll auf Rechnungen stehen?"
     echo "   1) Steuernummer"
     echo "   2) Umsatzsteuer-Identifikationsnummer (USt-IdNr.)"
     while true; do
-        read -r -p "Auswahl (1/2): " steuer_id_auswahl
-        case "$steuer_id_auswahl" in
+        read -r -p "Auswahl (1/2): " tax_id_selection
+        case "$tax_id_selection" in
             1)
-                steuer_id_typ="tax_number"
-                steuer_id_wert=$(pflicht_eingabe "🧾 Steuernummer")
+                tax_identifier_type="tax_number"
+                tax_identifier_value=$(read_required "🧾 Steuernummer")
                 break
                 ;;
             2)
-                steuer_id_typ="vat_id"
-                steuer_id_wert=$(pflicht_eingabe "🧾 Umsatzsteuer-Identifikationsnummer (USt-IdNr.)")
+                tax_identifier_type="vat_id"
+                tax_identifier_value=$(read_required "🧾 Umsatzsteuer-Identifikationsnummer (USt-IdNr.)")
                 break
                 ;;
             *)
@@ -189,15 +194,15 @@ if [ ! -f "$KONFIG_PATH" ]; then
                 ;;
         esac
     done
-    finanzamt=$(pflicht_eingabe "🏛️  Finanzamt")
+    tax_office=$(read_required "🏛️  Finanzamt")
 
-    ku=$(ja_nein_eingabe "❓ Kleinunternehmerregelung nach § 19 UStG? (y/n)")
-    if [ "$ku" = "y" ]; then
-        kleinunternehmer=true
-        mwst=""
+    small_business_choice=$(read_yes_no "❓ Kleinunternehmerregelung nach § 19 UStG? (y/n)")
+    if [ "$small_business_choice" = "y" ]; then
+        small_business=true
+        vat_rate=""
     else
-        kleinunternehmer=false
-        mwst=$(prozent_eingabe "💰 Mehrwertsteuersatz in % (z. B. 19)")
+        small_business=false
+        vat_rate=$(read_percentage "💰 Mehrwertsteuersatz in % (z. B. 19)")
     fi
 
     echo "⚠️  Hinweis: Für steuerkonforme Rechnungen muss eine Kopie gemäß § 14b UStG aufbewahrt werden."
@@ -207,55 +212,58 @@ if [ ! -f "$KONFIG_PATH" ]; then
         echo "📌 Es wird empfohlen, eine BCC-Adresse zur revisionssicheren Archivierung anzugeben."
     fi
 
-    mkdir -p config customers data
+    mkdir -p config customers data hours
 
     if [ ! -f "$CONFIG_WRITER" ]; then
         echo "❌ Konfigurationshelfer nicht gefunden: $CONFIG_WRITER"
         exit 1
     fi
 
-    export SETUP_NAME="$name"
-    export SETUP_FIRMA="$firma"
-    export SETUP_STRASSE="$strasse"
-    export SETUP_PLZ="$plz"
-    export SETUP_ORT="$ort"
-    export SETUP_TELEFON="$telefon"
+    export SETUP_CONTACT_NAME="$contact_name"
+    export SETUP_COMPANY="$company"
+    export SETUP_STREET="$street"
+    export SETUP_POSTAL_CODE="$postal_code"
+    export SETUP_CITY="$city"
+    export SETUP_PHONE="$phone"
     export SETUP_EMAIL="$email"
     export SETUP_WEBSITE="$website"
-    export SETUP_BANKNAME="$bankname"
-    export SETUP_KONTOINHABER="$kontoinhaber"
+    export SETUP_BANK_NAME="$bank_name"
+    export SETUP_ACCOUNT_HOLDER="$account_holder"
     export SETUP_IBAN="$iban"
     export SETUP_BIC="$bic"
-    export SETUP_STEUER_ID_TYP="$steuer_id_typ"
-    export SETUP_STEUER_ID_WERT="$steuer_id_wert"
-    export SETUP_FINANZAMT="$finanzamt"
-    export SETUP_KLEINUNTERNEHMER="$kleinunternehmer"
-    export SETUP_MWST="$mwst"
+    export SETUP_TAX_IDENTIFIER_TYPE="$tax_identifier_type"
+    export SETUP_TAX_IDENTIFIER_VALUE="$tax_identifier_value"
+    export SETUP_TAX_OFFICE="$tax_office"
+    export SETUP_SMALL_BUSINESS="$small_business"
+    export SETUP_VAT_RATE="$vat_rate"
     export SETUP_BCC="$bcc"
     export SETUP_MAIL_FROM_NAME="$mail_from_name"
 
-    "$VENV_PYTHON" "$CONFIG_WRITER" "$KONFIG_PATH"
-    unset SETUP_NAME SETUP_FIRMA SETUP_STRASSE SETUP_PLZ SETUP_ORT
-    unset SETUP_TELEFON SETUP_EMAIL SETUP_WEBSITE SETUP_BANKNAME
-    unset SETUP_KONTOINHABER SETUP_IBAN SETUP_BIC SETUP_STEUER_ID_TYP
-    unset SETUP_STEUER_ID_WERT SETUP_FINANZAMT SETUP_KLEINUNTERNEHMER
-    unset SETUP_MWST SETUP_BCC SETUP_MAIL_FROM_NAME
+    "$VENV_PYTHON" "$CONFIG_WRITER" "$CONFIG_PATH"
+    unset SETUP_CONTACT_NAME SETUP_COMPANY SETUP_STREET SETUP_POSTAL_CODE
+    unset SETUP_CITY SETUP_PHONE SETUP_EMAIL SETUP_WEBSITE SETUP_BANK_NAME
+    unset SETUP_ACCOUNT_HOLDER SETUP_IBAN SETUP_BIC SETUP_TAX_IDENTIFIER_TYPE
+    unset SETUP_TAX_IDENTIFIER_VALUE SETUP_TAX_OFFICE SETUP_SMALL_BUSINESS
+    unset SETUP_VAT_RATE SETUP_BCC SETUP_MAIL_FROM_NAME
 
     echo ""
-    echo "✅ invoice.yaml wurde gespeichert unter: $KONFIG_PATH"
+    echo "✅ invoice.yaml wurde gespeichert unter: $CONFIG_PATH"
 else
     echo "🗂️  invoice.yaml ist bereits vorhanden – keine Änderungen vorgenommen."
 fi
 
-mkdir -p customers data
+mkdir -p customers data hours
+
+echo "🔎 Pruefe die abgeschlossene Installation..."
+"$VENV_PYTHON" "$SETUP_CHECK"
 
 echo ""
 
 # 6. Linux-Startskripte ausführbar machen
-for start_script in rechnung_generieren.sh rechnung_cron.sh; do
+for start_script in generate_invoices.sh invoice_cron.sh; do
     if [ -f "$start_script" ]; then
         chmod +x "$start_script"
     fi
 done
 
-echo "✅ Projekt ist bereit! Du kannst jetzt './rechnung_generieren.sh' ausführen."
+echo "✅ Projekt ist bereit! Du kannst jetzt './generate_invoices.sh' ausführen."

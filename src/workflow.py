@@ -2,369 +2,379 @@ import logging
 from dataclasses import dataclass
 from datetime import date
 
-from branding import lade_logo_asset
-from faelligkeit import rechnung_fällig
-from kunden import sollte_kunde_entfernt_werden, speichere_kundendaten
-from leistungen import baue_leistungspositionen
-from mail import MailversandFehler, baue_rechnungsmail, sende_mail
-from pfadpruefung import pruefe_archiv_pfad
-from pdf import archiviere_pdf, erzeuge_pdf_bytes
-from rechnungen import (
-    baue_rechnungsdaten,
-    berechne_abrechnungszeitraum,
-    berechne_steuerwerte,
+from branding import load_logo_asset
+from billing_schedule import is_invoice_due
+from customer_lifecycle import should_deactivate_customer, save_customer_data
+from services import build_service_items
+from email_service import MailDeliveryError, build_invoice_email, send_email
+from path_checks import check_archive_path
+from pdf_service import archive_pdf, generate_pdf_bytes
+from invoices import (
+    build_invoice_data,
+    calculate_billing_period,
+    calculate_tax_values,
 )
-from templates import baue_template_context
-from validierung import (
-    normalisiere_mail_liste,
-    validiere_kundeneintrag,
-    validiere_positive_ganzzahl,
+from hours_files import HoursFileError
+from invoice_templates import build_template_context
+from invoice_templates import InvoiceTemplates
+from paths import ProjectPaths
+from validation import (
+    normalize_email_list,
+    validate_customer_entry,
+    validate_positive_integer,
 )
-from verlauf import (
-    VERSANDSTATUS_FAILED,
-    VERSANDSTATUS_NO_INVOICE,
-    VERSANDSTATUS_PENDING,
-    VERSANDSTATUS_SENT,
-    VERSANDSTATUS_WAITING_HOURS,
-    baue_verlaufseintrag,
-    setze_versandstatus,
-    speichere_oder_ersetze_verlaufseintrag,
+from invoice_history import (
+    STATUS_FAILED,
+    STATUS_NO_INVOICE,
+    STATUS_PENDING,
+    STATUS_SENT,
+    STATUS_WAITING_HOURS,
+    build_history_entry,
+    set_delivery_status,
+    save_or_replace_history_entry,
 )
-from zeit import heute as aktuelles_datum
+from time_utils import today as current_date
 
 logger = logging.getLogger(__name__)
 
 
+class InvoiceProcessingError(RuntimeError):
+    """Kennzeichnet einen kontrolliert fehlgeschlagenen Rechnungsvorgang."""
+
+
 @dataclass(frozen=True)
-class LaufKontext:
+class RunContext:
     """Buendelt unveraenderliche Abhaengigkeiten eines Rechnungslaufs."""
 
-    pfade: object
-    absender: dict
+    paths: ProjectPaths
+    sender: dict
     bank: dict
-    finanzen: dict
+    tax: dict
     mail_bcc: list[str]
     mail_from_name: str | None
     mail_config: dict
     pdf_config: dict
     design_config: dict
     branding_config: dict
-    templates: object
-    rechnungsverlauf: list
-    rechnungsverlauf_vorjahr: list
-    verlauf_dateiname: object
+    templates: InvoiceTemplates
+    history: list
+    previous_history: list
+    history_path: object
     interactive: bool
 
 
-def verarbeite_rechnungen(
-    daten: list,
-    pfade,
-    konfig: dict,
+def process_invoices(
+    customers: list,
+    paths,
+    invoice_config: dict,
     mail_config: dict,
     pdf_config: dict,
     design_config: dict,
     branding_config: dict,
     templates,
-    rechnungsverlauf: list,
-    rechnungsverlauf_vorjahr: list,
-    verlauf_dateiname,
+    history: list,
+    previous_history: list,
+    history_path,
     interactive: bool = True,
-) -> None:
+) -> int:
     """Verarbeitet alle faelligen Kundeneintraege fuer den Rechnungslauf."""
-    kontext = LaufKontext(
-        pfade=pfade,
-        absender=konfig["absender"],
-        bank=konfig["bank"],
-        finanzen=konfig["finanzen"],
-        mail_bcc=konfig.get("mail", {}).get("bcc") or [],
-        mail_from_name=konfig.get("mail", {}).get("from_name") or None,
+    context = RunContext(
+        paths=paths,
+        sender=invoice_config["sender"],
+        bank=invoice_config["bank"],
+        tax=invoice_config["tax"],
+        mail_bcc=invoice_config.get("mail", {}).get("bcc") or [],
+        mail_from_name=invoice_config.get("mail", {}).get("from_name") or None,
         mail_config=mail_config,
         pdf_config=pdf_config,
         design_config=design_config,
         branding_config=branding_config,
         templates=templates,
-        rechnungsverlauf=rechnungsverlauf,
-        rechnungsverlauf_vorjahr=rechnungsverlauf_vorjahr,
-        verlauf_dateiname=verlauf_dateiname,
+        history=history,
+        previous_history=previous_history,
+        history_path=history_path,
         interactive=interactive,
     )
 
-    for eintrag in daten:
+    customer_errors = 0
+    for customer in customers:
         try:
-            _verarbeite_kunden_im_lauf(
-                daten=daten,
-                eintrag=eintrag,
-                kontext=kontext,
+            _process_customer_in_run(
+                customers=customers,
+                customer=customer,
+                context=context,
+            )
+        except HoursFileError as err:
+            customer_errors += 1
+            logger.error(
+                "%s: Stundenabrechnung abgebrochen - %s Keine Rechnung wurde "
+                "erstellt oder versendet. Weitere Kunden werden verarbeitet.",
+                customer.get("company", "Unbekannter Kunde"),
+                err,
             )
         except Exception as err:
-            logger.exception(
-                "%s: Unerwarteter Fehler bei der Verarbeitung. "
-                "Der Rechnungslauf wird mit dem naechsten Kunden fortgesetzt: %s",
-                eintrag.get("firma", "Unbekannter Kunde"),
+            customer_errors += 1
+            logger.error(
+                "%s: Verarbeitung wegen eines internen Fehlers abgebrochen. "
+                "Bitte Konfiguration und Versandstatus pruefen, bevor der Lauf "
+                "wiederholt wird. Weitere Kunden werden verarbeitet.",
+                customer.get("company", "Unbekannter Kunde"),
+            )
+            logger.debug(
+                "%s: Technische Fehlerdetails: %s",
+                customer.get("company", "Unbekannter Kunde"),
                 err,
+                exc_info=True,
             )
 
-    logger.info("Alle Rechnungen wurden verarbeitet.")
-    logger.info("Skript beendet.")
+    if customer_errors:
+        logger.error(
+            "Rechnungslauf mit %s Fehlern bei der Kundenverarbeitung abgeschlossen.",
+            customer_errors,
+        )
+    else:
+        logger.info("Rechnungslauf ohne unerwartete Kundenfehler abgeschlossen.")
+    return customer_errors
 
 
-def _verarbeite_kunden_im_lauf(
-    daten: list,
-    eintrag: dict,
-    kontext: LaufKontext,
+def _process_customer_in_run(
+    customers: list,
+    customer: dict,
+    context: RunContext,
 ) -> None:
     """Prueft und verarbeitet einen Kunden innerhalb der sicheren Laufgrenze."""
-    if eintrag.get("aktiv") is False:
-        logger.info("%s: Kunde ist deaktiviert - keine Abrechnung.", eintrag["firma"])
-        return
-
-    try:
-        validiere_kundeneintrag(eintrag)
-    except ValueError as err:
-        logger.error(
-            "%s: Ungueltige Kundendaten - %s",
-            eintrag.get("firma", "Unbekannter Kunde"),
-            err,
+    if customer.get("active") is False:
+        logger.info(
+            "%s: Kunde ist deaktiviert - keine Abrechnung.", customer["company"]
         )
         return
 
-    archiv_pfad = eintrag.get("archiv_pfad")
-    if archiv_pfad:
-        try:
-            pruefe_archiv_pfad(archiv_pfad)
-        except ValueError as err:
-            logger.error(
-                "%s: Archivpfad ist nicht erreichbar - keine Verarbeitung: %s",
-                eintrag.get("firma", "Unbekannter Kunde"),
-                err,
-            )
-            return
+    validate_customer_entry(customer)
 
-    if not rechnung_fällig(
-        eintrag, kontext.rechnungsverlauf, kontext.rechnungsverlauf_vorjahr
-    ):
-        logger.info("%s: Keine Abrechnung faellig.", eintrag["firma"])
+    archive_directory = customer.get("archive_directory")
+    if archive_directory:
+        check_archive_path(archive_directory)
+
+    if not is_invoice_due(customer, context.history, context.previous_history):
+        logger.info("%s: Keine Abrechnung faellig.", customer["company"])
         return
 
-    _verarbeite_kundeneintrag(
-        daten=daten,
-        eintrag=eintrag,
-        kontext=kontext,
+    _process_customer_entry(
+        customers=customers,
+        customer=customer,
+        context=context,
     )
 
 
-def _verarbeite_kundeneintrag(
-    daten: list,
-    eintrag: dict,
-    kontext: LaufKontext,
+def _process_customer_entry(
+    customers: list,
+    customer: dict,
+    context: RunContext,
 ) -> None:
     """Erzeugt und versendet eine Rechnung fuer einen Kundeneintrag."""
-    heute = aktuelles_datum()
-    pfade = kontext.pfade
-    archiv_pfad = eintrag.get("archiv_pfad")
-    if archiv_pfad:
-        pruefe_archiv_pfad(archiv_pfad, schreibprobe=True)
+    today = current_date()
+    paths = context.paths
+    archive_directory = customer.get("archive_directory")
+    if archive_directory:
+        check_archive_path(archive_directory, write_probe=True)
 
-    rechnungsdaten = baue_rechnungsdaten(eintrag, heute)
-    rechnungsdatum = rechnungsdaten["rechnungsdatum"]
-    monat_jahr = rechnungsdaten["monat_jahr"]
-    faelligkeit_datum = rechnungsdaten["faelligkeit_datum"]
-    rechnungsnummer = rechnungsdaten["rechnungsnummer"]
-    auto_rechnungsnummer = rechnungsdaten["auto_rechnungsnummer"]
+    invoice_data = build_invoice_data(customer, today)
+    invoice_date = invoice_data["invoice_date"]
+    month_year = invoice_data["month_year"]
+    due_date = invoice_data["due_date"]
+    invoice_number = invoice_data["invoice_number"]
+    automatic_invoice_number = invoice_data["automatic_invoice_number"]
 
-    abrechnungszyklus = validiere_positive_ganzzahl(
-        eintrag.get("abrechnungszyklus", 1),
+    cycle_months = validate_positive_integer(
+        customer.get("cycle_months", 1),
         "Abrechnungszyklus",
     )
-    leistungsdaten = baue_leistungspositionen(
-        eintrag,
-        abrechnungszyklus,
-        pfade.hours_dir,
-        interactive=kontext.interactive,
-        heute=heute,
+    service_data = build_service_items(
+        customer,
+        cycle_months,
+        paths.hours_dir,
+        interactive=context.interactive,
+        today=today,
     )
-    leistungs_liste = leistungsdaten["leistungs_liste"]
-    gesamtpreis = leistungsdaten["gesamtpreis"]
-    stundeninfo = leistungsdaten["stundeninfo"]
+    items = service_data["items"]
+    total_amount = service_data["total_amount"]
+    hours_info = service_data["hours_info"]
+    billing_period = (
+        hours_info["period"]
+        if hours_info
+        else calculate_billing_period(today, cycle_months)
+    )
 
-    if stundeninfo and (stundeninfo["stunden"] == 0 or not stundeninfo["vollstaendig"]):
-        _speichere_nullstunden_status(
-            eintrag,
-            heute,
-            rechnungsnummer,
-            rechnungsdatum,
-            abrechnungszyklus,
-            kontext.rechnungsverlauf,
-            kontext.verlauf_dateiname,
-            kontext.interactive,
-            stundeninfo.get("fehlende_monate", []),
+    if hours_info and (hours_info["hours"] == 0 or not hours_info["complete"]):
+        _save_zero_hours_status(
+            customer,
+            today,
+            invoice_number,
+            invoice_date,
+            cycle_months,
+            context.history,
+            context.history_path,
+            context.interactive,
+            service_period=billing_period,
+            hours_info=hours_info,
+            missing_months=hours_info.get("missing_months", []),
         )
         return
 
-    steuerdaten = berechne_steuerwerte(gesamtpreis, kontext.finanzen)
-    mail_cc = normalisiere_mail_liste(eintrag.get("cc"), "cc")
-    pdf_logo = lade_logo_asset(
-        pfade.img_dir,
-        kontext.branding_config["pdf_logo"],
+    tax_data = calculate_tax_values(total_amount, context.tax)
+    mail_cc = normalize_email_list(customer.get("cc"), "cc")
+    pdf_logo = load_logo_asset(
+        paths.img_dir,
+        context.branding_config["pdf_logo"],
         "PDF-Logo",
     )
-    mail_logo = lade_logo_asset(
-        pfade.img_dir,
-        kontext.branding_config["mail_logo"],
+    mail_logo = load_logo_asset(
+        paths.img_dir,
+        context.branding_config["mail_logo"],
         "Mail-Logo",
     )
-    abrechnungszeitraum = berechne_abrechnungszeitraum(heute, abrechnungszyklus)
-
-    context = baue_template_context(
-        eintrag=eintrag,
-        absender=kontext.absender,
-        bank=kontext.bank,
-        finanzen=kontext.finanzen,
-        leistungs_liste=leistungs_liste,
-        rechnungsnummer=rechnungsnummer,
-        rechnungsdatum=rechnungsdatum,
-        faelligkeit_datum=faelligkeit_datum,
-        abrechnungszeitraum=abrechnungszeitraum,
-        monat_jahr=monat_jahr,
-        abrechnungszyklus=abrechnungszyklus,
-        gesamtpreis=gesamtpreis,
-        gesamtpreis_str=steuerdaten["gesamtpreis_str"],
-        gesamtpreis_mit_mwst=steuerdaten["gesamtpreis_mit_mwst"],
-        steuerbetrag=steuerdaten["steuerbetrag"],
-        mwst_hinweis=steuerdaten["mwst_hinweis"],
+    template_context = build_template_context(
+        customer=customer,
+        sender=context.sender,
+        bank=context.bank,
+        tax=context.tax,
+        items=items,
+        invoice_number=invoice_number,
+        invoice_date=invoice_date,
+        due_date=due_date,
+        billing_period=billing_period,
+        month_year=month_year,
+        cycle_months=cycle_months,
+        total_amount=total_amount,
+        formatted_total=tax_data["formatted_total"],
+        gross_amount=tax_data["gross_amount"],
+        tax_amount=tax_data["tax_amount"],
+        vat_note=tax_data["vat_note"],
         logo_base64=pdf_logo.data_uri if pdf_logo else "",
-        mail_logo_cid="rechnung-logo" if mail_logo else "",
-        design=kontext.design_config,
-        branding=kontext.branding_config,
-        stundeninfo=stundeninfo,
+        mail_logo_cid="invoice-logo" if mail_logo else "",
+        design=context.design_config,
+        branding=context.branding_config,
+        hours_info=hours_info,
     )
 
-    mail_html = kontext.templates.mail.render(context)
-    pdf_html = kontext.templates.rechnung.render(context)
-    pdf_bytes = erzeuge_pdf_bytes(pdf_html, kontext.pdf_config)
+    mail_html = context.templates.email.render(template_context)
+    pdf_html = context.templates.invoice.render(template_context)
+    pdf_bytes = generate_pdf_bytes(pdf_html, context.pdf_config)
 
-    anhang_name = f"Rechnung_{eintrag['id']}_{auto_rechnungsnummer}.pdf"
-    msg = baue_rechnungsmail(
-        mail_user=kontext.mail_config["user"],
-        empfaenger=eintrag["email"],
-        betreff=f"Ihre Rechnung Nr. {rechnungsnummer} – {eintrag['firma']}",
+    attachment_name = f"Invoice_{customer['id']}_{automatic_invoice_number}.pdf"
+    msg = build_invoice_email(
+        mail_user=context.mail_config["user"],
+        recipient=customer["email"],
+        subject=f"Ihre Rechnung Nr. {invoice_number} – {customer['company']}",
         mail_html=mail_html,
         pdf_bytes=pdf_bytes,
-        anhang_name=anhang_name,
-        mail_bcc=kontext.mail_bcc,
+        attachment_name=attachment_name,
+        mail_bcc=context.mail_bcc,
         mail_cc=mail_cc,
         mail_logo=mail_logo,
-        from_name=kontext.mail_from_name,
+        from_name=context.mail_from_name,
     )
 
-    versandeintrag = baue_verlaufseintrag(
-        eintrag,
-        heute,
-        rechnungsnummer,
-        rechnungsdatum,
-        steuerdaten["gesamtpreis_str"].replace(",", "."),
-        abrechnungszyklus,
-        versandstatus=VERSANDSTATUS_PENDING,
+    delivery_entry = build_history_entry(
+        customer,
+        today,
+        invoice_number,
+        invoice_date,
+        tax_data["formatted_total"].replace(",", "."),
+        cycle_months,
+        status=STATUS_PENDING,
+        service_period=billing_period,
+        hours_info=hours_info,
     )
-    if not _speichere_pending_status(
-        versandeintrag,
-        kontext.rechnungsverlauf,
-        kontext.verlauf_dateiname,
-    ):
-        return
+    _archive_pdf_if_needed(customer, attachment_name, pdf_bytes)
+    _save_pending_status(delivery_entry, context.history, context.history_path)
 
-    empfaenger_liste = [eintrag["email"], *mail_cc, *kontext.mail_bcc]
+    recipients = [customer["email"], *mail_cc, *context.mail_bcc]
 
-    if not _sende_mail_mit_status(
-        eintrag=eintrag,
-        mail_config=kontext.mail_config,
+    _send_email_with_status(
+        customer=customer,
+        mail_config=context.mail_config,
         msg=msg,
-        empfaenger_liste=empfaenger_liste,
-        mail_bcc=kontext.mail_bcc,
-        rechnung_id=versandeintrag["id"],
-        rechnungsverlauf=kontext.rechnungsverlauf,
-        verlauf_dateiname=kontext.verlauf_dateiname,
-    ):
-        return
-
-    _archiviere_pdf_falls_noetig(eintrag, anhang_name, pdf_bytes)
-    try:
-        _entferne_kunden_falls_noetig(daten, eintrag, heute, pfade, kontext.interactive)
-    except Exception as err:
-        logger.exception(
-            "Kunde %s konnte nach erfolgreichem Versand nicht entfernt werden: %s",
-            eintrag["firma"],
-            err,
-        )
+        recipients=recipients,
+        mail_bcc=context.mail_bcc,
+        invoice_id=delivery_entry["id"],
+        history=context.history,
+        history_path=context.history_path,
+    )
+    _deactivate_customer_if_needed(
+        customers, customer, today, paths, context.interactive
+    )
 
 
-def _speichere_pending_status(
-    versandeintrag: dict,
-    rechnungsverlauf: list,
-    verlauf_dateiname,
-) -> bool:
+def _save_pending_status(
+    delivery_entry: dict,
+    history: list,
+    history_path,
+) -> None:
     """Speichert den unbestaetigten Versandstatus vor dem SMTP-Aufruf."""
     try:
-        speichere_oder_ersetze_verlaufseintrag(
-            verlauf_dateiname,
-            rechnungsverlauf,
-            versandeintrag,
+        save_or_replace_history_entry(
+            history_path,
+            history,
+            delivery_entry,
         )
     except Exception as err:
-        logger.exception(
+        logger.error(
             "Versand wird nicht gestartet: Status pending konnte nicht "
             "gespeichert werden: %s",
             err,
         )
-        return False
+        logger.debug("Technische Fehlerdetails: %s", err, exc_info=True)
+        raise InvoiceProcessingError(
+            "Status pending konnte nicht gespeichert werden."
+        ) from err
 
     logger.info("Versandstatus pending gespeichert. Mailversand wird gestartet.")
-    return True
 
 
-def _sende_mail_mit_status(
-    eintrag: dict,
+def _send_email_with_status(
+    customer: dict,
     mail_config: dict,
     msg,
-    empfaenger_liste: list[str],
+    recipients: list[str],
     mail_bcc: list[str],
-    rechnung_id: str,
-    rechnungsverlauf: list,
-    verlauf_dateiname,
-) -> bool:
+    invoice_id: str,
+    history: list,
+    history_path,
+) -> None:
     """Sendet eine Mail und aktualisiert ihren Versandstatus."""
     try:
-        sende_mail(
+        send_email(
             mail_config["server"],
             mail_config["port"],
             mail_config["user"],
-            mail_config["passwort"],
+            mail_config["password"],
             msg,
-            empfaenger_liste,
+            recipients,
             security=mail_config.get("security", "starttls"),
             timeout=mail_config.get("timeout", 30),
         )
-    except MailversandFehler as err:
+    except MailDeliveryError as err:
         logger.error(
             "Mailversand an %s ist fehlgeschlagen: %s",
-            eintrag["email"],
+            customer["email"],
             err,
         )
-        if err.hinweis:
-            logger.warning("Hinweis zum Mailversand: %s", err.hinweis)
-        if not err.retry_sicher:
+        if err.hint:
+            logger.warning("Hinweis zum Mailversand: %s", err.hint)
+        if not err.retry_safe:
             logger.critical(
                 "Der Versandstatus ist unklar. Pending bleibt bestehen und "
                 "blockiert automatische Wiederholungen."
             )
-            return False
+            raise InvoiceProcessingError("SMTP-Status ist unklar.") from err
 
         try:
-            setze_versandstatus(
-                verlauf_dateiname,
-                rechnungsverlauf,
-                rechnung_id,
-                VERSANDSTATUS_FAILED,
+            set_delivery_status(
+                history_path,
+                history,
+                invoice_id,
+                STATUS_FAILED,
             )
             logger.warning(
                 "Versandstatus failed gespeichert. "
@@ -376,80 +386,86 @@ def _sende_mail_mit_status(
                 "auf failed gesetzt werden. Pending bleibt bestehen und muss "
                 "manuell geprueft werden: %s",
                 status_err,
-                exc_info=True,
             )
-        return False
+            logger.debug("Technische Fehlerdetails: %s", status_err, exc_info=True)
+        raise InvoiceProcessingError("Mailversand ist fehlgeschlagen.") from err
     except Exception as err:
-        logger.exception(
+        logger.error(
             "Unerwarteter Fehler waehrend des Mailversands. Pending bleibt "
             "bestehen und blockiert automatische Wiederholungen: %s",
             err,
         )
-        return False
+        logger.debug("Technische Fehlerdetails: %s", err, exc_info=True)
+        raise InvoiceProcessingError("Unerwarteter Mailfehler.") from err
 
-    logger.info("Mail an %s (%s) gesendet.", eintrag["name"], eintrag["email"])
+    logger.info("Mail an %s (%s) gesendet.", customer["name"], customer["email"])
     if mail_bcc:
         logger.info("BCC-Empfaenger ist konfiguriert.")
 
     try:
-        setze_versandstatus(
-            verlauf_dateiname,
-            rechnungsverlauf,
-            rechnung_id,
-            VERSANDSTATUS_SENT,
+        set_delivery_status(
+            history_path,
+            history,
+            invoice_id,
+            STATUS_SENT,
         )
     except Exception as err:
         logger.critical(
             "Mail wurde versendet, aber der Status sent konnte nicht gespeichert "
             "werden. Pending bleibt bestehen; kein automatischer erneuter Versand: %s",
             err,
-            exc_info=True,
         )
-        return False
+        logger.debug("Technische Fehlerdetails: %s", err, exc_info=True)
+        raise InvoiceProcessingError(
+            "Status sent konnte nicht gespeichert werden."
+        ) from err
 
     logger.info("Versandstatus sent gespeichert.")
-    return True
 
 
-def _speichere_nullstunden_status(
-    eintrag: dict,
-    heute: date,
-    rechnungsnummer: str,
-    rechnungsdatum: str,
-    abrechnungszyklus: int,
-    rechnungsverlauf: list,
-    verlauf_dateiname,
+def _save_zero_hours_status(
+    customer: dict,
+    today: date,
+    invoice_number: str,
+    invoice_date: str,
+    cycle_months: int,
+    history: list,
+    history_path,
     interactive: bool,
-    fehlende_monate: list[str] | None = None,
+    service_period: str = "",
+    hours_info: dict | None = None,
+    missing_months: list[str] | None = None,
 ) -> None:
     """Speichert den Status einer stundenbasierten Nullabrechnung."""
-    status = VERSANDSTATUS_NO_INVOICE if interactive else VERSANDSTATUS_WAITING_HOURS
-    verlaufseintrag = baue_verlaufseintrag(
-        eintrag,
-        heute,
-        rechnungsnummer,
-        rechnungsdatum,
+    status = STATUS_NO_INVOICE if interactive else STATUS_WAITING_HOURS
+    history_entry = build_history_entry(
+        customer,
+        today,
+        invoice_number,
+        invoice_date,
         "0.00",
-        abrechnungszyklus,
-        versandstatus=status,
+        cycle_months,
+        status=status,
+        service_period=service_period,
+        hours_info=hours_info,
     )
-    speichere_oder_ersetze_verlaufseintrag(
-        verlauf_dateiname,
-        rechnungsverlauf,
-        verlaufseintrag,
+    save_or_replace_history_entry(
+        history_path,
+        history,
+        history_entry,
     )
 
     if interactive:
         logger.info(
             "Keine Stunden fuer %s. Keine Rechnung erstellt oder versendet; "
             "Abrechnung wurde als no_invoice abgeschlossen.",
-            eintrag["firma"],
+            customer["company"],
         )
     else:
-        fehlende_monate = fehlende_monate or []
+        missing_months = missing_months or []
         fehlende_hinweis = (
-            f" Fehlende Monatsdaten: {', '.join(fehlende_monate)}."
-            if fehlende_monate
+            f" Fehlende Monatsdaten: {', '.join(missing_months)}."
+            if missing_months
             else ""
         )
         logger.warning(
@@ -457,60 +473,52 @@ def _speichere_nullstunden_status(
             "Keine Rechnung erstellt oder versendet; "
             "Status waiting_hours wird innerhalb dieses Rechnungsmonats erneut "
             "geprueft.%s",
-            eintrag["firma"],
+            customer["company"],
             fehlende_hinweis,
         )
 
 
-def _archiviere_pdf_falls_noetig(
-    eintrag: dict,
-    anhang_name: str,
+def _archive_pdf_if_needed(
+    customer: dict,
+    attachment_name: str,
     pdf_bytes: bytes,
 ) -> None:
     """Archiviert eine PDF, wenn der Kundeneintrag einen Archivpfad enthaelt."""
-    archiv_pfad = eintrag.get("archiv_pfad")
-    if not archiv_pfad:
+    archive_directory = customer.get("archive_directory")
+    if not archive_directory:
         return
 
-    try:
-        archiviere_pdf(archiv_pfad, anhang_name, pdf_bytes)
-    except Exception as e:
-        logger.error(
-            "%s: PDF konnte nach erfolgreichem Versand nicht archiviert werden: %s",
-            eintrag.get("firma", "Unbekannter Kunde"),
-            e,
-            exc_info=True,
-        )
+    archive_pdf(archive_directory, attachment_name, pdf_bytes)
 
 
-def _entferne_kunden_falls_noetig(
-    daten: list,
-    eintrag: dict,
-    heute: date,
-    pfade,
+def _deactivate_customer_if_needed(
+    customers: list,
+    customer: dict,
+    today: date,
+    paths,
     interactive: bool,
 ) -> None:
     """Fragt nach dem Entfernen abgeschlossener Kundeneintraege."""
-    if not sollte_kunde_entfernt_werden(eintrag, heute):
+    if not should_deactivate_customer(customer, today):
         return
 
     logger.info(
         "Kunde '%s' (%s) hat die letzte Rechnung erhalten.",
-        eintrag["firma"],
-        eintrag["name"],
+        customer["company"],
+        customer["name"],
     )
     if not interactive:
         logger.info("Nicht-interaktiver Lauf: Kunde bleibt aktiv.")
         return
 
-    entscheidung = (
+    decision = (
         input("❓ Moechtest du diesen Kunden jetzt deaktivieren? (y/n): ")
         .strip()
         .lower()
     )
-    if entscheidung == "y":
-        eintrag["aktiv"] = False
-        speichere_kundendaten(eintrag)
+    if decision == "y":
+        customer["active"] = False
+        save_customer_data(customer)
         logger.info("Kunde wurde in seiner YAML-Datei deaktiviert.")
     else:
         logger.info("Kunde bleibt weiterhin in der Kundendatei.")

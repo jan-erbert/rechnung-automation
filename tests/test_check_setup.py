@@ -8,13 +8,13 @@ def _erstelle_pfade(tmp_path):
     hours_dir = tmp_path / "hours"
     customers_dir = tmp_path / "customers"
     archive_dir = tmp_path / "archiv"
-    for pfad in (data_dir, templates_dir, hours_dir, customers_dir, archive_dir):
-        pfad.mkdir()
+    for path in (data_dir, templates_dir, hours_dir, customers_dir, archive_dir):
+        path.mkdir()
 
     (tmp_path / ".env").write_text("MAIL_SERVER=test\n", encoding="utf-8")
     (tmp_path / "invoice.yaml").write_text("sender: {}\n", encoding="utf-8")
-    (templates_dir / "mail_template.html").write_text("Mail", encoding="utf-8")
-    (templates_dir / "rechnung_template.html").write_text("PDF", encoding="utf-8")
+    (templates_dir / "email_template.html").write_text("Mail", encoding="utf-8")
+    (templates_dir / "invoice_template.html").write_text("PDF", encoding="utf-8")
 
     settings = {
         "paths": {
@@ -43,7 +43,7 @@ def test_full_path_check_accepts_accessible_paths(tmp_path, monkeypatch):
     check_setup._check_paths(
         report,
         settings,
-        [{"archiv_pfad": str(archive_dir)}],
+        [{"archive_directory": str(archive_dir)}],
     )
 
     assert report.errors == []
@@ -59,7 +59,7 @@ def test_full_path_check_reports_missing_archive(tmp_path, monkeypatch):
     check_setup._check_paths(
         report,
         settings,
-        [{"archiv_pfad": str(tmp_path / "fehlt")}],
+        [{"archive_directory": str(tmp_path / "fehlt")}],
     )
 
     assert any("Archivpfad existiert nicht" in error for error in report.errors)
@@ -92,3 +92,33 @@ def test_branding_check_warns_about_missing_configured_logo(tmp_path, monkeypatc
 
     assert report.errors == []
     assert any("Mail-Logo fehlt" in warning for warning in report.warnings)
+
+
+def test_hours_check_reports_invalid_yaml(tmp_path, monkeypatch):
+    """Der Setup-Check meldet eine widerspruechliche Stunden-Monatsdatei."""
+    settings, _ = _erstelle_pfade(tmp_path)
+    monkeypatch.setattr(check_setup, "PROJECT_ROOT", tmp_path)
+    (tmp_path / "hours" / "2026-08.yaml").write_text(
+        "period: '2026-07'\ncustomers: {}\n",
+        encoding="utf-8",
+    )
+    report = check_setup.CheckReport()
+
+    check_setup._check_hours_files(report, settings)
+
+    assert any("period muss '2026-08' sein" in error for error in report.errors)
+
+
+def test_hours_check_warns_about_legacy_json(tmp_path, monkeypatch):
+    """Alte Stunden-JSONs erhalten einen konkreten Migrationshinweis."""
+    settings, _ = _erstelle_pfade(tmp_path)
+    monkeypatch.setattr(check_setup, "PROJECT_ROOT", tmp_path)
+    (tmp_path / "hours" / "stunden_2026_08.json").write_text(
+        "[]",
+        encoding="utf-8",
+    )
+    report = check_setup.CheckReport()
+
+    check_setup._check_hours_files(report, settings)
+
+    assert any("migrate_legacy_hours.py" in warning for warning in report.warnings)

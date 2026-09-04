@@ -5,7 +5,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 @dataclass(frozen=True)
-class ProjektPfade:
+class ProjectPaths:
     """Buendelt die zentralen Projektpfade."""
 
     base_dir: Path
@@ -18,15 +18,15 @@ class ProjektPfade:
     backup_dir: Path
 
 
-def _resolve_path(base_dir: Path, pfad_wert: str) -> Path:
+def _resolve_path(base_dir: Path, path_value: str) -> Path:
     """Erzeugt absolute Pfade aus absoluten oder projekt-relativen Angaben."""
-    pfad = Path(pfad_wert)
-    return pfad if pfad.is_absolute() else base_dir / pfad
+    path = Path(path_value)
+    return path if path.is_absolute() else base_dir / path
 
 
-def erstelle_pfade(
+def create_paths(
     settings: dict | None = None, base_dir: Path = BASE_DIR
-) -> ProjektPfade:
+) -> ProjectPaths:
     """Erzeugt Projektpfade aus Einstellungen und sinnvollen Defaults."""
     settings = settings or {}
     paths_config = settings.get("paths", {})
@@ -34,7 +34,7 @@ def erstelle_pfade(
     if not isinstance(paths_config, dict):
         raise ValueError("Der YAML-Bereich 'paths' muss eine Map sein.")
 
-    return ProjektPfade(
+    return ProjectPaths(
         base_dir=base_dir,
         data_dir=_resolve_path(base_dir, paths_config.get("data_dir", "data")),
         customers_dir=_resolve_path(

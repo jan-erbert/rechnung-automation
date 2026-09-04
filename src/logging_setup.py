@@ -2,38 +2,40 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-from zeit import jetzt
+from time_utils import now
 
 
-class LauffehlerSammler(logging.Handler):
+class RunErrorCollector(logging.Handler):
     """Sammelt schwere Laufmeldungen fuer den Cron-Fehlerbericht."""
 
     def __init__(self) -> None:
         """Initialisiert einen leeren ERROR-/CRITICAL-Sammler."""
         super().__init__(level=logging.ERROR)
-        self.fehler: list[dict[str, str]] = []
+        self.errors: list[dict[str, str]] = []
 
     def emit(self, record: logging.LogRecord) -> None:
         """Speichert eine bereinigte schwere Logmeldung."""
-        self.fehler.append(
+        self.errors.append(
             {
-                "zeit": datetime.fromtimestamp(record.created).strftime(
+                "timestamp": datetime.fromtimestamp(record.created).strftime(
                     "%Y-%m-%d %H:%M:%S"
                 ),
                 "level": record.levelname,
-                "quelle": record.name,
-                "meldung": record.getMessage(),
+                "source": record.name,
+                "message": record.getMessage(),
             }
         )
 
 
-def konfiguriere_logging(logging_config: dict, base_dir: Path) -> Path | None:
+def configure_logging(logging_config: dict, base_dir: Path) -> Path | None:
     """Konfiguriert Konsolen- und optional Datei-Logging."""
     if not isinstance(logging_config, dict):
         raise ValueError("Der YAML-Bereich 'logging' muss eine Map sein.")
 
     logger = logging.getLogger()
-    logger.handlers.clear()
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+        handler.close()
 
     level_name = str(logging_config.get("level", "INFO")).upper()
     level = getattr(logging, level_name, logging.INFO)
@@ -54,9 +56,13 @@ def konfiguriere_logging(logging_config: dict, base_dir: Path) -> Path | None:
 
     log_dir = _resolve_log_dir(base_dir, logging_config.get("directory", "logs"))
     log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / f"rechnung-{jetzt():%Y%m%d-%H%M%S}.log"
-
-    file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    while True:
+        log_file = _create_log_path(log_dir)
+        try:
+            file_handler = logging.FileHandler(log_file, mode="x", encoding="utf-8")
+            break
+        except FileExistsError:
+            continue
     file_handler.setFormatter(formatter)
     file_handler.setLevel(level)
     logger.addHandler(file_handler)
@@ -64,14 +70,25 @@ def konfiguriere_logging(logging_config: dict, base_dir: Path) -> Path | None:
     return log_file
 
 
-def aktiviere_lauffehler_sammler() -> LauffehlerSammler:
+def activate_run_error_collector() -> RunErrorCollector:
     """Haengt einen Sammler fuer ERROR- und CRITICAL-Meldungen ein."""
-    sammler = LauffehlerSammler()
-    logging.getLogger().addHandler(sammler)
-    return sammler
+    collector = RunErrorCollector()
+    logging.getLogger().addHandler(collector)
+    return collector
 
 
 def _resolve_log_dir(base_dir: Path, log_dir_value: str) -> Path:
     """Erzeugt den absoluten Log-Pfad aus Projektroot und Einstellung."""
     log_dir = Path(log_dir_value)
     return log_dir if log_dir.is_absolute() else base_dir / log_dir
+
+
+def _create_log_path(log_dir: Path) -> Path:
+    """Erzeugt einen lesbaren und kollisionsfreien Dateinamen fuer den Lauf."""
+    base = f"invoice-{now():%Y-%m-%d_%H-%M-%S}"
+    log_file = log_dir / f"{base}.log"
+    number = 2
+    while log_file.exists():
+        log_file = log_dir / f"{base}-{number:02d}.log"
+        number += 1
+    return log_file

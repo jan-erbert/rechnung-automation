@@ -9,6 +9,8 @@ $ProjectRoot = (Resolve-Path (Join-Path $ScriptDir "..")).Path
 $RequirementsFile = Join-Path $ScriptDir "requirements.txt"
 $EnvWriter = Join-Path $ScriptDir "write_env.py"
 $ConfigWriter = Join-Path $ScriptDir "write_config.py"
+$LegacyMigrator = Join-Path $ProjectRoot "tools\migrate_legacy_layout.py"
+$SetupCheck = Join-Path $ProjectRoot "tools\check_setup.py"
 $VenvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
 
 Set-Location $ProjectRoot
@@ -116,6 +118,14 @@ function Read-TaxId {
     }
 }
 
+function Assert-NativeSuccess {
+    param([string]$Description)
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Description ist mit Exitcode $LASTEXITCODE fehlgeschlagen."
+    }
+}
+
 Write-Host "Starte Einrichtung der virtuellen Umgebung..."
 
 if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
@@ -127,6 +137,7 @@ if (-not (Test-Path $VenvPython -PathType Leaf)) {
         throw ".venv ist vorhanden, aber unvollstaendig oder nicht verwendbar. Bitte den Ordner bewusst entfernen und den Installer erneut starten."
     }
     python -m venv .venv
+    Assert-NativeSuccess "Erstellen der virtuellen Umgebung"
     Write-Host "Virtuelle Umgebung wurde erstellt."
 } else {
     Write-Host ".venv ist bereits vorhanden."
@@ -138,6 +149,10 @@ if (-not (Test-Path $RequirementsFile)) {
 
 Write-Host "Installiere Pakete aus install/requirements.txt..."
 & $VenvPython -m pip install -r $RequirementsFile
+Assert-NativeSuccess "Installation der Python-Abhaengigkeiten"
+
+& $VenvPython $LegacyMigrator
+Assert-NativeSuccess "Legacy-Migration"
 
 $EnvPath = Join-Path $ProjectRoot ".env"
 if (-not (Test-Path $EnvPath)) {
@@ -158,6 +173,7 @@ if (-not (Test-Path $EnvPath)) {
     $env:MAIL_PASS = $MailPass
     try {
         & $VenvPython $EnvWriter $EnvPath
+        Assert-NativeSuccess "Schreiben der Mail-Konfiguration"
     } finally {
         Remove-Item Env:MAIL_SERVER, Env:MAIL_PORT, Env:MAIL_USER, Env:MAIL_PASS -ErrorAction SilentlyContinue
     }
@@ -173,32 +189,32 @@ if (-not (Test-Path $ConfigPath)) {
 
     $Website = Read-Host "Webseite (optional)"
 
-    $Absender = [ordered]@{
+    $Sender = [ordered]@{
         name = Read-Required "Dein Name"
-        firma = Read-Required "Firmenname"
-        "straße" = Read-Required "Strasse und Hausnummer"
-        plz = Read-Required "PLZ"
-        ort = Read-Required "Ort"
-        telefon = Read-Required "Telefonnummer"
+        company = Read-Required "Firmenname"
+        street = Read-Required "Strasse und Hausnummer"
+        postal_code = Read-Required "PLZ"
+        city = Read-Required "Ort"
+        phone = Read-Required "Telefonnummer"
         email = Read-Required "E-Mail-Adresse"
         website = $Website.Trim()
     }
 
     $Bank = [ordered]@{
-        bankname = Read-Required "Bankname"
-        kontoinhaber = Read-Required "Kontoinhaber"
+        name = Read-Required "Bankname"
+        account_holder = Read-Required "Kontoinhaber"
         iban = Read-Required "IBAN"
         bic = Read-Required "BIC"
     }
 
-    $Kleinunternehmer = Read-YesNo "Kleinunternehmerregelung nach Paragraph 19 UStG? (j/n)"
+    $SmallBusiness = Read-YesNo "Kleinunternehmerregelung nach Paragraph 19 UStG? (j/n)"
     $TaxId = Read-TaxId
-    $Finanzamt = Read-Required "Finanzamt"
+    $TaxOffice = Read-Required "Finanzamt"
 
-    if (-not $Kleinunternehmer) {
-        $Mehrwertsteuer = Read-Percentage "Mehrwertsteuersatz in Prozent"
+    if (-not $SmallBusiness) {
+        $VatRate = Read-Percentage "Mehrwertsteuersatz in Prozent"
     } else {
-        $Mehrwertsteuer = ""
+        $VatRate = ""
     }
 
     Write-Host "Hinweis: Fuer steuerkonforme Rechnungen muss eine Kopie gemaess Paragraph 14b UStG aufbewahrt werden."
@@ -210,16 +226,16 @@ if (-not (Test-Path $ConfigPath)) {
     }
 
     $SetupValues = @{
-        SETUP_NAME = $Absender.name; SETUP_FIRMA = $Absender.firma
-        SETUP_STRASSE = $Absender."straße"; SETUP_PLZ = $Absender.plz
-        SETUP_ORT = $Absender.ort; SETUP_TELEFON = $Absender.telefon
-        SETUP_EMAIL = $Absender.email; SETUP_WEBSITE = $Absender.website
-        SETUP_BANKNAME = $Bank.bankname; SETUP_KONTOINHABER = $Bank.kontoinhaber
+        SETUP_CONTACT_NAME = $Sender.name; SETUP_COMPANY = $Sender.company
+        SETUP_STREET = $Sender.street; SETUP_POSTAL_CODE = $Sender.postal_code
+        SETUP_CITY = $Sender.city; SETUP_PHONE = $Sender.phone
+        SETUP_EMAIL = $Sender.email; SETUP_WEBSITE = $Sender.website
+        SETUP_BANK_NAME = $Bank.name; SETUP_ACCOUNT_HOLDER = $Bank.account_holder
         SETUP_IBAN = $Bank.iban; SETUP_BIC = $Bank.bic
-        SETUP_STEUER_ID_TYP = $TaxId.type; SETUP_STEUER_ID_WERT = $TaxId.value
-        SETUP_FINANZAMT = $Finanzamt
-        SETUP_KLEINUNTERNEHMER = $Kleinunternehmer.ToString().ToLowerInvariant()
-        SETUP_MWST = [string]$Mehrwertsteuer; SETUP_BCC = $Bcc.Trim()
+        SETUP_TAX_IDENTIFIER_TYPE = $TaxId.type; SETUP_TAX_IDENTIFIER_VALUE = $TaxId.value
+        SETUP_TAX_OFFICE = $TaxOffice
+        SETUP_SMALL_BUSINESS = $SmallBusiness.ToString().ToLowerInvariant()
+        SETUP_VAT_RATE = [string]$VatRate; SETUP_BCC = $Bcc.Trim()
         SETUP_MAIL_FROM_NAME = $MailFromName.Trim()
     }
     foreach ($Entry in $SetupValues.GetEnumerator()) {
@@ -227,6 +243,7 @@ if (-not (Test-Path $ConfigPath)) {
     }
     try {
         & $VenvPython $ConfigWriter $ConfigPath
+        Assert-NativeSuccess "Schreiben der Rechnungskonfiguration"
     } finally {
         foreach ($Entry in $SetupValues.GetEnumerator()) {
             Remove-Item "Env:$($Entry.Key)" -ErrorAction SilentlyContinue
@@ -239,8 +256,12 @@ if (-not (Test-Path $ConfigPath)) {
 
 New-Item -Path (Join-Path $ProjectRoot "customers") -ItemType Directory -Force | Out-Null
 New-Item -Path (Join-Path $ProjectRoot "data") -ItemType Directory -Force | Out-Null
+New-Item -Path (Join-Path $ProjectRoot "hours") -ItemType Directory -Force | Out-Null
 
-$RunScript = Join-Path $ProjectRoot "rechnung_generieren.ps1"
+& $VenvPython $SetupCheck
+Assert-NativeSuccess "Abschliessender Setup-Check"
+
+$RunScript = Join-Path $ProjectRoot "generate_invoices.ps1"
 if (Test-Path $RunScript) {
     $Desktop = [Environment]::GetFolderPath("Desktop")
     if (-not [string]::IsNullOrWhiteSpace($Desktop)) {
@@ -256,4 +277,4 @@ if (Test-Path $RunScript) {
     }
 }
 
-Write-Host "Projekt ist bereit. Starte Rechnungen unter Windows mit .\rechnung_generieren.ps1."
+Write-Host "Projekt ist bereit. Starte Rechnungen unter Windows mit .\generate_invoices.ps1."

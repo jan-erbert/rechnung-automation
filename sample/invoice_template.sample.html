@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title>Rechnung</title>
+  <style>
+    @page {
+        size: A4;
+        margin: 0;
+    }
+    body {
+        font-family: Arial, sans-serif;
+        font-size: 12pt;
+        margin: 0;
+        padding: 0;
+        color: #000;
+    }
+    html, body {
+        height: 100%;
+    }
+    .page {
+        width: 100%;
+        height: 29.7cm;
+        padding: 0.5cm 0.5cm 4cm 0.5cm;
+        box-sizing: border-box;
+        min-height: 100%;
+        position: relative;
+    }
+    .watermark {
+        position: absolute;
+        top: 42%;
+        left: 8%;
+        width: 84%;
+        transform: rotate(-32deg);
+        transform-origin: center;
+        color: rgba(120, 120, 120, 0.13);
+        font-size: 86pt;
+        font-weight: bold;
+        text-align: center;
+        z-index: 0;
+    }
+    .page-content {
+        position: relative;
+        z-index: 1;
+    }
+    .sender-oben {
+        font-size: 8pt;
+        color: #333;
+        margin-bottom: 0.2cm;
+        text-decoration: underline;
+    }
+    h1 {
+        margin-top: 1.5cm;
+        font-size: 16pt;
+    }
+    .rechnungsinfo {
+        margin-top: 0.5cm;
+        font-size: 11pt;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1cm;
+    }
+    th, td {
+        border: 1px solid #ccc;
+        padding: 8px;
+    }
+    th {
+        background: #e9eff8;
+        text-align: left;
+    }
+    tfoot td {
+        font-weight: bold;
+    }
+    .hinweise {
+        margin-top: 1cm;
+        font-size: 10pt;
+    }
+    .footer-fixed {
+        position: absolute;
+        bottom: 0.5cm;
+        left: 0.5cm;
+        width: calc(100% - 1cm);
+        font-size: 9pt;
+        padding-bottom: 0;
+        z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    {% if sample_text %}
+    <div class="watermark">{{ sample_text }}</div>
+    {% endif %}
+    <div class="page-content">
+
+    <table style="width: 100%; background: {{ design.pdf.accent_color }}; padding: 0.8cm 1cm; margin-top: 1cm; border: none; border-collapse: collapse; color: {{ design.pdf.accent_text_color }};">
+      <tr>
+        <td style="padding: 0.5cm 1cm; border: none;">
+          <div style="font-size: 20pt; font-weight: bold;">{{ header_title }}</div>
+          <div style="font-size: 14pt; color: {{ design.pdf.accent_muted_text_color }};">{{ header_subtitle }}</div>
+        </td>
+        <td style="padding: 0.5cm 1cm; text-align: right; border: none;">
+          {% if logo_base64 %}
+          <img src="{{ logo_base64 }}" alt="Logo" style="height: {{ pdf_logo_height }}px; max-width: 180px;">
+          {% endif %}
+        </td>
+      </tr>
+    </table>
+
+    <table style="width: 100%; margin-top: 1.2cm; margin-bottom: 40px;">
+      <tr>
+        <td style="vertical-align: top; width: 60%; border: none;">
+          <div class="sender-oben">
+            {{ sender.name }} – {{ sender.street }} – {{ sender.postal_code }} {{ sender.city }}
+          </div>
+          <div style="font-size: 14px; line-height: 1.6;">
+            <strong>{{ company }}</strong><br>
+            {{ name }}<br>
+            {{ street }}<br>
+            {{ postal_code }} {{ city }}<br>
+            {{ email }}
+          </div>
+        </td>
+        <td style="vertical-align: top; width: 40%; text-align: right; font-size: 13px; line-height: 1.6; border: none;">
+          <strong>{{ sender.name }}</strong><br>
+          {{ sender.street }}<br>
+          {{ sender.postal_code }} {{ sender.city }}<br><br>
+          Tel.: {{ sender.phone }}<br>
+          E-Mail: {{ sender.email }}<br>
+          {% if sender.website %}
+          Internet: {{ sender.website }}<br><br>
+          {% else %}
+          <br>
+          {% endif %}
+          Rechnungsdatum: {{ invoice_date }}
+        </td>
+      </tr>
+    </table>
+
+    <h1>Rechnung</h1>
+    <div class="rechnungsinfo">
+      <strong>Rechnung Nr.:</strong> {{ invoice_number }}<br>
+      Bitte bei Zahlungen und Schriftverkehr angeben
+      {% if billing_period %}
+      <strong>Abrechnungszeitraum:</strong> {{ billing_period }}<br>
+      {% endif %}
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; margin-top: 1cm; font-size: 11pt;">
+      <thead>
+        <tr style="background-color: #f4f6f8; color: #374151;">
+          <th style="text-align: left; padding: 12px 16px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">Bezeichnung</th>
+          <th style="text-align: right; padding: 12px 16px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">Betrag</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr style="background-color: #ffffff; color: #111827;">
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">{{ item.description }}</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">{{ item.price }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+        <tfoot>
+        {% if tax.small_business %}
+          <tr style="background-color: #f9fafb; font-weight: bold; color: #111827;">
+            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb;">Summe brutto</td>
+            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb; text-align: right;">{{ gross_amount }} EUR</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td style="padding: 8px 16px; text-align: left;">Zwischensumme (Netto)</td>
+            <td style="padding: 8px 16px; text-align: right;">{{ net_amount }} EUR</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 16px; text-align: left;">zzgl. {{ vat_rate }}% MwSt</td>
+            <td style="padding: 8px 16px; text-align: right;">{{ tax_amount }} EUR</td>
+          </tr>
+          <tr style="background-color: #f9fafb; font-weight: bold; color: #111827;">
+            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb;">Gesamtsumme (Brutto)</td>
+            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb; text-align: right;">{{ gross_amount }} EUR</td>
+          </tr>
+        {% endif %}
+      </tfoot>
+    </table>
+
+    {% if hourly_rate_note %}
+      <div class="hinweise" style="margin-top: 0.5cm;">
+        {{ hourly_rate_note }}
+      </div>
+    {% endif %}
+
+    <div class="hinweise">
+      {{ vat_note }}<br>
+      Bitte begleichen Sie den Rechnungsbetrag bis spätestens <strong>{{ due_date }}</strong>.
+    </div>
+    </div>
+
+    <div class="footer-fixed">
+      <table style="width: 100%; font-size: 9pt; border-top: 1px solid black; padding-top: 0cm; margin-top: 0;">
+        <tr>
+          <td style="width: 25%; vertical-align: top; border: none;">
+            <strong>{{ sender.company }}</strong><br>
+            {{ sender.name }}<br>
+            {{ sender.street }}<br>
+            {{ sender.postal_code }} {{ sender.city }}
+          </td>
+          <td style="width: 25%; vertical-align: top; border: none;">
+            <strong>{{ bank.name }}</strong><br>
+            KTO Inh.: {{ bank.account_holder }}
+          </td>
+          <td style="width: 25%; vertical-align: top; border: none;">
+            <strong>IBAN:</strong> {{ bank.iban }}<br>
+            <strong>BIC:</strong> {{ bank.bic }}
+          </td>
+          <td style="width: 25%; vertical-align: top; border: none;">
+            {% if tax.identifier_type == "vat_id" %}
+            <strong>USt-IdNr.:</strong> {{ tax.vat_id }}<br>
+            {% else %}
+            <strong>Steuernummer:</strong> {{ tax.tax_number }}<br>
+            {% endif %}
+            Finanzamt: {{ tax.tax_office }}
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

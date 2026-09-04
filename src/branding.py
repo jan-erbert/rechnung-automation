@@ -3,6 +3,8 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
+from strict_yaml import reject_unknown_keys
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_BRANDING = {
@@ -13,7 +15,7 @@ DEFAULT_BRANDING = {
     "header_title": None,
     "header_subtitle": None,
 }
-UNTERSTUETZTE_LOGO_FORMATE = {
+SUPPORTED_LOGO_FORMATS = {
     ".png": "png",
     ".jpg": "jpeg",
     ".jpeg": "jpeg",
@@ -34,80 +36,85 @@ class LogoAsset:
         return f"data:image/{self.subtype};base64,{encoded}"
 
 
-def validiere_branding_config(branding_config: dict | None) -> dict:
+def validate_branding_config(branding_config: dict | None) -> dict:
     """Prueft Logoangaben und ergaenzt die Branding-Standardwerte."""
     if branding_config is None:
         branding_config = {}
     if not isinstance(branding_config, dict):
         raise ValueError("Der YAML-Bereich 'branding' muss eine Map sein.")
 
-    validiert = {}
+    reject_unknown_keys(branding_config, set(DEFAULT_BRANDING), "branding")
+    validated = {}
     for name in ("pdf_logo", "mail_logo"):
-        standardwert = DEFAULT_BRANDING[name]
-        wert = branding_config.get(name, standardwert)
-        if wert is not None and (not isinstance(wert, str) or not wert.strip()):
+        default = DEFAULT_BRANDING[name]
+        value = branding_config.get(name, default)
+        if value is not None and (not isinstance(value, str) or not value.strip()):
             raise ValueError(f"branding.{name} muss ein Dateipfad oder null sein.")
-        if wert is not None:
-            _ermittle_logo_subtype(Path(wert))
-        validiert[name] = wert
+        if value is not None:
+            _detect_logo_subtype(Path(value))
+        validated[name] = value
 
     for name in ("header_title", "header_subtitle"):
-        wert = branding_config.get(name)
-        if wert is not None and (not isinstance(wert, str) or not wert.strip()):
+        value = branding_config.get(name)
+        if value is not None and (not isinstance(value, str) or not value.strip()):
             raise ValueError(f"branding.{name} muss ein Text oder null sein.")
-        validiert[name] = wert
+        validated[name] = value
 
     for name in ("pdf_logo_height", "mail_logo_height"):
-        wert = branding_config.get(name, DEFAULT_BRANDING[name])
-        if isinstance(wert, bool) or not isinstance(wert, int) or not 10 <= wert <= 200:
+        value = branding_config.get(name, DEFAULT_BRANDING[name])
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or not 10 <= value <= 200
+        ):
             raise ValueError(f"branding.{name} muss eine Ganzzahl von 10 bis 200 sein.")
-        validiert[name] = wert
-    return validiert
+        validated[name] = value
+    return validated
 
 
-def loese_logo_pfad_auf(image_dir: Path, pfad_wert: str) -> Path:
+def resolve_logo_path(image_dir: Path, path_value: str) -> Path:
     """Loest einen absoluten oder im Bildordner liegenden Logo-Pfad auf."""
-    logo_pfad = Path(pfad_wert).expanduser()
-    if logo_pfad.is_absolute():
-        return logo_pfad
+    logo_path = Path(path_value).expanduser()
+    if logo_path.is_absolute():
+        return logo_path
 
     image_dir = image_dir.resolve()
-    logo_pfad = (image_dir / logo_pfad).resolve()
+    logo_path = (image_dir / logo_path).resolve()
     try:
-        logo_pfad.relative_to(image_dir)
+        logo_path.relative_to(image_dir)
     except ValueError as err:
         raise ValueError(
             "Relative Logo-Pfade muessen innerhalb von paths.image_dir liegen."
         ) from err
-    return logo_pfad
+    return logo_path
 
 
-def lade_logo_asset(
+def load_logo_asset(
     image_dir: Path,
-    pfad_wert: str | None,
-    bezeichnung: str,
+    path_value: str | None,
+    label: str,
 ) -> LogoAsset | None:
     """Laedt ein optionales PNG- oder JPEG-Logo."""
-    if pfad_wert is None:
+    if path_value is None:
         return None
 
-    logo_pfad = loese_logo_pfad_auf(image_dir, pfad_wert)
-    subtype = _ermittle_logo_subtype(logo_pfad)
+    logo_path = resolve_logo_path(image_dir, path_value)
+    subtype = _detect_logo_subtype(logo_path)
     try:
-        data = logo_pfad.read_bytes()
+        data = logo_path.read_bytes()
     except FileNotFoundError:
-        logger.warning("%s nicht gefunden. Es wird kein Logo verwendet.", bezeichnung)
+        logger.warning("%s nicht gefunden. Es wird kein Logo verwendet.", label)
         return None
     except OSError as err:
-        logger.warning("%s ist nicht lesbar und wird ignoriert: %s", bezeichnung, err)
+        logger.warning("%s ist nicht lesbar und wird ignoriert: %s", label, err)
         return None
 
     return LogoAsset(data=data, subtype=subtype)
 
 
-def _ermittle_logo_subtype(logo_pfad: Path) -> str:
+def _detect_logo_subtype(logo_path: Path) -> str:
     """Ermittelt den MIME-Subtype eines unterstuetzten Logoformats."""
-    subtype = UNTERSTUETZTE_LOGO_FORMATE.get(logo_pfad.suffix.lower())
+    subtype = SUPPORTED_LOGO_FORMATS.get(logo_path.suffix.lower())
     if subtype is None:
         raise ValueError(
             "Logo-Dateien muessen das Format .png, .jpg oder .jpeg verwenden."

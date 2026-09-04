@@ -1,21 +1,44 @@
 from pathlib import Path
 
-import yaml
+from strict_yaml import load_yaml, reject_unknown_keys
 
 DEFAULT_SETTINGS_PATH = (
     Path(__file__).resolve().parent.parent / "config" / "settings.yaml"
 )
 
 
-def lade_settings(pfad: Path = DEFAULT_SETTINGS_PATH) -> dict:
+def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> dict:
     """Laedt die nicht-sensitiven Projekteinstellungen aus YAML."""
-    if not pfad.exists():
-        raise FileNotFoundError(f"Einstellungsdatei '{pfad}' nicht gefunden.")
+    if not path.exists():
+        raise FileNotFoundError(f"Einstellungsdatei '{path}' nicht gefunden.")
 
-    with pfad.open("r", encoding="utf-8") as settings_file:
-        settings = yaml.safe_load(settings_file) or {}
+    settings = load_yaml(path) or {}
 
     if not isinstance(settings, dict):
         raise ValueError("Die Einstellungsdatei muss eine YAML-Map enthalten.")
 
+    reject_unknown_keys(
+        settings,
+        {"paths", "pdf", "design", "branding", "logging", "mail"},
+        "settings",
+    )
+    sections = {
+        "paths": {
+            "data_dir",
+            "customers_dir",
+            "invoice_config",
+            "templates_dir",
+            "image_dir",
+            "hours_dir",
+            "backup_dir",
+        },
+        "pdf": {"engine"},
+        "logging": {"enabled", "directory", "level"},
+        "mail": {"security", "timeout_seconds"},
+    }
+    for section, allowed in sections.items():
+        values = settings.get(section, {})
+        if not isinstance(values, dict):
+            raise ValueError(f"Der Bereich '{section}' muss eine Map sein.")
+        reject_unknown_keys(values, allowed, section)
     return settings

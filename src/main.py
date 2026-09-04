@@ -1,30 +1,33 @@
-# src/main.py
 import argparse
 import logging
-import os
 
-from branding import validiere_branding_config
-from design import validiere_design_config
-from konfiguration import lade_konfiguration, lade_mail_umgebung
-from kundendateien import lade_kundendateien
-from logging_setup import (
-    LauffehlerSammler,
-    aktiviere_lauffehler_sammler,
-    konfiguriere_logging,
+from branding import validate_branding_config
+from configuration import load_invoice_config, load_mail_environment
+from customer_files import load_customer_files
+from design import validate_design_config
+from email_service import build_error_report_email, send_email
+from invoice_history import (
+    close_expired_hours_waiting_entries,
+    load_all_history,
 )
-from mail import baue_fehlerbericht_mail, sende_mail
-from paths import erstelle_pfade
-from settings_loader import lade_settings
-from startpruefung import pruefe_startvoraussetzungen
-from templates import lade_templates
-from verlauf import lade_verlauf_datei, schliesse_abgelaufene_stundenwarteschlangen
-from workflow import verarbeite_rechnungen
-from zeit import heute
+from invoice_templates import load_templates
+from legacy_migration import migrate_legacy_layout
+from logging_setup import (
+    RunErrorCollector,
+    activate_run_error_collector,
+    configure_logging,
+)
+from paths import create_paths
+from run_lock import RunLock
+from settings_loader import load_settings
+from startup_checks import check_start_requirements
+from time_utils import today
+from workflow import process_invoices
 
 logger = logging.getLogger(__name__)
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """Liest Kommandozeilenargumente fuer den Rechnungslauf."""
     parser = argparse.ArgumentParser(description="Rechnungen erzeugen und versenden.")
     parser.add_argument(
@@ -35,156 +38,152 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
-    """Startet die Rechnungserstellung und den Mailversand."""
-    args = parse_args()
-    settings = lade_settings()
-    pfade = erstelle_pfade(settings)
-    log_file = konfiguriere_logging(settings.get("logging", {}), pfade.base_dir)
-    fehler_sammler = aktiviere_lauffehler_sammler() if args.non_interactive else None
-    logger.info("Starte Rechnungslauf.")
-    if log_file:
-        logger.info("Logdatei: %s", log_file)
-
+def main() -> int:
+    """Startet den Rechnungslauf mit kontrollierter Fehlerausgabe."""
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     mail_config = None
-    konfig = None
+    invoice_config = None
+    error_collector = None
     try:
-        # 📄 Kundendaten laden
-        daten = lade_kundendateien(pfade.customers_dir, strict=False)
-
-        # 📧 E-Mail Konfiguration
-        mail_config = lade_mail_umgebung(
-            pfade.base_dir / ".env", settings.get("mail", {})
+        args = parse_args()
+        settings = load_settings()
+        paths = create_paths(settings)
+        log_file = configure_logging(settings.get("logging", {}), paths.base_dir)
+        error_collector = (
+            activate_run_error_collector() if args.non_interactive else None
         )
-
-        # 📥 Konfiguration laden
-        konfig = lade_konfiguration(pfade.invoice_config)
-
-        pruefe_startvoraussetzungen(settings, pfade, daten, mail_config)
-        design_config = validiere_design_config(settings.get("design", {}))
-        branding_config = validiere_branding_config(settings.get("branding", {}))
-        logger.info("Mini-Check vor dem Rechnungslauf erfolgreich.")
-
-        # ⏳ Verlauf laden
-        jahr = heute().year
-        verlauf_dateiname = pfade.data_dir / f"verlauf-{jahr}.json"
-        rechnungsverlauf = lade_verlauf_datei(
-            verlauf_dateiname,
-            jahr,
-            pfade.backup_dir,
-            interactive=not args.non_interactive,
-        )
-        vorjahr_dateiname = pfade.data_dir / f"verlauf-{jahr - 1}.json"
-        rechnungsverlauf_vorjahr = (
-            lade_verlauf_datei(
-                vorjahr_dateiname,
-                jahr - 1,
-                pfade.backup_dir,
-                interactive=not args.non_interactive,
+        logger.info("Starte Rechnungslauf.")
+        if log_file:
+            logger.info("Logdatei: %s", log_file)
+        with RunLock(paths.data_dir / ".invoice-run.lock"):
+            migrate_legacy_layout(paths.base_dir)
+            customers = load_customer_files(paths.customers_dir, strict=True)
+            if not customers:
+                raise ValueError(
+                    "Keine Kundendateien im Verzeichnis customers gefunden."
+                )
+            mail_config = load_mail_environment(
+                paths.base_dir / ".env", settings.get("mail", {})
             )
-            if os.path.exists(vorjahr_dateiname)
-            else []
-        )
-        _schliesse_abgelaufene_stundenwarteschlangen(
-            verlauf_dateiname,
-            rechnungsverlauf,
-            vorjahr_dateiname,
-            rechnungsverlauf_vorjahr,
-        )
-
-        # 📩 Jinja2-Templates laden
-        templates = lade_templates(pfade.templates_dir)
-
-        verarbeite_rechnungen(
-            daten=daten,
-            pfade=pfade,
-            konfig=konfig,
-            mail_config=mail_config,
-            pdf_config=settings.get("pdf", {}),
-            design_config=design_config,
-            branding_config=branding_config,
-            templates=templates,
-            rechnungsverlauf=rechnungsverlauf,
-            rechnungsverlauf_vorjahr=rechnungsverlauf_vorjahr,
-            verlauf_dateiname=verlauf_dateiname,
-            interactive=not args.non_interactive,
-        )
+            invoice_config = load_invoice_config(paths.invoice_config)
+            check_start_requirements(settings, paths, customers, mail_config)
+            design_config = validate_design_config(settings.get("design", {}))
+            branding_config = validate_branding_config(settings.get("branding", {}))
+            logger.info("Startpruefung erfolgreich.")
+            errors = _run_invoices(
+                args,
+                settings,
+                paths,
+                customers,
+                mail_config,
+                invoice_config,
+                design_config,
+                branding_config,
+            )
+        if errors:
+            return 1
         logger.info("Rechnungslauf beendet.")
+        return 0
+    except (FileNotFoundError, OSError, RuntimeError, ValueError) as err:
+        logger.error("Rechnungslauf abgebrochen: %s", err)
+        return 1
     except Exception as err:
-        logger.exception("Rechnungslauf wurde unerwartet abgebrochen: %s", err)
-        raise
+        logger.error(
+            "Rechnungslauf wegen eines internen Fehlers abgebrochen. "
+            "Konfiguration und Log pruefen."
+        )
+        logger.debug("Technische Fehlerdetails: %s", err, exc_info=True)
+        return 1
     finally:
-        if fehler_sammler:
-            _sende_cron_fehlerbericht(fehler_sammler, mail_config, konfig)
+        if error_collector:
+            _send_cron_error_report(error_collector, mail_config, invoice_config)
 
 
-def _sende_cron_fehlerbericht(
-    fehler_sammler: LauffehlerSammler,
+def _run_invoices(
+    args: argparse.Namespace,
+    settings: dict,
+    paths,
+    customers: list[dict],
+    mail_config: dict,
+    invoice_config: dict,
+    design_config: dict,
+    branding_config: dict,
+) -> int:
+    """Laedt Verlaeufe und verarbeitet alle faelligen Rechnungen."""
+    current_year = today().year
+    _, history_by_year = load_all_history(paths.data_dir)
+    current_path = paths.data_dir / f"invoice-history-{current_year}.json"
+    current_history = history_by_year.get(current_year, (current_path, []))[1]
+    closed = 0
+    for _, (history_path, history) in history_by_year.items():
+        closed += close_expired_hours_waiting_entries(history_path, history, today())
+    if closed:
+        logger.warning(
+            "%s abgelaufene Nullstunden-Wartezustaende wurden als no_invoice "
+            "abgeschlossen.",
+            closed,
+        )
+    previous_history = [
+        entry
+        for year, (_, history) in history_by_year.items()
+        if year != current_year
+        for entry in history
+    ]
+    templates = load_templates(paths.templates_dir)
+    return process_invoices(
+        customers=customers,
+        paths=paths,
+        invoice_config=invoice_config,
+        mail_config=mail_config,
+        pdf_config=settings.get("pdf", {}),
+        design_config=design_config,
+        branding_config=branding_config,
+        templates=templates,
+        history=current_history,
+        previous_history=previous_history,
+        history_path=current_path,
+        interactive=not args.non_interactive,
+    )
+
+
+def _send_cron_error_report(
+    error_collector: RunErrorCollector,
     mail_config: dict | None,
-    konfig: dict | None,
+    invoice_config: dict | None,
 ) -> None:
     """Sendet am Ende eines Cronlaufs eine Zusammenfassung schwerer Fehler."""
-    fehler = list(fehler_sammler.fehler)
-    if not fehler:
+    errors = list(error_collector.errors)
+    if not errors:
         return
-
-    mail_bcc = (konfig or {}).get("mail", {}).get("bcc")
+    mail_bcc = (invoice_config or {}).get("mail", {}).get("bcc")
     if not mail_config or not mail_bcc:
         logger.critical(
             "Cron-Fehlerbericht kann nicht gesendet werden: "
             "Mail-Konfiguration oder BCC-Empfaenger fehlt."
         )
         return
-
     try:
-        msg = baue_fehlerbericht_mail(
+        message = build_error_report_email(
             mail_config["user"],
             mail_bcc[0],
-            fehler,
-            from_name=(konfig or {}).get("mail", {}).get("from_name"),
+            errors,
+            from_name=(invoice_config or {}).get("mail", {}).get("from_name"),
         )
-        sende_mail(
+        send_email(
             mail_config["server"],
             mail_config["port"],
             mail_config["user"],
-            mail_config["passwort"],
-            msg,
+            mail_config["password"],
+            message,
             mail_bcc,
             security=mail_config.get("security", "starttls"),
             timeout=mail_config.get("timeout", 30),
         )
         logger.info("Cron-Fehlerbericht wurde an den BCC-Empfaenger gesendet.")
     except Exception as err:
-        logger.exception("Cron-Fehlerbericht konnte nicht gesendet werden: %s", err)
-
-
-def _schliesse_abgelaufene_stundenwarteschlangen(
-    verlauf_dateiname,
-    rechnungsverlauf: list,
-    vorjahr_dateiname,
-    rechnungsverlauf_vorjahr: list,
-) -> None:
-    """Schliesst alte Nullstunden-Wartezustaende in geladenen Verlaeufen."""
-    aktuelles_datum = heute()
-    abgeschlossen = schliesse_abgelaufene_stundenwarteschlangen(
-        verlauf_dateiname,
-        rechnungsverlauf,
-        aktuelles_datum,
-    )
-    if rechnungsverlauf_vorjahr:
-        abgeschlossen += schliesse_abgelaufene_stundenwarteschlangen(
-            vorjahr_dateiname,
-            rechnungsverlauf_vorjahr,
-            aktuelles_datum,
-        )
-
-    if abgeschlossen:
-        logger.warning(
-            "%s abgelaufene Nullstunden-Wartezustaende wurden ohne Rechnung "
-            "als no_invoice abgeschlossen.",
-            abgeschlossen,
-        )
+        logger.error("Cron-Fehlerbericht konnte nicht gesendet werden: %s", err)
+        logger.debug("Technische Fehlerdetails: %s", err, exc_info=True)
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

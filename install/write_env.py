@@ -7,13 +7,13 @@ from dotenv import set_key
 ENV_KEYS = ("MAIL_SERVER", "MAIL_PORT", "MAIL_USER", "MAIL_PASS")
 
 
-def schreibe_mail_env(pfad: Path, values: dict[str, str]) -> None:
+def write_mail_env(path: Path, values: dict[str, str]) -> None:
     """Schreibt SMTP-Werte sicher in eine lokale Env-Datei."""
-    pfad.parent.mkdir(parents=True, exist_ok=True)
-    pfad.touch(mode=0o600, exist_ok=True)
-    pfad.chmod(0o600)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.touch(mode=0o600, exist_ok=True)
+    path.chmod(0o600)
     for key in ENV_KEYS:
-        set_key(pfad, key, values[key], quote_mode="always")
+        set_key(path, key, values[key], quote_mode="always")
 
 
 def main() -> None:
@@ -22,7 +22,7 @@ def main() -> None:
     parser.add_argument("env_path", type=Path)
     args = parser.parse_args()
     values = {key: os.environ[key] for key in ENV_KEYS}
-    schreibe_mail_env(args.env_path, values)
+    write_mail_env(args.env_path, values)
 
 
 if __name__ == "__main__":
