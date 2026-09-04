@@ -92,6 +92,10 @@ if ! command -v python3 >/dev/null 2>&1; then
     echo "❌ python3 wurde nicht gefunden. Bitte installiere Python 3."
     exit 1
 fi
+if ! python3 -c 'import sys; raise SystemExit(sys.version_info < (3, 10))'; then
+    echo "❌ Python 3.10 oder neuer wird benoetigt."
+    exit 1
+fi
 
 # 1. Virtuelle Umgebung erstellen
 if [ ! -x "$VENV_PYTHON" ]; then
@@ -104,6 +108,10 @@ if [ ! -x "$VENV_PYTHON" ]; then
     echo "✅ Virtuelle Umgebung wurde erstellt."
 else
     echo "🔁 .venv bereits vorhanden."
+fi
+if ! "$VENV_PYTHON" -c 'import sys; raise SystemExit(sys.version_info < (3, 10))'; then
+    echo "❌ Die vorhandene .venv verwendet eine nicht unterstuetzte Python-Version."
+    exit 1
 fi
 
 # 2. Hinweis zur Aktivierung

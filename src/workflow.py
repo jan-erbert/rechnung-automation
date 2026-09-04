@@ -1,6 +1,7 @@
 import logging
 from dataclasses import dataclass
 from datetime import date
+from pathlib import Path
 
 from branding import load_logo_asset
 from billing_schedule import is_invoice_due
@@ -59,8 +60,9 @@ class RunContext:
     templates: InvoiceTemplates
     history: list
     previous_history: list
-    history_path: object
+    history_path: Path
     interactive: bool
+    dry_run: bool = False
 
 
 def process_invoices(
@@ -76,6 +78,7 @@ def process_invoices(
     previous_history: list,
     history_path,
     interactive: bool = True,
+    dry_run: bool = False,
 ) -> int:
     """Verarbeitet alle faelligen Kundeneintraege fuer den Rechnungslauf."""
     context = RunContext(
@@ -94,6 +97,7 @@ def process_invoices(
         previous_history=previous_history,
         history_path=history_path,
         interactive=interactive,
+        dry_run=dry_run,
     )
 
     customer_errors = 0
@@ -176,7 +180,7 @@ def _process_customer_entry(
     paths = context.paths
     archive_directory = customer.get("archive_directory")
     if archive_directory:
-        check_archive_path(archive_directory, write_probe=True)
+        check_archive_path(archive_directory, write_probe=not context.dry_run)
 
     invoice_data = build_invoice_data(customer, today)
     invoice_date = invoice_data["invoice_date"]
@@ -206,6 +210,13 @@ def _process_customer_entry(
     )
 
     if hours_info and (hours_info["hours"] == 0 or not hours_info["complete"]):
+        if context.dry_run:
+            logger.warning(
+                "Dry-Run: Fuer %s fehlen abrechenbare Stunden; "
+                "kein Zustand wurde gespeichert.",
+                customer["company"],
+            )
+            return
         _save_zero_hours_status(
             customer,
             today,
@@ -274,6 +285,16 @@ def _process_customer_entry(
         mail_logo=mail_logo,
         from_name=context.mail_from_name,
     )
+
+    if context.dry_run:
+        logger.info(
+            "Dry-Run: Rechnung %s fuer %s ueber %s EUR erfolgreich vorbereitet; "
+            "keine PDF archiviert, keine Mail versendet und kein Verlauf geaendert.",
+            invoice_number,
+            customer["company"],
+            tax_data["formatted_total"],
+        )
+        return
 
     delivery_entry = build_history_entry(
         customer,

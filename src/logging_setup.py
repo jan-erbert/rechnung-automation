@@ -1,11 +1,12 @@
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 
 from time_utils import now
 
 VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
-VALID_RUN_MODES = {"interactive", "cron", "tool"}
+VALID_RUN_MODES = {"interactive", "cron", "dry-run", "tool"}
 
 
 class RunErrorCollector(logging.Handler):
@@ -50,7 +51,7 @@ def configure_logging(
             "logging.level muss DEBUG, INFO, WARNING, ERROR oder CRITICAL sein."
         )
     if run_mode not in VALID_RUN_MODES:
-        raise ValueError("run_mode muss interactive, cron oder tool sein.")
+        raise ValueError("run_mode muss interactive, cron, dry-run oder tool sein.")
     level = getattr(logging, level_name)
     logger.setLevel(level)
 
@@ -69,6 +70,7 @@ def configure_logging(
 
     log_dir = _resolve_log_dir(base_dir, logging_config.get("directory", "logs"))
     log_dir.mkdir(parents=True, exist_ok=True)
+    retention_files = validate_log_retention(logging_config.get("retention_files", 100))
     while True:
         log_file = _create_log_path(log_dir, run_mode)
         try:
@@ -79,6 +81,11 @@ def configure_logging(
     file_handler.setFormatter(formatter)
     file_handler.setLevel(level)
     logger.addHandler(file_handler)
+    try:
+        os.chmod(log_file, 0o600)
+    except OSError:
+        pass
+    _prune_log_files(log_dir, retention_files)
 
     return log_file
 
@@ -105,3 +112,35 @@ def _create_log_path(log_dir: Path, run_mode: str) -> Path:
         log_file = log_dir / f"{base}-{number:02d}.log"
         number += 1
     return log_file
+
+
+def validate_log_retention(value) -> int:
+    """Prueft die maximale Anzahl aufzubewahrender Laufprotokolle."""
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValueError("logging.retention_files muss eine positive ganze Zahl sein.")
+    return value
+
+
+def _prune_log_files(log_dir: Path, retention_files: int) -> None:
+    """Entfernt ausschliesslich ueberzaehlige eigene Laufprotokolle."""
+    log_files = sorted(
+        (
+            path
+            for path in log_dir.glob("invoice-*.log")
+            if path.is_file() and not path.is_symlink()
+        ),
+        key=lambda path: (path.stat().st_mtime_ns, path.name),
+        reverse=True,
+    )
+    for log_file in log_files:
+        try:
+            os.chmod(log_file, 0o600)
+        except OSError:
+            pass
+    for log_file in log_files[retention_files:]:
+        try:
+            log_file.unlink()
+        except OSError as err:
+            logging.getLogger(__name__).warning(
+                "Alte Logdatei konnte nicht entfernt werden: %s", err
+            )

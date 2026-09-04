@@ -131,6 +131,8 @@ Write-Host "Starte Einrichtung der virtuellen Umgebung..."
 if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
     throw "Python wurde nicht gefunden. Bitte installiere Python 3."
 }
+python -c "import sys; raise SystemExit(sys.version_info < (3, 10))"
+Assert-NativeSuccess "Pruefung auf Python 3.10 oder neuer"
 
 if (-not (Test-Path $VenvPython -PathType Leaf)) {
     if (Test-Path ".venv") {
@@ -142,6 +144,8 @@ if (-not (Test-Path $VenvPython -PathType Leaf)) {
 } else {
     Write-Host ".venv ist bereits vorhanden."
 }
+& $VenvPython -c "import sys; raise SystemExit(sys.version_info < (3, 10))"
+Assert-NativeSuccess "Pruefung der Python-Version in .venv"
 
 if (-not (Test-Path $RequirementsFile)) {
     throw "Requirements-Datei nicht gefunden: $RequirementsFile"

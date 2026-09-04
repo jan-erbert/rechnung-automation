@@ -31,6 +31,11 @@ logging:
   enabled: true
   directory: logs
   level: INFO
+  retention_files: 100
+
+backup:
+  enabled: true
+  keep_last: 30
 
 mail:
   security: starttls

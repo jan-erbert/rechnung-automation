@@ -159,6 +159,44 @@ def test_customer_cc_recipients_are_sent_with_invoice(tmp_path, monkeypatch):
     ]
 
 
+def test_dry_run_renders_without_writes_or_mail(tmp_path, monkeypatch, caplog):
+    """Der Dry-Run prueft die Rechnung ohne produktive Seiteneffekte."""
+    actions = []
+    caplog.set_level("INFO")
+    monkeypatch.setattr("workflow.load_logo_asset", lambda *args: None)
+    monkeypatch.setattr("workflow.generate_pdf_bytes", lambda *args: b"pdf")
+    monkeypatch.setattr("workflow.archive_pdf", lambda *args: actions.append("archive"))
+    monkeypatch.setattr("workflow.send_email", lambda *args: actions.append("mail"))
+    monkeypatch.setattr(
+        "workflow.save_or_replace_history_entry",
+        lambda *args: actions.append("history"),
+    )
+
+    _process_customer_entry(
+        customers=[],
+        customer={
+            "id": "beispielfirma",
+            "name": "Erika Beispiel",
+            "company": "Beispielfirma",
+            "email": "erika@example.com",
+            "cc": [],
+            "street": "Beispielweg 1",
+            "postal_code": "12345",
+            "city": "Beispielstadt",
+            "main_service": {
+                "description": "Hosting",
+                "unit": "month",
+                "unit_price": "10.00",
+            },
+        },
+        context=_laufkontext(tmp_path, dry_run=True),
+    )
+
+    assert actions == []
+    assert "Dry-Run:" in caplog.text
+    assert "keine Mail versendet" in caplog.text
+
+
 def test_hourly_invoice_uses_service_period_and_records_hours(tmp_path, monkeypatch):
     """Stundenrechnung und Verlauf verwenden den geladenen Leistungsmonat."""
     write_hours_month(

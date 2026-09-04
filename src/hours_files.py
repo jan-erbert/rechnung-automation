@@ -139,9 +139,7 @@ def load_hours_month(file_path: Path, expected_period: str) -> dict[str, Decimal
 
 def validate_hours_value(value, field: str = "hours") -> Decimal:
     """Prueft einen numerischen oder als Text notierten Stundenwert."""
-    if isinstance(value, bool) or not isinstance(
-        value, (str, int, float, Decimal)
-    ):
+    if isinstance(value, bool) or not isinstance(value, (str, int, float, Decimal)):
         raise HoursFileError(f"{field}: hours muss eine Zahl sein.")
     text = str(value).strip().replace(",", ".")
     try:

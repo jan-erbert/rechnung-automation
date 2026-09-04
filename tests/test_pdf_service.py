@@ -23,3 +23,15 @@ def test_archive_does_not_overwrite_different_existing_pdf(tmp_path):
         archive_pdf(str(tmp_path), target.name, b"new")
 
     assert target.read_bytes() == b"existing"
+
+
+def test_archive_falls_back_when_hardlinks_are_unavailable(tmp_path, monkeypatch):
+    """Archive auf Dateisystemen ohne Hardlinks werden trotzdem geschrieben."""
+    monkeypatch.setattr(
+        "pdf_service.os.link",
+        lambda *args: (_ for _ in ()).throw(OSError("not supported")),
+    )
+
+    archive_pdf(str(tmp_path), "Invoice_customer_01-2026.pdf", b"pdf")
+
+    assert (tmp_path / "Invoice_customer_01-2026.pdf").read_bytes() == b"pdf"

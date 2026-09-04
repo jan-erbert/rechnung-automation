@@ -24,6 +24,8 @@ from path_checks import (  # noqa: E402
 )
 from settings_loader import load_settings  # noqa: E402
 from hours_files import load_hours_month  # noqa: E402
+from logging_setup import validate_log_retention  # noqa: E402
+from state_backup import validate_backup_config  # noqa: E402
 
 REQUIRED_ENV_KEYS = ("MAIL_SERVER", "MAIL_PORT", "MAIL_USER", "MAIL_PASS")
 
@@ -90,6 +92,17 @@ def _check_settings(report: CheckReport) -> dict | None:
         return None
     if not isinstance(settings.get("logging", {}), dict):
         report.error("Der YAML-Bereich 'logging' muss eine Map sein.")
+    else:
+        try:
+            validate_log_retention(
+                settings.get("logging", {}).get("retention_files", 100)
+            )
+        except ValueError as err:
+            report.error(f"Logging-Konfiguration ist ungueltig: {err}")
+    try:
+        validate_backup_config(settings.get("backup", {}))
+    except ValueError as err:
+        report.error(f"Backup-Konfiguration ist ungueltig: {err}")
     return settings
 
 
@@ -233,10 +246,14 @@ def _check_paths(report: CheckReport, settings: dict, data: list | None) -> None
     )
     for check, path, label in checks:
         _report_path_error(report, check, path, label)
-    for path, label in (
-        (paths.data_dir, "Datenverzeichnis"),
-        (paths.backup_dir, "Backupverzeichnis"),
-    ):
+    writable_targets = [(paths.data_dir, "Datenverzeichnis")]
+    try:
+        backup_config = validate_backup_config(settings.get("backup", {}))
+    except ValueError:
+        backup_config = {"enabled": False}
+    if backup_config["enabled"]:
+        writable_targets.append((paths.backup_dir, "Backupverzeichnis"))
+    for path, label in writable_targets:
         _report_path_error(report, check_writable_target_directory, path, label)
 
     logging_config = settings.get("logging", {})

@@ -16,6 +16,16 @@ def _mail_config() -> dict:
     }
 
 
+def test_parse_args_supports_dry_run(monkeypatch):
+    """Der Dry-Run ist ein eigener, nicht interaktiver Vorschaumodus."""
+    monkeypatch.setattr("sys.argv", ["main.py", "--dry-run"])
+
+    args = main_module.parse_args()
+
+    assert args.dry_run is True
+    assert args.non_interactive is False
+
+
 def test_cron_error_report_is_only_sent_when_errors_exist(monkeypatch):
     """Ein fehlerfreier Cronlauf versendet keinen Fehlerbericht."""
     versendet = []
@@ -110,7 +120,7 @@ def test_run_uses_closed_previous_history_state(monkeypatch, tmp_path):
     monkeypatch.setattr(main_module, "process_invoices", capture_process)
 
     result = main_module._run_invoices(
-        SimpleNamespace(non_interactive=True),
+        SimpleNamespace(non_interactive=True, dry_run=False),
         {},
         SimpleNamespace(data_dir=tmp_path, templates_dir=tmp_path),
         [],
@@ -122,3 +132,53 @@ def test_run_uses_closed_previous_history_state(monkeypatch, tmp_path):
 
     assert result == 0
     assert captured["previous_history"][0]["status"] == "no_invoice"
+
+
+def test_dry_run_does_not_close_waiting_history(monkeypatch, tmp_path):
+    """Der Dry-Run veraendert auch alte Wartezustaende nicht."""
+    previous_history = [
+        {
+            "id": "customer__2025-08",
+            "customer_id": "customer",
+            "year": 2025,
+            "month": 8,
+            "status": "waiting_hours",
+        }
+    ]
+    history_by_year = {2025: (tmp_path / "invoice-history-2025.json", previous_history)}
+    captured = {}
+    monkeypatch.setattr(main_module, "today", lambda: datetime(2026, 9, 4))
+    monkeypatch.setattr(
+        main_module,
+        "load_all_history",
+        lambda path: ([previous_history[0]], history_by_year),
+    )
+    monkeypatch.setattr(
+        main_module,
+        "close_expired_hours_waiting_entries",
+        lambda *args: (_ for _ in ()).throw(AssertionError("write attempted")),
+    )
+    monkeypatch.setattr(main_module, "load_templates", lambda path: object())
+
+    def capture_process(**kwargs):
+        """Erfasst die Dry-Run-Schalter fuer den Workflow."""
+        captured.update(kwargs)
+        return 0
+
+    monkeypatch.setattr(main_module, "process_invoices", capture_process)
+
+    result = main_module._run_invoices(
+        SimpleNamespace(non_interactive=False, dry_run=True),
+        {},
+        SimpleNamespace(data_dir=tmp_path, templates_dir=tmp_path),
+        [],
+        {},
+        {},
+        {},
+        {},
+    )
+
+    assert result == 0
+    assert captured["dry_run"] is True
+    assert captured["interactive"] is False
+    assert previous_history[0]["status"] == "waiting_hours"

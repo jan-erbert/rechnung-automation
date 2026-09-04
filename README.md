@@ -17,6 +17,8 @@ Installationsskripte unterstuetzt.
 - Eine uebersichtliche YAML-Datei pro Kunde
 - Konfigurierbares Design, Branding und Logging
 - Nicht-interaktiver Cronbetrieb mit Fehlerbericht
+- Seiteneffektfreier Dry-Run inklusive PDF-Rendering
+- Automatische, verifizierte Zustandsbackups mit begrenzter Aufbewahrung
 - Ungefaehrlicher Setup-Check ohne Rechnungs- oder Mailerzeugung
 
 ## Voraussetzungen
@@ -81,6 +83,11 @@ logging:
   enabled: true
   directory: logs
   level: INFO
+  retention_files: 100
+
+backup:
+  enabled: true
+  keep_last: 30
 ```
 
 `mail.security` akzeptiert `starttls` oder `ssl`. Die passende Portnummer wird
@@ -89,8 +96,11 @@ weiterhin in `.env` festgelegt.
 Aktivierte Laufprotokolle erhalten gut lesbare, nach Betriebsart getrennte Namen:
 `invoice-interactive-YYYY-MM-DD_HH-MM-SS.log` fuer interaktive Laeufe,
 `invoice-cron-YYYY-MM-DD_HH-MM-SS.log` fuer Cronlaeufe und `invoice-tool-...`
-fuer Hilfswerkzeuge. Falls zwei Laeufe in derselben Sekunde starten, wird
-automatisch ein Zaehlsuffix wie `-02` angehaengt.
+fuer Hilfswerkzeuge. Vorschauen verwenden `invoice-dry-run-...`. Falls zwei
+Laeufe in derselben Sekunde starten, wird automatisch ein Zaehlsuffix wie
+`-02` angehaengt. Neue Logs werden unter POSIX mit Dateirechten `0600`
+angelegt. `logging.retention_files` begrenzt die Anzahl automatisch
+aufbewahrter `invoice-*.log`-Dateien; fremde Logdateien bleiben unberuehrt.
 
 ### `config/invoice.yaml`
 
@@ -294,14 +304,81 @@ kurzlebige Testdateien und entfernen sie sofort wieder.
 ./invoice_cron.sh
 ```
 
-Unter Windows wird `generate_invoices.ps1` verwendet.
+Unter Windows werden `generate_invoices.ps1` beziehungsweise fuer die
+Aufgabenplanung `invoice_cron.ps1` verwendet.
+
+Vor dem ersten echten Lauf empfiehlt sich eine vollstaendige Vorschau:
+
+```bash
+./generate_invoices.sh --dry-run
+```
+
+```powershell
+./generate_invoices.ps1 -DryRun
+```
+
+Der Dry-Run prueft Faelligkeit, Stunden, Templates, Mailaufbau und PDF-Rendering.
+Er versendet keine Mail, archiviert keine PDF und veraendert weder Verlauf,
+Stundendateien noch Kundendaten. Legacy-Migrationen werden im Dry-Run ebenfalls
+nicht geschrieben.
 
 Eine projektweite Sperrdatei verhindert parallele Rechnungsläufe und damit
-versehentliche Doppelversendungen. Eindeutig verwaiste Sperren werden beim
-naechsten Start automatisch bereinigt.
+versehentliche Doppelversendungen. Die Sperre verwendet unter Linux und Windows
+eine echte Betriebssystem-Dateisperre und wird bei einem Prozessabbruch
+automatisch freigegeben.
 
 > Achtung: Rechnungsläufe koennen PDFs erzeugen, E-Mails versenden,
 > Verlaufsdaten aktualisieren und Archive beschreiben.
+
+## Zustandsbackups und Wiederherstellung
+
+Vor jedem echten interaktiven oder Cronlauf wird standardmaessig ein verifiziertes
+Backup unter `backup/state-backup-YYYY-MM-DD_HH-MM-SS.zip` erstellt. Es enthaelt
+die Rechnungskonfiguration, Kundendateien, Stundenwerte und Rechnungsverlaeufe.
+`backup.keep_last` begrenzt die Anzahl der Sicherungen. Backups erhalten unter
+POSIX die Dateirechte `0600`.
+
+Manuelle Erstellung und Pruefung:
+
+```bash
+python tools/manage_backups.py create
+python tools/manage_backups.py verify backup/state-backup-YYYY-MM-DD_HH-MM-SS.zip
+```
+
+Eine Wiederherstellung schreibt aus Sicherheitsgruenden niemals direkt ueber
+den aktiven Zustand. Sie erfolgt in ein neues oder leeres Zielverzeichnis:
+
+```bash
+python tools/manage_backups.py restore \
+  backup/state-backup-YYYY-MM-DD_HH-MM-SS.zip backup/restored-state
+```
+
+Danach muessen die Dateien bei gestopptem Rechnungslauf geprueft und passend zu
+den unter `paths` konfigurierten Zielverzeichnissen uebernommen werden. Externe
+PDF-Archive und `.env` sind bewusst nicht Bestandteil des Zustandsbackups und
+muessen separat gesichert werden. Ein lokales Backup ersetzt kein externes,
+getrennt aufbewahrtes Sicherungskonzept.
+
+## Cronbetrieb
+
+Der Cronlauf kann taeglich gestartet werden; die Anwendung entscheidet selbst,
+welche Kunden faellig sind. Beispiel fuer `crontab -e`:
+
+```cron
+15 6 * * * /absoluter/pfad/rechnung-automation/invoice_cron.sh
+```
+
+Der Cronjob muss unter demselben Benutzer laufen, dem Konfiguration, Verlauf,
+Backups und Archive gehoeren. Exitcode `0` bedeutet einen fehlerfreien Lauf,
+Exitcode `1` mindestens einen Fehler. Cron-Logs sind am Namensbestandteil
+`invoice-cron-` erkennbar. Zusaetzlich sollte der Cron-Dienst fehlgeschlagene
+Exitcodes beziehungsweise seine Standardfehlerausgabe ueberwachen, weil sehr
+fruehe Konfigurations- oder SMTP-Fehler nicht immer per Fehlerbericht zugestellt
+werden koennen.
+
+Unter Windows wird in der Aufgabenplanung `invoice_cron.ps1` ohne angemeldete
+Benutzersitzung gestartet. Programm: `powershell.exe`; Argumente:
+`-NoProfile -ExecutionPolicy Bypass -File "C:\Pfad\invoice_cron.ps1"`.
 
 ## Tests und Codequalitaet
 
@@ -313,10 +390,11 @@ python -m black --check .
 
 Black wird in diesem Projekt bewusst vom Nutzer ausgefuehrt.
 
-Forgejo Actions fuehrt dieselben Tests fuer Python 3.10 und 3.12 sowie Black-,
-Flake8- und Shell-Syntaxpruefungen ueber `.forgejo/workflows/ci.yml` aus. Der
-Workflow startet keine Rechnungs- oder Mailablaeufe und benoetigt keine
-Secrets.
+Forgejo Actions fuehrt die Tests fuer Python 3.10 und 3.12 sowie Black-,
+Flake8- und Shell-Syntaxpruefungen ueber `.forgejo/workflows/ci.yml` aus.
+GitHub Actions verwendet `.github/workflows/ci.yml` und prueft zusaetzlich die
+Tests und PowerShell-Syntax unter Windows. Beide Workflows starten keine
+Rechnungs- oder Mailablaeufe und benoetigen keine Secrets.
 
 ## Projektstruktur
 

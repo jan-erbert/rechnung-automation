@@ -27,6 +27,12 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 - Reproduzierbar gepinnte Runtime- und Entwicklungsabhaengigkeiten.
 - Stundenwerte koennen in YAML bequem als unquotierte Zahlen wie `8.50`
   gepflegt werden und bleiben intern dennoch exakte `Decimal`-Werte.
+- GitHub-Actions-Workflow fuer Linux- und Windows-Tests sowie statische
+  Python-, Bash- und PowerShell-Pruefungen.
+- Seiteneffektfreier Dry-Run mit vollstaendigem Template- und PDF-Test.
+- Automatische, verifizierte Zustandsbackups mit begrenzter Aufbewahrung sowie
+  ein Werkzeug zur sicheren Pruefung und Wiederherstellung in ein leeres Ziel.
+- Nicht-interaktiver PowerShell-Einstieg fuer die Windows-Aufgabenplanung.
 
 ### Changed
 
@@ -43,6 +49,8 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 - Logdateien verwenden lesbare Namen nach dem Schema
   `invoice-<mode>-YYYY-MM-DD_HH-MM-SS.log` und unterscheiden interaktive,
   Cron- und Werkzeuglaeufe bereits im Dateinamen.
+- Laufprotokolle werden unter POSIX privat angelegt und ihre Anzahl wird ueber
+  `logging.retention_files` begrenzt.
 - Manuell eingegebene Stunden werden atomar in der passenden Monatsdatei
   gespeichert und Stundenmetadaten im Rechnungsverlauf dokumentiert.
 - Interne Versionsnummer auf `1.4.1` gesetzt.
@@ -76,6 +84,14 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 - Fehler beim Schreiben der Prozesssperre hinterlassen keine blockierende
   unvollstaendige Lockdatei.
 - Die Logdateierzeugung ist auch bei zeitgleichen Prozessstarts kollisionssicher.
+- Prozesssperren verwenden unter Linux und Windows echte Betriebssystemlocks,
+  ohne andere Prozesse per Signal zu pruefen.
+- Automatische Legacy-Migrationen beruecksichtigen konfigurierte Pfade, bleiben
+  nach neuen Zielinhalten idempotent und lehnen mehrdeutige Zuordnungen ab.
+- Template-Migrationen ersetzen nur technische Jinja-Namen, validieren das
+  Ergebnis und lassen sichtbare Texte unveraendert.
+- PDF-Archive funktionieren auch auf Dateisystemen ohne Hardlink-Unterstuetzung,
+  ohne vorhandene Rechnungen zu ueberschreiben.
 
 ### Clarified
 

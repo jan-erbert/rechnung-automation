@@ -26,11 +26,14 @@ Die folgenden Befehle und Skripte duerfen ohne ausdrueckliche Freigabe nicht aus
 - `./generate_invoices.sh`
 - `./invoice_cron.sh`
 - `generate_invoices.ps1`
+- `invoice_cron.ps1`
 - `install/install.sh`
 - `install/install.ps1`
 - `tools/create_customer.py`
 - `tools/send_test_invoice.py`
 - `tools/test_mail_delivery.py`
+- `tools/manage_backups.py create`
+- `tools/manage_backups.py restore`
 
 Ebenfalls verboten sind alle Befehle oder Skripte, die Rechnungen erzeugen, PDFs aus Projekt- oder Produktivdaten erstellen, Dateien in `data/` veraendern, E-Mails versenden oder produktive Ablaeufe starten koennten.
 
@@ -50,6 +53,11 @@ Standardmaessig erlaubt sind nur ungefaehrliche statische Pruefungen:
 
 Keine Tests oder Checks ausfuehren, die Projektcode starten, Rechnungen erzeugen, PDFs erzeugen, E-Mails versenden oder Dateien in `data/` veraendern koennten.
 
+Der Dry-Run ueber `./generate_invoices.sh --dry-run` beziehungsweise
+`generate_invoices.ps1 -DryRun` versendet keine E-Mails und veraendert keinen
+Rechnungszustand, rendert aber PDFs im Speicher und schreibt ein Laufprotokoll.
+Er darf deshalb nur mit ausdruecklicher Testfreigabe ausgefuehrt werden.
+
 `python tools/check_setup.py` darf fuer Pfadpruefungen kurzlebige Testdateien in
 konfigurierten Schreibzielen erstellen und sofort wieder entfernen. Der Check
 darf dabei keine bestehenden Dateien veraendern.
@@ -65,6 +73,7 @@ Die folgenden Inhalte duerfen nicht committed, in Antworten ausgegeben oder ohne
 - SMTP-Daten
 - generierte PDFs
 - lokale Archive oder produktive Ausgabedateien
+- Zustandsbackups unter `backup/`
 
 Secrets, Tokens, Passwoerter und vollstaendige Inhalte von lokalen Konfigurationsdateien duerfen nicht angezeigt werden.
 

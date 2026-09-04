@@ -59,8 +59,32 @@ def archive_pdf(archive_directory: str, attachment_name: str, pdf_bytes: bytes) 
             temporary_file.write(pdf_bytes)
             temporary_file.flush()
             os.fsync(temporary_file.fileno())
-        os.link(temporary_path, target)
+        _publish_exclusive(temporary_path, target)
     finally:
         if temporary_path and temporary_path.exists():
             temporary_path.unlink()
     logger.info("PDF archiviert unter: %s", target)
+
+
+def _publish_exclusive(temporary_path: Path, target: Path) -> None:
+    """Veroeffentlicht eine Datei exklusiv, auch ohne Hardlink-Unterstuetzung."""
+    try:
+        os.link(temporary_path, target)
+        return
+    except FileExistsError:
+        raise
+    except OSError:
+        pass
+
+    created = False
+    try:
+        descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        created = True
+        with os.fdopen(descriptor, "wb") as target_file:
+            target_file.write(temporary_path.read_bytes())
+            target_file.flush()
+            os.fsync(target_file.fileno())
+    except Exception:
+        if created:
+            target.unlink(missing_ok=True)
+        raise

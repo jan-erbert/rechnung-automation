@@ -12,4 +12,4 @@ if [ ! -x "$PYTHON_BIN" ]; then
 fi
 
 cd "$SCRIPT_DIR"
-"$PYTHON_BIN" "$SCRIPT_DIR/src/main.py"
+"$PYTHON_BIN" "$SCRIPT_DIR/src/main.py" "$@"

@@ -20,6 +20,7 @@ from logging_setup import (
 from paths import create_paths
 from run_lock import RunLock
 from settings_loader import load_settings
+from state_backup import create_state_backup, validate_backup_config
 from startup_checks import check_start_requirements
 from time_utils import today
 from workflow import process_invoices
@@ -30,10 +31,19 @@ logger = logging.getLogger(__name__)
 def parse_args() -> argparse.Namespace:
     """Liest Kommandozeilenargumente fuer den Rechnungslauf."""
     parser = argparse.ArgumentParser(description="Rechnungen erzeugen und versenden.")
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
         "--non-interactive",
         action="store_true",
         help="Fuehrt den Lauf ohne Rueckfragen aus, z. B. fuer Cronjobs.",
+    )
+    mode.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "Prueft faellige Rechnungen inklusive PDF-Erzeugung, ohne Verlauf, "
+            "Archive, Kundendateien oder Mailversand zu veraendern."
+        ),
     )
     return parser.parse_args()
 
@@ -48,7 +58,12 @@ def main() -> int:
         args = parse_args()
         settings = load_settings()
         paths = create_paths(settings)
-        run_mode = "cron" if args.non_interactive else "interactive"
+        if args.dry_run:
+            run_mode = "dry-run"
+        elif args.non_interactive:
+            run_mode = "cron"
+        else:
+            run_mode = "interactive"
         log_file = configure_logging(
             settings.get("logging", {}), paths.base_dir, run_mode=run_mode
         )
@@ -59,7 +74,8 @@ def main() -> int:
         if log_file:
             logger.info("Logdatei: %s", log_file)
         with RunLock(paths.data_dir / ".invoice-run.lock"):
-            migrate_legacy_layout(paths.base_dir)
+            if not args.dry_run:
+                migrate_legacy_layout(paths.base_dir, paths)
             customers = load_customer_files(paths.customers_dir, strict=True)
             if not customers:
                 raise ValueError(
@@ -73,6 +89,13 @@ def main() -> int:
             design_config = validate_design_config(settings.get("design", {}))
             branding_config = validate_branding_config(settings.get("branding", {}))
             logger.info("Startpruefung erfolgreich.")
+            backup_config = validate_backup_config(settings.get("backup", {}))
+            if not args.dry_run and backup_config["enabled"]:
+                backup_path = create_state_backup(
+                    paths,
+                    keep_last=backup_config["keep_last"],
+                )
+                logger.info("Zustandsbackup erstellt: %s", backup_path)
             errors = _run_invoices(
                 args,
                 settings,
@@ -118,8 +141,11 @@ def _run_invoices(
     current_path = paths.data_dir / f"invoice-history-{current_year}.json"
     current_history = history_by_year.get(current_year, (current_path, []))[1]
     closed = 0
-    for _, (history_path, history) in history_by_year.items():
-        closed += close_expired_hours_waiting_entries(history_path, history, today())
+    if not args.dry_run:
+        for _, (history_path, history) in history_by_year.items():
+            closed += close_expired_hours_waiting_entries(
+                history_path, history, today()
+            )
     if closed:
         logger.warning(
             "%s abgelaufene Nullstunden-Wartezustaende wurden als no_invoice "
@@ -145,7 +171,8 @@ def _run_invoices(
         history=current_history,
         previous_history=previous_history,
         history_path=current_path,
-        interactive=not args.non_interactive,
+        interactive=not args.non_interactive and not args.dry_run,
+        dry_run=args.dry_run,
     )
 
 

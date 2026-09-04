@@ -19,7 +19,7 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> dict:
 
     reject_unknown_keys(
         settings,
-        {"paths", "pdf", "design", "branding", "logging", "mail"},
+        {"paths", "pdf", "design", "branding", "logging", "mail", "backup"},
         "settings",
     )
     sections = {
@@ -33,8 +33,9 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> dict:
             "backup_dir",
         },
         "pdf": {"engine"},
-        "logging": {"enabled", "directory", "level"},
+        "logging": {"enabled", "directory", "level", "retention_files"},
         "mail": {"security", "timeout_seconds"},
+        "backup": {"enabled", "keep_last"},
     }
     for section, allowed in sections.items():
         values = settings.get(section, {})

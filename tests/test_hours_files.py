@@ -33,9 +33,7 @@ def test_hours_yaml_accepts_unquoted_number(tmp_path):
         encoding="utf-8",
     )
 
-    assert load_hours_month(file_path, "2026-08") == {
-        "musterfirma": Decimal("8.5")
-    }
+    assert load_hours_month(file_path, "2026-08") == {"musterfirma": Decimal("8.5")}
 
 
 def test_hours_yaml_rejects_boolean_value(tmp_path):

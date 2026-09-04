@@ -1,5 +1,9 @@
 # generate_invoices.ps1 - Startskript fuer Windows
 
+param(
+    [switch]$DryRun
+)
+
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -16,7 +20,11 @@ if (-not (Test-Path $Python)) {
     exit 1
 }
 
-& $Python $MainScript
+if ($DryRun) {
+    & $Python $MainScript --dry-run
+} else {
+    & $Python $MainScript
+}
 $ExitCode = $LASTEXITCODE
 
 if ($ExitCode -ne 0) {
