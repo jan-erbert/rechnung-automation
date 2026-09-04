@@ -94,6 +94,8 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
   Ergebnis und lassen sichtbare Texte unveraendert.
 - PDF-Archive funktionieren auch auf Dateisystemen ohne Hardlink-Unterstuetzung,
   ohne vorhandene Rechnungen zu ueberschreiben.
+- Legacy-Verlaufs-IDs werden aus stabiler Kunden-ID und fachlichem Zeitraum
+  neu aufgebaut, sodass fehlerhafte alte Monatsendungen sicher korrigiert werden.
 
 ### Clarified
 

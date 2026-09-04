@@ -322,10 +322,6 @@ def _migrate_history(data_dir: Path, customer_index: dict[str, str]) -> list[str
             converted_entry = {
                 LEGACY_HISTORY_FIELDS.get(key, key): item for key, item in entry.items()
             }
-            entry_id = converted_entry.get("id")
-            if entry_id in seen_entry_ids:
-                raise ValueError(f"{source.name}: Doppelte Verlaufs-ID '{entry_id}'.")
-            seen_entry_ids.add(entry_id)
             company = str(converted_entry.get("company", "")).strip().casefold()
             customer_id = converted_entry.get("customer_id")
             if customer_id not in known_customer_ids:
@@ -336,6 +332,25 @@ def _migrate_history(data_dir: Path, customer_index: dict[str, str]) -> list[str
                         "keinem Kunden zugeordnet werden."
                     )
                 converted_entry["customer_id"] = resolved_id
+            entry_year = converted_entry.get("year")
+            entry_month = converted_entry.get("month")
+            if (
+                not isinstance(entry_year, int)
+                or isinstance(entry_year, bool)
+                or not isinstance(entry_month, int)
+                or isinstance(entry_month, bool)
+                or not 1 <= entry_month <= 12
+            ):
+                raise ValueError(
+                    f"{source.name}: Eintrag #{index} hat keinen gueltigen Zeitraum."
+                )
+            entry_id = (
+                f"{converted_entry['customer_id']}__{entry_year:04d}-{entry_month:02d}"
+            )
+            converted_entry["id"] = entry_id
+            if entry_id in seen_entry_ids:
+                raise ValueError(f"{source.name}: Doppelte Verlaufs-ID '{entry_id}'.")
+            seen_entry_ids.add(entry_id)
             converted.append(converted_entry)
         if target.exists():
             existing = load_history_file(target, int(match.group(1)))

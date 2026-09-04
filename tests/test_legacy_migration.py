@@ -386,6 +386,37 @@ def test_unknown_legacy_customer_id_is_resolved_by_unique_company(tmp_path):
 
     history = load_history_file(data_dir / "invoice-history-2025.json", 2025)
     assert history[0]["customer_id"] == "example"
+    assert history[0]["id"] == "example__2025-01"
+
+
+def test_legacy_history_ids_are_rebuilt_from_customer_and_period(tmp_path):
+    """Fehlerhafte alte ID-Monate werden aus den Fachfeldern neu aufgebaut."""
+    data_dir = tmp_path / "data"
+    customers_dir = tmp_path / "customers"
+    data_dir.mkdir()
+    customers_dir.mkdir()
+    save_customer_file(
+        _customer("example", "Example GmbH"), customers_dir / "example.yaml"
+    )
+    entries = [
+        {
+            "id": "alte-id__2025-05",
+            "kunden_id": "alte-id",
+            "firma": "Example GmbH",
+            "name": "Erika Beispiel",
+            "jahr": 2025,
+            "monat": month,
+        }
+        for month in (1, 2, 3, 4, 5)
+    ]
+    (data_dir / "verlauf-2025.json").write_text(json.dumps(entries), encoding="utf-8")
+
+    migrate_legacy_layout(tmp_path)
+
+    history = load_history_file(data_dir / "invoice-history-2025.json", 2025)
+    assert [entry["id"] for entry in history] == [
+        f"example__2025-{month:02d}" for month in range(1, 6)
+    ]
 
 
 def test_unknown_legacy_customer_id_without_match_is_rejected(tmp_path):
