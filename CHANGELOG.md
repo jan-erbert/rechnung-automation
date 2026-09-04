@@ -85,7 +85,8 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
   unvollstaendige Lockdatei.
 - Die Logdateierzeugung ist auch bei zeitgleichen Prozessstarts kollisionssicher.
 - Prozesssperren verwenden unter Linux und Windows echte Betriebssystemlocks,
-  ohne andere Prozesse per Signal zu pruefen.
+  ohne andere Prozesse per Signal zu pruefen, und verhindern auch parallele
+  Sperren innerhalb desselben Prozesses.
 - Automatische Legacy-Migrationen beruecksichtigen konfigurierte Pfade, bleiben
   nach neuen Zielinhalten idempotent und lehnen mehrdeutige Zuordnungen ab.
 - Template-Migrationen ersetzen nur technische Jinja-Namen, validieren das
