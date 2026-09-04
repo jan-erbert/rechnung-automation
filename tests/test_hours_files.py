@@ -1,3 +1,4 @@
+import os
 from decimal import Decimal
 
 import pytest
@@ -21,7 +22,8 @@ def test_hours_yaml_roundtrip_uses_decimal_and_restrictive_permissions(tmp_path)
     )
 
     assert load_hours_month(file_path, "2026-08") == {"musterfirma": Decimal("8.50")}
-    assert file_path.stat().st_mode & 0o777 == 0o600
+    if os.name == "posix":
+        assert file_path.stat().st_mode & 0o777 == 0o600
     assert "hours: 8.50" in file_path.read_text(encoding="utf-8")
 
 

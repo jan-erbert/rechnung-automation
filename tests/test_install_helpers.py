@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -46,7 +47,8 @@ def test_write_config_preserves_yaml_special_characters(tmp_path):
     assert config["sender"]["company"] == "Firma\\Nord"
     assert config["tax"]["vat_rate"] == "19"
     assert config["mail"]["from_name"] == "Testfirma Rechnungen"
-    assert config_path.stat().st_mode & 0o777 == 0o600
+    if os.name == "posix":
+        assert config_path.stat().st_mode & 0o777 == 0o600
 
 
 def test_small_business_config_omits_vat_rate():
@@ -82,7 +84,8 @@ def test_write_env_preserves_special_characters(tmp_path):
     write_mail_env(env_path, values)
 
     assert dict(dotenv_values(env_path)) == values
-    assert env_path.stat().st_mode & 0o777 == 0o600
+    if os.name == "posix":
+        assert env_path.stat().st_mode & 0o777 == 0o600
 
 
 @pytest.mark.parametrize(
