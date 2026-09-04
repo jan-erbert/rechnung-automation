@@ -4,6 +4,9 @@ from pathlib import Path
 
 from time_utils import now
 
+VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+VALID_RUN_MODES = {"interactive", "cron", "tool"}
+
 
 class RunErrorCollector(logging.Handler):
     """Sammelt schwere Laufmeldungen fuer den Cron-Fehlerbericht."""
@@ -27,7 +30,11 @@ class RunErrorCollector(logging.Handler):
         )
 
 
-def configure_logging(logging_config: dict, base_dir: Path) -> Path | None:
+def configure_logging(
+    logging_config: dict,
+    base_dir: Path,
+    run_mode: str = "tool",
+) -> Path | None:
     """Konfiguriert Konsolen- und optional Datei-Logging."""
     if not isinstance(logging_config, dict):
         raise ValueError("Der YAML-Bereich 'logging' muss eine Map sein.")
@@ -38,7 +45,13 @@ def configure_logging(logging_config: dict, base_dir: Path) -> Path | None:
         handler.close()
 
     level_name = str(logging_config.get("level", "INFO")).upper()
-    level = getattr(logging, level_name, logging.INFO)
+    if level_name not in VALID_LOG_LEVELS:
+        raise ValueError(
+            "logging.level muss DEBUG, INFO, WARNING, ERROR oder CRITICAL sein."
+        )
+    if run_mode not in VALID_RUN_MODES:
+        raise ValueError("run_mode muss interactive, cron oder tool sein.")
+    level = getattr(logging, level_name)
     logger.setLevel(level)
 
     formatter = logging.Formatter(
@@ -57,7 +70,7 @@ def configure_logging(logging_config: dict, base_dir: Path) -> Path | None:
     log_dir = _resolve_log_dir(base_dir, logging_config.get("directory", "logs"))
     log_dir.mkdir(parents=True, exist_ok=True)
     while True:
-        log_file = _create_log_path(log_dir)
+        log_file = _create_log_path(log_dir, run_mode)
         try:
             file_handler = logging.FileHandler(log_file, mode="x", encoding="utf-8")
             break
@@ -83,9 +96,9 @@ def _resolve_log_dir(base_dir: Path, log_dir_value: str) -> Path:
     return log_dir if log_dir.is_absolute() else base_dir / log_dir
 
 
-def _create_log_path(log_dir: Path) -> Path:
+def _create_log_path(log_dir: Path, run_mode: str) -> Path:
     """Erzeugt einen lesbaren und kollisionsfreien Dateinamen fuer den Lauf."""
-    base = f"invoice-{now():%Y-%m-%d_%H-%M-%S}"
+    base = f"invoice-{run_mode}-{now():%Y-%m-%d_%H-%M-%S}"
     log_file = log_dir / f"{base}.log"
     number = 2
     while log_file.exists():

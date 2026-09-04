@@ -41,7 +41,8 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
   Kundendatei geloescht.
 - Lokale Konfigurationen werden ohne Veraenderung globaler Umgebungsvariablen geladen.
 - Logdateien verwenden lesbare Namen nach dem Schema
-  `invoice-YYYY-MM-DD_HH-MM-SS.log`.
+  `invoice-<mode>-YYYY-MM-DD_HH-MM-SS.log` und unterscheiden interaktive,
+  Cron- und Werkzeuglaeufe bereits im Dateinamen.
 - Manuell eingegebene Stunden werden atomar in der passenden Monatsdatei
   gespeichert und Stundenmetadaten im Rechnungsverlauf dokumentiert.
 - Interne Versionsnummer auf `1.4.1` gesetzt.

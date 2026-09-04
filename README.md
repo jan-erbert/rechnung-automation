@@ -86,9 +86,11 @@ logging:
 `mail.security` akzeptiert `starttls` oder `ssl`. Die passende Portnummer wird
 weiterhin in `.env` festgelegt.
 
-Aktivierte Laufprotokolle erhalten gut lesbare Namen nach dem Schema
-`invoice-YYYY-MM-DD_HH-MM-SS.log`. Falls zwei Laeufe in derselben Sekunde
-starten, wird automatisch ein Zaehlsuffix wie `-02` angehaengt.
+Aktivierte Laufprotokolle erhalten gut lesbare, nach Betriebsart getrennte Namen:
+`invoice-interactive-YYYY-MM-DD_HH-MM-SS.log` fuer interaktive Laeufe,
+`invoice-cron-YYYY-MM-DD_HH-MM-SS.log` fuer Cronlaeufe und `invoice-tool-...`
+fuer Hilfswerkzeuge. Falls zwei Laeufe in derselben Sekunde starten, wird
+automatisch ein Zaehlsuffix wie `-02` angehaengt.
 
 ### `config/invoice.yaml`
 

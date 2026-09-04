@@ -48,11 +48,14 @@ def main() -> int:
         args = parse_args()
         settings = load_settings()
         paths = create_paths(settings)
-        log_file = configure_logging(settings.get("logging", {}), paths.base_dir)
+        run_mode = "cron" if args.non_interactive else "interactive"
+        log_file = configure_logging(
+            settings.get("logging", {}), paths.base_dir, run_mode=run_mode
+        )
         error_collector = (
             activate_run_error_collector() if args.non_interactive else None
         )
-        logger.info("Starte Rechnungslauf.")
+        logger.info("Starte Rechnungslauf (Modus: %s).", run_mode)
         if log_file:
             logger.info("Logdatei: %s", log_file)
         with RunLock(paths.data_dir / ".invoice-run.lock"):
