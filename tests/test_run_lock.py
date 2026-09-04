@@ -33,7 +33,8 @@ def test_run_lock_reuses_unlocked_file_without_process_probe(tmp_path, monkeypat
     )
 
     with RunLock(path):
-        assert json.loads(path.read_text(encoding="utf-8"))["pid"] == os.getpid()
+        pass
+    assert json.loads(path.read_text(encoding="utf-8"))["pid"] == os.getpid()
     assert path.exists()
 
 
@@ -54,7 +55,8 @@ def test_run_lock_releases_file_after_write_error(tmp_path, monkeypatch):
 
     monkeypatch.undo()
     with RunLock(path):
-        assert json.loads(path.read_text(encoding="utf-8"))["pid"] == os.getpid()
+        pass
+    assert json.loads(path.read_text(encoding="utf-8"))["pid"] == os.getpid()
 
 
 def test_windows_lock_uses_msvcrt_without_process_signal(monkeypatch):
