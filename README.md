@@ -322,6 +322,23 @@ Er versendet keine Mail, archiviert keine PDF und veraendert weder Verlauf,
 Stundendateien noch Kundendaten. Legacy-Migrationen werden im Dry-Run ebenfalls
 nicht geschrieben.
 
+### Kundenbezogene PDF-Vorschau
+
+Eine reale Kundenrechnung kann als deutlich markierte Vorschau ausschliesslich
+im konfigurierten Kundenarchiv abgelegt werden:
+
+```bash
+python tools/preview_customer_invoice.py <customer-id>
+```
+
+Die PDF erhaelt ein grosses `VORSCHAU`-Wasserzeichen und einen Dateinamen nach
+dem Schema
+`PREVIEW_Invoice_<customer-id>_<MM-YYYY>_<YYYY-MM-DD_HH-MM-SS>.pdf`.
+Das Werkzeug versendet keine E-Mail, schreibt keinen Rechnungsverlauf, aendert
+keine Kundendatei und archiviert keine unmarkierte Rechnung. Fehlende
+Stundenwerte werden nicht interaktiv erfragt oder gespeichert, sondern fuehren
+zu einem kontrollierten Abbruch.
+
 Eine projektweite Sperrdatei verhindert parallele Rechnungsläufe und damit
 versehentliche Doppelversendungen. Die Sperre verwendet unter Linux und Windows
 eine echte Betriebssystem-Dateisperre und wird bei einem Prozessabbruch

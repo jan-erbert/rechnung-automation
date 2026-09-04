@@ -32,6 +32,7 @@ Die folgenden Befehle und Skripte duerfen ohne ausdrueckliche Freigabe nicht aus
 - `tools/create_customer.py`
 - `tools/send_test_invoice.py`
 - `tools/test_mail_delivery.py`
+- `tools/preview_customer_invoice.py`
 - `tools/manage_backups.py create`
 - `tools/manage_backups.py restore`
 
@@ -57,6 +58,11 @@ Der Dry-Run ueber `./generate_invoices.sh --dry-run` beziehungsweise
 `generate_invoices.ps1 -DryRun` versendet keine E-Mails und veraendert keinen
 Rechnungszustand, rendert aber PDFs im Speicher und schreibt ein Laufprotokoll.
 Er darf deshalb nur mit ausdruecklicher Testfreigabe ausgefuehrt werden.
+
+Das Werkzeug `tools/preview_customer_invoice.py` schreibt eine deutlich
+markierte PDF-Vorschau in einen produktiven Kunden-Archivpfad. Es versendet
+keine Mail und aendert keinen Rechnungszustand, darf wegen des Schreibzugriffs
+aber ebenfalls nur nach ausdruecklicher Freigabe ausgefuehrt werden.
 
 `python tools/check_setup.py` darf fuer Pfadpruefungen kurzlebige Testdateien in
 konfigurierten Schreibzielen erstellen und sofort wieder entfernen. Der Check

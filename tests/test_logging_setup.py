@@ -73,6 +73,25 @@ def test_log_filename_identifies_cron_mode(tmp_path, monkeypatch):
         handler.close()
 
 
+def test_log_filename_identifies_preview_mode(tmp_path, monkeypatch):
+    """Vorschauprotokolle sind bereits am Dateinamen eindeutig erkennbar."""
+    monkeypatch.setattr(
+        "logging_setup.now",
+        lambda: datetime(2026, 9, 4, 11, 15, 0),
+    )
+
+    log_path = configure_logging(
+        {"enabled": True, "directory": str(tmp_path)},
+        tmp_path,
+        run_mode="preview",
+    )
+
+    assert log_path.name == "invoice-preview-2026-09-04_11-15-00.log"
+    for handler in logging.getLogger().handlers[:]:
+        logging.getLogger().removeHandler(handler)
+        handler.close()
+
+
 def test_logging_rejects_unknown_level(tmp_path):
     """Tippfehler im Log-Level werden nicht still als INFO interpretiert."""
     with pytest.raises(ValueError, match="logging.level"):

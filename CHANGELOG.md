@@ -34,6 +34,9 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 - Automatische, verifizierte Zustandsbackups mit begrenzter Aufbewahrung sowie
   ein Werkzeug zur sicheren Pruefung und Wiederherstellung in ein leeres Ziel.
 - Nicht-interaktiver PowerShell-Einstieg fuer die Windows-Aufgabenplanung.
+- Kundenbezogene PDF-Vorschauen mit `VORSCHAU`-Wasserzeichen und eindeutigem
+  `PREVIEW_Invoice_...`-Dateinamen, die ausschliesslich in den konfigurierten
+  Archivpfad schreiben und keinen Versand- oder Rechnungsstatus erzeugen.
 
 ### Changed
 

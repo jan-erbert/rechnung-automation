@@ -6,7 +6,7 @@ from pathlib import Path
 from time_utils import now
 
 VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
-VALID_RUN_MODES = {"interactive", "cron", "dry-run", "tool"}
+VALID_RUN_MODES = {"interactive", "cron", "dry-run", "preview", "tool"}
 
 
 class RunErrorCollector(logging.Handler):
@@ -51,7 +51,9 @@ def configure_logging(
             "logging.level muss DEBUG, INFO, WARNING, ERROR oder CRITICAL sein."
         )
     if run_mode not in VALID_RUN_MODES:
-        raise ValueError("run_mode muss interactive, cron, dry-run oder tool sein.")
+        raise ValueError(
+            "run_mode muss interactive, cron, dry-run, preview oder tool sein."
+        )
     level = getattr(logging, level_name)
     logger.setLevel(level)
 
