@@ -23,6 +23,7 @@ from run_lock import RunLock
 from settings_loader import load_settings
 from state_backup import create_state_backup, validate_backup_config
 from startup_checks import check_start_requirements
+from terminal_banner import show_startup_banner
 from time_utils import today
 from workflow import process_invoices
 
@@ -57,6 +58,7 @@ def main() -> int:
     error_collector = None
     try:
         args = parse_args()
+        show_startup_banner(non_interactive=args.non_interactive)
         settings = load_settings()
         paths = create_paths(settings)
         if args.dry_run:

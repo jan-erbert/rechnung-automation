@@ -2,6 +2,14 @@
 
 Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgeführt.
 
+## [Unreleased]
+
+### Added
+
+- Blau-weisses Rich-Terminalbanner beim interaktiven Programmstart, mit
+  kompakter Darstellung in schmalen Terminals und ohne Ausgabe bei Cronlaeufen
+  oder umgeleiteter Standardausgabe.
+
 ## [1.4.1] - 2026-09-04
 
 ### Added

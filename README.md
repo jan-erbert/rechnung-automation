@@ -52,6 +52,13 @@ source .venv/bin/activate
 python -m pip install -r install/requirements-dev.txt
 ```
 
+Beim interaktiven Start ueber `generate_invoices.sh`, `generate_invoices.ps1`
+oder `python src/main.py` erscheint ein blau-weisses Terminalbanner mit Rich.
+Schmale Terminals zeigen einen kompakten Titel. Cronlaeufe (`--non-interactive`)
+und umgeleitete Standardausgabe enthalten kein Banner. Bei bestehenden
+Installationen werden neue Abhaengigkeiten mit
+`python -m pip install -r install/requirements.txt` nachinstalliert.
+
 ## Konfiguration
 
 Menschengepflegte Daten verwenden YAML. Maschinell erzeugte Verlaufsdaten

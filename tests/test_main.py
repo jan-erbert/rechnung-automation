@@ -78,6 +78,20 @@ def test_main_reports_configuration_error_without_traceback(monkeypatch, caplog)
     assert all(record.exc_info is None for record in caplog.records)
 
 
+def test_main_calls_banner_before_loading_settings(monkeypatch):
+    """Der Startweg zeigt das Banner auch vor einem kontrollierten Setupfehler."""
+    modes = []
+    monkeypatch.setattr(
+        "main.show_startup_banner",
+        lambda non_interactive: modes.append(non_interactive),
+    )
+    monkeypatch.setattr("main.load_settings", lambda: _raise_value_error())
+    monkeypatch.setattr("sys.argv", ["main.py", "--non-interactive"])
+
+    assert main_module.main() == 1
+    assert modes == [True]
+
+
 def _raise_value_error():
     """Loest einen kontrollierten Konfigurationsfehler aus."""
     raise ValueError("Einstellungen ungueltig")
