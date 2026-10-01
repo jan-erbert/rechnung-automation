@@ -44,6 +44,10 @@ class InvoiceProcessingError(RuntimeError):
     """Kennzeichnet einen kontrolliert fehlgeschlagenen Rechnungsvorgang."""
 
 
+class ArchivePathError(ValueError):
+    """Kennzeichnet einen nicht erreichbaren Kunden-Archivpfad."""
+
+
 @dataclass(frozen=True)
 class RunContext:
     """Buendelt unveraenderliche Abhaengigkeiten eines Rechnungslaufs."""
@@ -120,6 +124,15 @@ def process_invoices(
                 customer.get("company", "Unbekannter Kunde"),
                 err,
             )
+        except ArchivePathError as err:
+            customer_errors += 1
+            logger.error(
+                "%s: Archivpruefung fehlgeschlagen: %s "
+                "Bitte archive.directory und die Einbindung des Archivordners "
+                "pruefen. Weitere Kunden werden verarbeitet.",
+                customer.get("company", "Unbekannter Kunde"),
+                err,
+            )
         except Exception as err:
             customer_errors += 1
             logger.error(
@@ -145,6 +158,14 @@ def process_invoices(
     return customer_errors
 
 
+def _check_customer_archive(path: str, write_probe: bool = False) -> None:
+    """Macht einen ungueltigen Archivpfad als erwartbaren Kundenfehler kenntlich."""
+    try:
+        check_archive_path(path, write_probe=write_probe)
+    except ValueError as err:
+        raise ArchivePathError(str(err)) from err
+
+
 def _process_customer_in_run(
     customers: list,
     customer: dict,
@@ -161,7 +182,7 @@ def _process_customer_in_run(
 
     archive_directory = customer.get("archive_directory")
     if archive_directory:
-        check_archive_path(archive_directory)
+        _check_customer_archive(archive_directory)
 
     if not is_invoice_due(customer, context.history, context.previous_history):
         logger.info("%s: Keine Abrechnung faellig.", customer["company"])
@@ -184,7 +205,7 @@ def _process_customer_entry(
     paths = context.paths
     archive_directory = customer.get("archive_directory")
     if archive_directory:
-        check_archive_path(archive_directory, write_probe=not context.dry_run)
+        _check_customer_archive(archive_directory, write_probe=not context.dry_run)
 
     invoice_data = build_invoice_data(customer, today)
     invoice_date = invoice_data["invoice_date"]

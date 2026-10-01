@@ -6,6 +6,7 @@ import pytest
 from email_service import MailDeliveryError
 from hours_files import write_hours_month
 from workflow import (
+    ArchivePathError,
     _send_email_with_status,
     _save_zero_hours_status,
     _save_pending_status,
@@ -511,6 +512,52 @@ def test_unexpected_customer_error_does_not_stop_following_customer(
     assert all(record.exc_info is None for record in caplog.records)
 
 
+def test_missing_archive_error_is_specific_and_processing_continues(tmp_path, caplog):
+    """Ein fehlendes Archiv wird ohne irrefuehrenden internen Fehler gemeldet."""
+    caplog.set_level("INFO")
+    customer = {
+        "id": "example",
+        "company": "Beispielfirma",
+        "email": "kunde@example.com",
+        "archive_directory": str(tmp_path / "fehlendes-archiv"),
+        "main_service": {
+            "description": "Hosting",
+            "unit": "month",
+            "unit_price": "10.00",
+        },
+    }
+    context = _laufkontext(tmp_path)
+
+    errors = process_invoices(
+        customers=[customer, {"company": "Inaktiver Kunde", "active": False}],
+        paths=context.paths,
+        invoice_config={
+            "sender": context.sender,
+            "bank": context.bank,
+            "tax": context.tax,
+        },
+        mail_config=context.mail_config,
+        pdf_config=context.pdf_config,
+        design_config=context.design_config,
+        branding_config=context.branding_config,
+        file_naming_config=context.file_naming_config,
+        templates=context.templates,
+        history=[],
+        previous_history=[],
+        history_path=context.history_path,
+        dry_run=True,
+    )
+
+    assert errors == 1
+    assert (
+        "Beispielfirma: Archivpruefung fehlgeschlagen: Archivpfad existiert nicht."
+        in caplog.text
+    )
+    assert "archive.directory" in caplog.text
+    assert "Inaktiver Kunde: Kunde ist deaktiviert" in caplog.text
+    assert "internen Fehlers" not in caplog.text
+
+
 def test_unreachable_archive_skips_customer_before_due_check(
     tmp_path,
     monkeypatch,
@@ -523,7 +570,7 @@ def test_unreachable_archive_skips_customer_before_due_check(
         lambda *args: billing_schedule_geprueft.append(True),
     )
 
-    with pytest.raises(ValueError, match="Archivpfad existiert nicht"):
+    with pytest.raises(ArchivePathError, match="Archivpfad existiert nicht"):
         _process_customer_in_run(
             customers=[],
             customer={

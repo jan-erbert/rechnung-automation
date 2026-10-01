@@ -10,6 +10,12 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
   kompakter Darstellung in schmalen Terminals und ohne Ausgabe bei Cronlaeufen
   oder umgeleiteter Standardausgabe.
 
+### Fixed
+
+- Fehlende oder unzugaengliche Kundenarchive werden im Rechnungslauf mit der
+  konkreten Archivursache und einem Pruefhinweis statt als interner Fehler
+  gemeldet.
+
 ## [1.4.1] - 2026-09-04
 
 ### Added
