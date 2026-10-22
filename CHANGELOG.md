@@ -20,6 +20,8 @@ Alle signifikanten Ã„nderungen dieses Projekts werden in diesem Dokument aufgefÃ
 
 ### Fixed
 
+- Windmill-Kundenstatus als ausdrueckliche Auswahl mit Standard `unchanged`,
+  damit eine reine Kontakt- oder Preisaenderung keinen Kunden deaktiviert.
 - Fehlende oder unzugaengliche Kundenarchive werden im Rechnungslauf mit der
   konkreten Archivursache und einem Pruefhinweis statt als interner Fehler
   gemeldet.

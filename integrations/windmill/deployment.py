@@ -39,6 +39,13 @@ def _schema(function) -> dict:
             field["default"] = parameter.default
             if parameter.default is None:
                 field["nullable"] = True
+        if name == "active" and parameter.default is None:
+            field = {
+                "type": "string",
+                "title": "Kundenstatus (unveraendert / aktiv / inaktiv)",
+                "enum": ["unchanged", "active", "inactive"],
+                "default": "unchanged",
+            }
         if name == "effective_from":
             field["description"] = (
                 "Optional JJJJ-MM; leer = naechste zulaessige Periode."
@@ -88,8 +95,19 @@ def script_definitions(
             for p in inspect.signature(function).parameters.values()
             if p.name not in {"allowed_domains", "resource_loader"}
         ]
+        parameters = [
+            p.replace(annotation=str, default="unchanged")
+            if p.name == "active" and p.default is None
+            else p
+            for p in parameters
+        ]
         signature = inspect.signature(function).replace(parameters=parameters)
-        arguments = [f"{p.name!r}: {p.name}" for p in parameters]
+        arguments = [
+            "'active': {'unchanged': None, 'active': True, 'inactive': False}[active]"
+            if p.name == "active" and p.default == "unchanged"
+            else f"{p.name!r}: {p.name}"
+            for p in parameters
+        ]
         if "allowed_domains" in inspect.signature(function).parameters:
             arguments.append(f"'allowed_domains': {allowed_domains!r}")
         content = prefix + f"\ndef main{signature}:\n"

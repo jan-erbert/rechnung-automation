@@ -65,6 +65,39 @@ def test_deployment_requires_absolute_worker_project_path(path):
         deployment.script_definitions(path)
 
 
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [(None, None), ("unchanged", None), ("active", True), ("inactive", False)],
+)
+def test_customer_form_requires_explicit_status_choice(tmp_path, status, expected):
+    """Ein unangetastetes Formular darf einen Kunden nicht deaktivieren."""
+    definition = next(
+        item
+        for item in deployment.script_definitions(str(tmp_path))
+        if item["path"] == "f/rechnung/customer_edit"
+    )
+    field = definition["schema"]["properties"]["active"]
+    assert field["type"] == "string"
+    assert field["default"] == "unchanged"
+    assert field["enum"] == ["unchanged", "active", "inactive"]
+    namespace = {}
+    exec(definition["content"], namespace)
+    captured = {}
+
+    def capture(action, arguments):
+        """Erfasst nur die erzeugten Argumente ohne Projekt- oder Dateizugriff."""
+        captured.update(arguments)
+        return action
+
+    namespace["invoke"] = capture
+    arguments = {"customer_id": "fixture"}
+    if status is not None:
+        arguments["active"] = status
+    assert namespace["main"](**arguments) == "customer_edit"
+    assert captured["active"] is expected
+    assert captured["apply"] is False
+
+
 def test_flow_has_three_steps_without_retry_and_defaults_to_dry_run():
     """Der Flow prueft zuerst, fuehrt einmal aus und zeigt danach sein Ergebnis."""
     flow = deployment.invoice_flow()
