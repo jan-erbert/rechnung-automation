@@ -96,6 +96,12 @@ Secrets, Tokens, Passwoerter und vollstaendige Inhalte von lokalen Konfiguration
 
 ## Entwicklung und Freigabe
 
+- Forgejo `adminjan/rechnung-automation` ist das fuehrende regulaere Repo;
+  GitHub ist das zweite Push-Ziel. `origin` liest von Forgejo und besitzt zwei
+  Push-URLs: zuerst Forgejo, danach GitHub. Diese Zuordnung erhalten.
+- Ein Commit bleibt lokal. Ein `git push` bedient beide Ziele nacheinander;
+  Fehler an einem Ziel beheben und den Push wiederholen. Keine automatische
+  Veroeffentlichung aus einem Commit-Hook oder einem CI-Job einrichten.
 - `main` ist der Freigabestand fuer die NAS-Bereitstellung. Neue Features,
   Umbauten und sonstige Entwicklung erfolgen auf `feature/...`, `fix/...`
   oder einem gesonderten Entwicklungsbranch, niemals direkt auf `main`.

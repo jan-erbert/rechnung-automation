@@ -415,6 +415,30 @@ Unter Windows wird in der Aufgabenplanung `invoice_cron.ps1` ohne angemeldete
 Benutzersitzung gestartet. Programm: `powershell.exe`; Argumente:
 `-NoProfile -ExecutionPolicy Bypass -File "C:\Pfad\invoice_cron.ps1"`.
 
+## Git und NAS-Bereitstellung
+
+Forgejo ist das fuehrende Repository:
+[adminjan/rechnung-automation](https://git.jecloud.de/adminjan/rechnung-automation).
+GitHub bleibt als zweites Push-Ziel erhalten. Die eingerichtete lokale
+Arbeitskopie liest mit `git pull` von Forgejo; ein `git push` sendet denselben
+Branch zuerst nach Forgejo und danach nach GitHub. Ein Commit allein bleibt
+lokal. Die beiden Pushes sind nicht atomar: Schlaegt ein Ziel fehl, den Fehler
+beheben und den Push wiederholen.
+
+Entwicklung erfolgt auf `feature/...`, `fix/...` oder einem Entwicklungsbranch.
+Nur bewusst freigegebener Code wird nach `main` uebernommen. Windmill prueft
+Forgejo-`main` taeglich um 08:30 Uhr Europe/Berlin und uebernimmt geeignete neue
+Commits. Ein Feature-Push startet keine Rechnungsanwendung. Nach einem Merge
+in der Forgejo-Oberflaeche muss der neue Main-Stand auch nach GitHub gepusht
+werden; fuer denselben Push zu beiden Zielen lokal mergen und anschliessend
+`git push origin main` verwenden.
+
+Die zwei Push-URLs sind lokale Git-Konfiguration und muessen fuer weitere
+Arbeitskopien ebenfalls eingerichtet werden. Pfade, Einrichtung und
+Betriebspruefungen stehen in der zentralen
+[Betriebsdokumentation](https://erbert-development.de/docs/default/component/je-infrastructure/systeme/windmill/rechnung-automation/).
+SMTP, Kundendaten und Laufzustand bleiben ausserhalb von Git.
+
 ## Tests und Codequalitaet
 
 ```bash
