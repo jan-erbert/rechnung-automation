@@ -101,6 +101,7 @@ def new_customer(
     cc: list[str] | None = None,
     apply: bool = False,
     allowed_domains: list[str] | None = None,
+    archive_directory: str | None = None,
 ) -> dict:
     """Prueft oder speichert einen Kunden ohne Rechnungs- oder Mailausloesung."""
     paths = project_paths()
@@ -123,6 +124,8 @@ def new_customer(
             "unit_price": unit_price,
         },
     }
+    if archive_directory is not None:
+        document["archive"] = {"directory": archive_directory}
     return create_customer(
         paths.customers_dir,
         paths.data_dir,

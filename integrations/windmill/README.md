@@ -91,6 +91,12 @@ Die erste Oberflaeche besteht aus nativen Windmill-Formularen, nicht aus einer
 separaten umfangreichen Verwaltungs-App. Kundenliste und Form-Ergebnisse
 enthalten private Stammdaten und gehoeren ausschliesslich in berechtigte Ordner.
 
+`runtime.new_customer()` nimmt optional `archive_directory` entgegen und
+uebernimmt den Wert als `archive.directory` in Vorschau und Kundendatei.
+Ohne Angabe bleibt das bisherige Verhalten erhalten. Der Betreiberadapter
+muss das Archivverzeichnis vorab bereitstellen; die Kundenanlage legt es
+nicht an. Umgebungsspezifische Archivpfade gehoeren in die private Konfiguration.
+
 Kontaktdaten gelten fuer folgende Laeufe. Preise und Konditionen werden fuer
 eine zukuenftige Abrechnungsgrenze geplant und in `scheduled_changes`
 gespeichert. Alte Rechnungsdateien und Rechnungshistorien werden dabei nicht

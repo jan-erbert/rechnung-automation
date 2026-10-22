@@ -13,6 +13,8 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
   Rechnungslauf-Sperre; zukuenftige Konditionen nach Leistungsmonat.
 - Getrennte Monatspositionen bei unterschiedlichen historischen Stundensaetzen.
 - Strukturierte Laufzaehler fuer die Flow-Ergebnisanzeige.
+- Optionaler Archivpfad `archive_directory` bei der Windmill-Kundenanlage,
+  der als `archive.directory` in Vorschau und Kundendatei uebernommen wird.
 
 - Blau-weisses Rich-Terminalbanner beim interaktiven Programmstart, mit
   kompakter Darstellung in schmalen Terminals und ohne Ausgabe bei Cronlaeufen

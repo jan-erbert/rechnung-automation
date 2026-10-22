@@ -95,3 +95,44 @@ def test_customer_write_still_requires_preview_revision(monkeypatch, tmp_path):
         runtime.edit_customer("fixture", city="Fixture City", apply=True)
 
     update.assert_not_called()
+
+
+@pytest.mark.parametrize("archive_directory", [None, "prepared-archive/fixture"])
+@pytest.mark.parametrize("apply", [False, True])
+def test_new_customer_preserves_optional_archive(
+    monkeypatch, tmp_path, archive_directory, apply
+):
+    """Anlage und Vorschau uebernehmen Archive ohne das Archivziel anzulegen."""
+    paths = SimpleNamespace(
+        customers_dir=tmp_path / "customers", data_dir=tmp_path / "state"
+    )
+    monkeypatch.setattr(runtime, "project_paths", lambda: paths)
+    if archive_directory is not None:
+        archive_directory = str(tmp_path / archive_directory)
+    options = {"archive_directory": archive_directory} if archive_directory else {}
+
+    result = runtime.new_customer(
+        customer_id="fixture",
+        company="Fixture Company",
+        contact_name="Fixture Contact",
+        email="fixture@example.invalid",
+        street="Fixture Street",
+        postal_code="00000",
+        city="Fixture City",
+        description="Hosting",
+        unit_price="50.00",
+        apply=apply,
+        **options,
+    )
+
+    assert result["customer"]["archive"] == {"directory": archive_directory}
+    assert result["saved"] is apply
+    assert not (tmp_path / "prepared-archive").exists()
+    if apply:
+        saved = runtime.get_customer(paths.customers_dir, "fixture")
+        assert saved["customer"]["archive"] == {"directory": archive_directory}
+        assert sorted(path.name for path in paths.data_dir.iterdir()) == [
+            ".invoice-run.lock",
+        ]
+    else:
+        assert list(tmp_path.iterdir()) == []
