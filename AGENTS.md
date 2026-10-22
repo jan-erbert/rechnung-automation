@@ -94,6 +94,26 @@ Secrets, Tokens, Passwoerter und vollstaendige Inhalte von lokalen Konfiguration
 - Nach Aenderungen immer `git diff --stat` und relevante Diffs pruefen und nennen.
 - Fremde oder bereits vorhandene lokale Aenderungen nicht ueberschreiben oder zuruecksetzen.
 
+## Entwicklung und Freigabe
+
+- `main` ist der Freigabestand fuer die NAS-Bereitstellung. Neue Features,
+  Umbauten und sonstige Entwicklung erfolgen auf `feature/...`, `fix/...`
+  oder einem gesonderten Entwicklungsbranch, niemals direkt auf `main`.
+- Vor einer Uebernahme nach `main` Diff, geeignete Tests und die konkreten
+  Auswirkungen auf Rechnungsdaten und Mailversand pruefen. Die Freigabe
+  nach `main` erfolgt bewusst; ein Push auf einen Featurebranch ist kein
+  Deployment.
+- Windmill prueft taeglich um 08:30 Uhr Europe/Berlin ausschliesslich
+  `origin/main` und uebernimmt einen neuen, regulaer vorwaerts laufenden
+  Commit. Keine Featurebranches und keine erzwungenen History-Wechsel.
+- Kundendaten, SMTP-Zugang und NAS-Laufkonfiguration bleiben getrennt vom
+  Quellcode. Git-Updates duerfen diese Daten nicht ersetzen.
+- Geaenderte Python-Abhaengigkeiten oder Laufzeitvoraussetzungen benoetigen
+  einen passenden Worker-Build; nicht ungeprueft mit dem alten Image starten.
+- Die eingerichtete Umgebung ist die dauerhafte Bereitstellung. Bis zur
+  ausdruecklichen Datenfreigabe ausschliesslich die bestehenden Testkunden
+  verwenden; Mailziele einschliesslich CC/BCC nur auf `mail-je.de`.
+
 ## Multi-Agent-Arbeit
 
 - `multiagents_v2` verwenden, wenn unabhaengige Pruef- oder Arbeitsbereiche
