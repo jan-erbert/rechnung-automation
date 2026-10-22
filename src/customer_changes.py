@@ -160,7 +160,9 @@ def _change_cycle(
         for item in history
         if item.get("customer_id") == customer["id"] and is_billing_complete(item)
     ]
-    latest = max(completed, key=lambda item: (item["year"], item["month"]), default=None)
+    latest = max(
+        completed, key=lambda item: (item["year"], item["month"]), default=None
+    )
     anchor = (
         latest["year"] * 12 + latest["month"] - 1
         if latest
@@ -192,7 +194,9 @@ def validate_change_boundary(
         anchor, cycle = boundary
         year, month = map(int, effective.split("-"))
         if (year * 12 + month - 1 - anchor) % cycle:
-            raise ValueError("Konditionsmonat muss zur bestehenden Zyklusgrenze passen.")
+            raise ValueError(
+                "Konditionsmonat muss zur bestehenden Zyklusgrenze passen."
+            )
 
 
 def next_change_month(

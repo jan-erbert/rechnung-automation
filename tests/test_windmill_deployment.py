@@ -48,8 +48,12 @@ def test_private_deployment_parameters_never_become_form_inputs(tmp_path):
         assert "resource_loader" not in names
         call = entry.body[-1].value
         payload = call.args[1]
-        keywords = {key.value: value for key, value in zip(payload.keys, payload.values)}
-        if definition["path"].endswith(("run_native", "customer_create", "customer_edit")):
+        keywords = {
+            key.value: value for key, value in zip(payload.keys, payload.values)
+        }
+        if definition["path"].endswith(
+            ("run_native", "customer_create", "customer_edit")
+        ):
             assert ast.literal_eval(keywords["allowed_domains"]) == ["allowed.invalid"]
         assert "resource_loader" not in keywords
 

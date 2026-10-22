@@ -51,8 +51,10 @@ def _find_customer(customers_dir: Path, customer_id: str) -> dict:
         raise ValueError("Ungueltige Kunden-ID.")
     for customer in _load_managed_customers(customers_dir):
         if customer["id"] == customer_id:
-            if not customer["_file_path"].resolve().is_relative_to(
-                customers_dir.resolve()
+            if (
+                not customer["_file_path"]
+                .resolve()
+                .is_relative_to(customers_dir.resolve())
             ):
                 raise ValueError("Kundendatei verlaesst das Kundenverzeichnis.")
             return customer
@@ -114,7 +116,11 @@ def create_customer(
         if path.exists() or path.is_symlink():
             raise ValueError("Zieldatei ist bereits vorhanden.")
         if not apply:
-            return {"customer": customer_to_yaml(customer), "revision": None, "saved": False}
+            return {
+                "customer": customer_to_yaml(customer),
+                "revision": None,
+                "saved": False,
+            }
         customer["_change_history"] = [
             {
                 "at": now().isoformat(timespec="seconds"),
@@ -177,7 +183,9 @@ def update_customer(
                 None,
             )
             if same_month:
-                same_month["changes"] = merge_document(same_month["changes"], conditions)
+                same_month["changes"] = merge_document(
+                    same_month["changes"], conditions
+                )
             else:
                 scheduled.append({"effective_from": effective, "changes": conditions})
                 scheduled.sort(key=lambda item: item["effective_from"])

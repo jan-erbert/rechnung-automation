@@ -155,9 +155,7 @@ def test_invalid_or_past_conditions_do_not_change_file(tmp_path):
     ]
     for changes, effective in cases:
         with pytest.raises(ValueError):
-            update(
-                tmp_path, created["revision"], changes, effective_from=effective
-            )
+            update(tmp_path, created["revision"], changes, effective_from=effective)
         assert path.read_bytes() == before
 
 
@@ -210,7 +208,9 @@ def test_versioned_input_rejects_duplicate_or_unsorted_months():
 
 def test_new_year_without_history_chooses_next_month():
     """Der Standardwechsel nach Dezember ist der Januar des Folgejahres."""
-    next_month = next_billing_month(normalize_customer(document()), [], date(2026, 12, 31))
+    next_month = next_billing_month(
+        normalize_customer(document()), [], date(2026, 12, 31)
+    )
     assert next_month == "2027-01"
 
 
@@ -277,7 +277,9 @@ def test_update_preview_preserves_original_file_and_revision(tmp_path):
     created = create(tmp_path)
     original = (tmp_path / "customers/fixture.yaml").read_bytes()
     result = update(
-        tmp_path, created["revision"], {"main_service": {"unit_price": "60.00"}},
+        tmp_path,
+        created["revision"],
+        {"main_service": {"unit_price": "60.00"}},
         apply=False,
     )
     assert result["saved"] is False

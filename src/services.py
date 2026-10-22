@@ -113,21 +113,30 @@ def build_service_items(
     """Baut Leistungspositionen und Nettosumme fuer einen Kundeneintrag."""
     invoice_day = today or current_date()
     monthly_rates = None
-    if entry.get("main_service", {}).get("unit") == "hour" and entry.get("_scheduled_changes"):
+    if entry.get("main_service", {}).get("unit") == "hour" and entry.get(
+        "_scheduled_changes"
+    ):
         preceding = resolve_customer_for_period(
             entry, invoice_day - relativedelta(months=1)
         )
         cycle_months = int(preceding.get("cycle_months", cycle_months))
-        snapshots = [resolve_customer_for_period(
-            entry, invoice_day - relativedelta(months=index + 1)
-        ) for index in range(cycle_months)]
-        if any(item.get("additional_services") != snapshots[0].get("additional_services") for item in snapshots):
+        snapshots = [
+            resolve_customer_for_period(
+                entry, invoice_day - relativedelta(months=index + 1)
+            )
+            for index in range(cycle_months)
+        ]
+        if any(
+            item.get("additional_services") != snapshots[0].get("additional_services")
+            for item in snapshots
+        ):
             raise HoursFileError(
                 "Zusatzleistungen wechseln im Stundenzeitraum; getrennte Abrechnung pruefen."
             )
         monthly_rates = {
-            (invoice_day - relativedelta(months=index + 1)).strftime("%Y-%m"):
-                validate_amount(item["main_service"]["unit_price"], "Stundensatz")
+            (invoice_day - relativedelta(months=index + 1)).strftime(
+                "%Y-%m"
+            ): validate_amount(item["main_service"]["unit_price"], "Stundensatz")
             for index, item in enumerate(snapshots)
         }
         entry = snapshots[0]
@@ -166,13 +175,15 @@ def build_service_items(
         if hours_info.get("mixed_rates"):
             for detail in hours_info["monthly_details"]:
                 value = detail["hours"] * detail["rate"]
-                items.append({
-                    "description": (
-                        f"{detail['month']}: {detail['hours']:.1f} Stunden "
-                        f"× {detail['rate']:.2f} EUR"
-                    ),
-                    "price": f"{value:.2f}".replace(".", ",") + " EUR",
-                })
+                items.append(
+                    {
+                        "description": (
+                            f"{detail['month']}: {detail['hours']:.1f} Stunden "
+                            f"× {detail['rate']:.2f} EUR"
+                        ),
+                        "price": f"{value:.2f}".replace(".", ",") + " EUR",
+                    }
+                )
         else:
             items.append(
                 {

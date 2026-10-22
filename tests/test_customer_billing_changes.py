@@ -206,8 +206,6 @@ def test_hourly_cycle_change_is_rejected_even_in_direct_yaml(old_cycle, new_cycl
     from customer_files import customer_to_yaml
 
     document = customer_to_yaml(customer(unit="hour", cycle=old_cycle))
-    document["scheduled_changes"][0]["changes"]["billing"] = {
-        "cycle_months": new_cycle
-    }
+    document["scheduled_changes"][0]["changes"]["billing"] = {"cycle_months": new_cycle}
     with pytest.raises(ValueError, match="Stunden-Abrechnungszyklus"):
         normalize_customer(document)

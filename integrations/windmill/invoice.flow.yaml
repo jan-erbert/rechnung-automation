@@ -1,0 +1,44 @@
+path: f/rechnung/invoices
+summary: Rechnungsautomatisierung
+description: 'Pruefen, ausfuehren und Ergebnis anzeigen. Standard: Dry-Run.'
+tag: python3
+schema:
+  type: object
+  properties:
+    mode:
+      type: string
+      enum:
+      - dry-run
+      - send
+      default: dry-run
+    smtp_resource:
+      type: string
+      default: f/rechnung/smtp
+value:
+  modules:
+  - id: validate
+    summary: Eingaben pruefen
+    value:
+      type: script
+      path: f/rechnung/validate
+      input_transforms: {}
+  - id: execute
+    summary: Rechnungslauf
+    value:
+      type: script
+      path: f/rechnung/run_native
+      input_transforms:
+        mode:
+          type: javascript
+          expr: flow_input.mode || 'dry-run'
+        smtp_resource:
+          type: javascript
+          expr: flow_input.smtp_resource || 'f/rechnung/smtp'
+  - id: result
+    summary: Ergebnis
+    value:
+      type: identity
+      input_transforms:
+        result:
+          type: javascript
+          expr: results.execute

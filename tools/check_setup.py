@@ -153,7 +153,9 @@ def _check_file_naming_settings(report: CheckReport, settings: dict) -> None:
 def _check_env(report: CheckReport, settings: dict | None = None) -> None:
     """Prueft die lokale .env-Datei ohne Werte auszugeben."""
     env_path = PROJECT_ROOT / ".env"
-    if not env_path.exists() and not all(os.environ.get(key) for key in REQUIRED_ENV_KEYS):
+    if not env_path.exists() and not all(
+        os.environ.get(key) for key in REQUIRED_ENV_KEYS
+    ):
         report.error(".env fehlt und SMTP-Umgebungsvariablen sind unvollstaendig.")
         return
     values = {**(dotenv_values(env_path) if env_path.exists() else {}), **os.environ}

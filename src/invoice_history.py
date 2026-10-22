@@ -122,8 +122,11 @@ def build_history_entry(
         entry["hours"] = format(hours_info["hours"], "f")
         if hours_info.get("mixed_rates"):
             entry["hourly_rates"] = [
-                {"month": item["month"], "hours": format(item["hours"], "f"),
-                 "rate": format(item["rate"], "f")}
+                {
+                    "month": item["month"],
+                    "hours": format(item["hours"], "f"),
+                    "rate": format(item["rate"], "f"),
+                }
                 for item in hours_info["monthly_details"]
             ]
         else:

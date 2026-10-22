@@ -2,6 +2,8 @@
 
 import inspect
 import json
+
+import yaml
 from pathlib import Path
 
 from integrations.windmill import runtime
@@ -52,7 +54,8 @@ def _schema(function) -> dict:
 
 
 def script_definitions(
-    project_root: str, allowed_domains: list[str] | None = None,
+    project_root: str,
+    allowed_domains: list[str] | None = None,
     python_executable: str = "python3",
 ) -> list[dict]:
     """Erzeugt schlanke Einstiegsskripte ohne Kopie der fachlichen Verarbeitung."""
@@ -112,69 +115,8 @@ def script_definitions(
 
 def invoice_flow() -> dict:
     """Verbindet Pruefung, Rechnungslauf und Ergebnis ohne automatische Wiederholung."""
-    return {
-        "path": "f/rechnung/invoices",
-        "summary": "Rechnungsautomatisierung",
-        "description": "Pruefen, ausfuehren und Ergebnis anzeigen. Standard: Dry-Run.",
-        "tag": "python3",
-        "schema": {
-            "type": "object",
-            "properties": {
-                "mode": {
-                    "type": "string",
-                    "enum": ["dry-run", "send"],
-                    "default": "dry-run",
-                },
-                "smtp_resource": {"type": "string", "default": "f/rechnung/smtp"},
-            },
-        },
-        "value": {
-            "modules": [
-                {
-                    "id": "validate",
-                    "summary": "Eingaben pruefen",
-                    "value": {
-                        "type": "script",
-                        "path": "f/rechnung/validate",
-                        "input_transforms": {},
-                    },
-                },
-                {
-                    "id": "execute",
-                    "summary": "Rechnungslauf",
-                    "value": {
-                        "type": "script",
-                        "path": "f/rechnung/run_native",
-                        "input_transforms": {
-                            "mode": {
-                                "type": "javascript",
-                                "expr": "flow_input.mode || 'dry-run'",
-                            },
-                            "smtp_resource": {
-                                "type": "javascript",
-                                "expr": (
-                                    "flow_input.smtp_resource || 'f/rechnung/smtp'"
-                                ),
-                            },
-                        },
-                    },
-                },
-                {
-                    "id": "result",
-                    "summary": "Ergebnis",
-                    "value": {
-                        "type": "identity",
-                        "input_transforms": {
-                            "result": {
-                                "type": "javascript",
-                                "expr": "results.execute",
-                            },
-                        },
-                    },
-                },
-            ],
-        },
-    }
+    path = Path(__file__).with_name("invoice.flow.yaml")
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
