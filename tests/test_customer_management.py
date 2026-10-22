@@ -297,3 +297,60 @@ def test_hourly_cycle_change_is_rejected_before_storage(tmp_path):
     with pytest.raises(ValueError, match="Stunden-Abrechnungszyklus"):
         update(tmp_path, created["revision"], {"billing": {"cycle_months": 3}})
     assert (tmp_path / "customers/fixture.yaml").read_bytes() == original
+
+
+@pytest.mark.parametrize("invalid_apply", ["false", None, 0])
+def test_create_rejects_non_boolean_apply_before_any_access(
+    tmp_path, monkeypatch, invalid_apply
+):
+    """Ein typfalscher Speicherparameter darf weder validieren noch Dateien anlegen."""
+
+    def unexpected_access(*args, **kwargs):
+        """Erkennt jeden unerlaubten Zugriff nach einem ungueltigen Speicherparameter."""
+        raise AssertionError("Kein Zugriff vor der apply-Typpruefung")
+
+    monkeypatch.setattr("customer_management.normalize_customer", unexpected_access)
+    monkeypatch.setattr("customer_management.RunLock", unexpected_access)
+    with pytest.raises(ValueError, match="apply muss true oder false sein"):
+        create_customer(
+            tmp_path / "customers",
+            tmp_path / "state",
+            document(),
+            apply=invalid_apply,
+        )
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize("invalid_apply", ["false", None, 0])
+def test_update_rejects_non_boolean_apply_before_any_access(
+    tmp_path, monkeypatch, invalid_apply
+):
+    """Ein typfalscher Speicherparameter veraendert weder Kunde noch bestehende Sperre."""
+    created = create(tmp_path)
+    before = {
+        path.relative_to(tmp_path): path.read_bytes()
+        for path in tmp_path.rglob("*")
+        if path.is_file()
+    }
+
+    def unexpected_access(*args, **kwargs):
+        """Erkennt Kundenlesen und Sperrzugriff vor der apply-Typpruefung."""
+        raise AssertionError("Kein Zugriff vor der apply-Typpruefung")
+
+    monkeypatch.setattr("customer_management._find_customer", unexpected_access)
+    monkeypatch.setattr("customer_management.RunLock", unexpected_access)
+    with pytest.raises(ValueError, match="apply muss true oder false sein"):
+        update_customer(
+            tmp_path / "customers",
+            tmp_path / "state",
+            "fixture",
+            {"contact": {"city": "Changed"}},
+            created["revision"],
+            apply=invalid_apply,
+        )
+    after = {
+        path.relative_to(tmp_path): path.read_bytes()
+        for path in tmp_path.rglob("*")
+        if path.is_file()
+    }
+    assert after == before

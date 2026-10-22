@@ -98,6 +98,8 @@ def create_customer(
     apply: bool = True,
 ) -> dict:
     """Validiert oder speichert einen Kunden ohne Rechnung oder Versand."""
+    if not isinstance(apply, bool):
+        raise ValueError("apply muss true oder false sein.")
     customer = normalize_customer(document)
     validate_customer_entry(customer)
     _check_recipients(customer, allowed_domains)
@@ -144,6 +146,8 @@ def update_customer(
     apply: bool = True,
 ) -> dict:
     """Prueft oder speichert Kontakt und kuenftige Konditionen ohne Rechnungsstart."""
+    if not isinstance(apply, bool):
+        raise ValueError("apply muss true oder false sein.")
     if not isinstance(changes, dict) or not changes:
         raise ValueError("Mindestens eine Kundenaenderung ist erforderlich.")
     reject_unknown_keys(
