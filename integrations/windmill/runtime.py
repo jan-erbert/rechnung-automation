@@ -7,7 +7,9 @@ PROJECT = Path(__file__).resolve().parents[2]
 if str(PROJECT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT / "src"))
 
-from customer_files import load_customer_files  # noqa: E402
+from customer_files import load_customer_files, normalize_customer  # noqa: E402
+from customer_changes import resolve_customer_for_period  # noqa: E402
+from time_utils import today  # noqa: E402
 from customer_management import (  # noqa: E402
     create_customer,
     get_customer,
@@ -65,7 +67,23 @@ def run(
 
 def customers() -> list[dict]:
     """Liefert die private Kundenliste fuer berechtigte Verwaltungsformulare."""
-    return list_customers(project_paths().customers_dir)
+    rows = []
+    for record in list_customers(project_paths().customers_dir):
+        customer = resolve_customer_for_period(
+            normalize_customer(record["customer"]), today()
+        )
+        rows.append(
+            {
+                "id": customer["id"],
+                "company": customer["company"],
+                "email": customer["email"],
+                "active": customer["active"],
+                "unit_price": customer["main_service"]["unit_price"],
+                "cycle_months": customer["cycle_months"],
+                "revision": record["revision"],
+            }
+        )
+    return rows
 
 
 def new_customer(
