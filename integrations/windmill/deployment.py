@@ -96,16 +96,20 @@ def script_definitions(
             if p.name not in {"allowed_domains", "resource_loader"}
         ]
         parameters = [
-            p.replace(annotation=str, default="unchanged")
-            if p.name == "active" and p.default is None
-            else p
+            (
+                p.replace(annotation=str, default="unchanged")
+                if p.name == "active" and p.default is None
+                else p
+            )
             for p in parameters
         ]
         signature = inspect.signature(function).replace(parameters=parameters)
         arguments = [
-            "'active': {'unchanged': None, 'active': True, 'inactive': False}[active]"
-            if p.name == "active" and p.default == "unchanged"
-            else f"{p.name!r}: {p.name}"
+            (
+                "'active': {'unchanged': None, 'active': True, 'inactive': False}[active]"
+                if p.name == "active" and p.default == "unchanged"
+                else f"{p.name!r}: {p.name}"
+            )
             for p in parameters
         ]
         if "allowed_domains" in inspect.signature(function).parameters:
