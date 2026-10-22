@@ -24,7 +24,6 @@ def check_start_requirements(
         paths.base_dir / "config" / "settings.yaml",
         "config/settings.yaml",
     )
-    check_readable_file(paths.base_dir / ".env", ".env")
     check_readable_directory(paths.customers_dir, "Kundenverzeichnis")
     check_readable_file(paths.invoice_config, "config/invoice.yaml")
     check_readable_directory(paths.templates_dir, "Template-Verzeichnis")

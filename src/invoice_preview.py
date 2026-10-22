@@ -2,6 +2,7 @@ from datetime import datetime
 from pathlib import Path
 
 from branding import load_logo_asset
+from customer_changes import resolve_customer_for_period
 from file_naming import build_preview_filename
 from invoice_templates import InvoiceTemplates, build_template_context
 from invoices import build_invoice_data, calculate_billing_period, calculate_tax_values
@@ -27,6 +28,9 @@ def create_customer_invoice_preview(
     timestamp: datetime | None = None,
 ) -> Path:
     """Erzeugt eine markierte Kunden-Vorschau ohne Versand oder Statusaenderung."""
+    preview_date = today()
+    if customer.get("_scheduled_changes"):
+        customer = resolve_customer_for_period(customer, preview_date)
     validate_customer_entry(customer)
     if customer.get("active") is False:
         raise ValueError("Fuer einen deaktivierten Kunden wird keine Vorschau erzeugt.")
@@ -41,7 +45,6 @@ def create_customer_invoice_preview(
         archive_directory = paths.base_dir / archive_directory
     check_archive_path(str(archive_directory), write_probe=True)
 
-    preview_date = today()
     preview_timestamp = timestamp or now()
     invoice_data = build_invoice_data(customer, preview_date)
     cycle_months = validate_positive_integer(

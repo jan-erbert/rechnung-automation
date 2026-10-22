@@ -69,6 +69,8 @@ def normalize_customer(raw_value: dict, file_path: Path | None = None) -> dict:
             "main_service",
             "additional_services",
             "archive",
+            "scheduled_changes",
+            "change_history",
         },
         "customer",
     )
@@ -157,6 +159,19 @@ def normalize_customer(raw_value: dict, file_path: Path | None = None) -> dict:
         ),
         "archive_directory": archive.get("directory"),
     }
+    if "scheduled_changes" in raw_value:
+        from customer_changes import normalize_scheduled_changes
+
+        customer["_scheduled_changes"] = normalize_scheduled_changes(
+            raw_value["scheduled_changes"], raw_value
+        )
+    if "change_history" in raw_value:
+        history = raw_value["change_history"]
+        if not isinstance(history, list) or any(
+            not isinstance(item, dict) for item in history
+        ):
+            raise ValueError("change_history muss eine Liste von Objekten sein.")
+        customer["_change_history"] = history
     if file_path is not None:
         customer["_file_path"] = file_path
     return customer
@@ -239,7 +254,7 @@ def customer_to_yaml(customer: dict) -> dict:
             entry["unit_price"] = str(service.get("unit_price"))
         additional_services.append(entry)
 
-    return {
+    result = {
         "id": customer["id"],
         "active": customer.get("active", True),
         "contact": {
@@ -268,6 +283,15 @@ def customer_to_yaml(customer: dict) -> dict:
         "additional_services": additional_services,
         "archive": {"directory": customer.get("archive_directory") or None},
     }
+    base = customer.get("_base_customer_document")
+    if base:
+        for name in ("billing", "main_service", "additional_services"):
+            result[name] = base[name]
+    if customer.get("_scheduled_changes"):
+        result["scheduled_changes"] = customer["_scheduled_changes"]
+    if customer.get("_change_history"):
+        result["change_history"] = customer["_change_history"]
+    return result
 
 
 def _invoice_date_to_iso(value) -> str | None:

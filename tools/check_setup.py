@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 from dotenv import dotenv_values
+import os
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
@@ -152,10 +153,10 @@ def _check_file_naming_settings(report: CheckReport, settings: dict) -> None:
 def _check_env(report: CheckReport, settings: dict | None = None) -> None:
     """Prueft die lokale .env-Datei ohne Werte auszugeben."""
     env_path = PROJECT_ROOT / ".env"
-    if not env_path.exists():
-        report.error(".env fehlt.")
+    if not env_path.exists() and not all(os.environ.get(key) for key in REQUIRED_ENV_KEYS):
+        report.error(".env fehlt und SMTP-Umgebungsvariablen sind unvollstaendig.")
         return
-    values = dotenv_values(env_path)
+    values = {**(dotenv_values(env_path) if env_path.exists() else {}), **os.environ}
     for key in REQUIRED_ENV_KEYS:
         if not values.get(key):
             report.error(f".env: {key} fehlt oder ist leer.")
@@ -238,7 +239,6 @@ def _check_paths(report: CheckReport, settings: dict, data: list | None) -> None
         return
 
     checks = (
-        (check_readable_file, PROJECT_ROOT / ".env", ".env"),
         (check_readable_directory, paths.data_dir, "Datenverzeichnis"),
         (check_readable_directory, paths.customers_dir, "Kundenverzeichnis"),
         (check_readable_file, paths.invoice_config, "config/invoice.yaml"),

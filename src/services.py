@@ -5,6 +5,8 @@ from pathlib import Path
 
 from dateutil.relativedelta import relativedelta
 
+from customer_changes import resolve_customer_for_period
+
 from hours_files import (
     HoursFileError,
     load_hours_month,
@@ -26,10 +28,13 @@ def calculate_hourly_service(
     hours_dir: Path,
     interactive: bool = True,
     today: date | None = None,
+    monthly_rates: dict | None = None,
 ):
     """Berechnet stundenbasierte Leistungen fuer den Abrechnungszeitraum."""
     today = today or current_date()
     total_hours = Decimal("0")
+    total_amount = Decimal("0")
+    details = []
     months = []
     missing_months = []
 
@@ -65,13 +70,19 @@ def calculate_hourly_service(
             )
 
         total_hours += hours
+        rate = (monthly_rates or {}).get(period, hourly_rate)
+        total_amount += rate * hours
+        details.append({"month": period, "hours": hours, "rate": rate})
 
-    amount = hourly_rate * total_hours
+    rates = {item["rate"] for item in details}
+    amount = total_amount
     period = ", ".join(reversed(months))
 
     return {
         "hours": total_hours,
-        "hourly_rate": hourly_rate,
+        "hourly_rate": next(iter(rates)) if len(rates) == 1 else hourly_rate,
+        "monthly_details": list(reversed(details)),
+        "mixed_rates": len(rates) > 1,
         "total_amount": amount,
         "period": period,
         "complete": not missing_months,
@@ -100,6 +111,26 @@ def build_service_items(
     today: date | None = None,
 ) -> dict:
     """Baut Leistungspositionen und Nettosumme fuer einen Kundeneintrag."""
+    invoice_day = today or current_date()
+    monthly_rates = None
+    if entry.get("main_service", {}).get("unit") == "hour" and entry.get("_scheduled_changes"):
+        preceding = resolve_customer_for_period(
+            entry, invoice_day - relativedelta(months=1)
+        )
+        cycle_months = int(preceding.get("cycle_months", cycle_months))
+        snapshots = [resolve_customer_for_period(
+            entry, invoice_day - relativedelta(months=index + 1)
+        ) for index in range(cycle_months)]
+        if any(item.get("additional_services") != snapshots[0].get("additional_services") for item in snapshots):
+            raise HoursFileError(
+                "Zusatzleistungen wechseln im Stundenzeitraum; getrennte Abrechnung pruefen."
+            )
+        monthly_rates = {
+            (invoice_day - relativedelta(months=index + 1)).strftime("%Y-%m"):
+                validate_amount(item["main_service"]["unit_price"], "Stundensatz")
+            for index, item in enumerate(snapshots)
+        }
+        entry = snapshots[0]
     main_service = entry.get("main_service", {})
     items = []
 
@@ -116,6 +147,7 @@ def build_service_items(
             hours_dir,
             interactive=interactive,
             today=today,
+            **({"monthly_rates": monthly_rates} if monthly_rates is not None else {}),
         )
 
         if hours_info["hours"] == 0 or not hours_info["complete"]:
@@ -131,12 +163,23 @@ def build_service_items(
             f"{hours_info['hours']:.1f} Stunden × "
             f"{hours_info['hourly_rate']:.2f} EUR"
         )
-        items.append(
-            {
-                "description": description,
-                "price": f"{amount:.2f}".replace(".", ",") + " EUR",
-            }
-        )
+        if hours_info.get("mixed_rates"):
+            for detail in hours_info["monthly_details"]:
+                value = detail["hours"] * detail["rate"]
+                items.append({
+                    "description": (
+                        f"{detail['month']}: {detail['hours']:.1f} Stunden "
+                        f"× {detail['rate']:.2f} EUR"
+                    ),
+                    "price": f"{value:.2f}".replace(".", ",") + " EUR",
+                })
+        else:
+            items.append(
+                {
+                    "description": description,
+                    "price": f"{amount:.2f}".replace(".", ",") + " EUR",
+                }
+            )
 
     elif unit == "flat":
         total_amount = amount

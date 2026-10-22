@@ -6,6 +6,14 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 
 ### Added
 
+- Gemeinsamer Python-Einstieg fuer bestehende CLI und optionale Windmill-Flows.
+- Optionale SMTP-Ressourcen und begrenzter OpenBao-KV-v2-Abruf mit kurzlebigen
+  AppRole-Sitzungen, HTTPS-Pruefung und anschliessendem Token-Widerruf.
+- Native Kundenformulare mit Vorschau, Versionskonfliktschutz und gemeinsamer
+  Rechnungslauf-Sperre; zukuenftige Konditionen nach Leistungsmonat.
+- Getrennte Monatspositionen bei unterschiedlichen historischen Stundensaetzen.
+- Strukturierte Laufzaehler fuer die Flow-Ergebnisanzeige.
+
 - Blau-weisses Rich-Terminalbanner beim interaktiven Programmstart, mit
   kompakter Darstellung in schmalen Terminals und ohne Ausgabe bei Cronlaeufen
   oder umgeleiteter Standardausgabe.

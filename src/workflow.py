@@ -6,6 +6,7 @@ from pathlib import Path
 from branding import load_logo_asset
 from billing_schedule import is_invoice_due
 from customer_lifecycle import should_deactivate_customer, save_customer_data
+from customer_changes import resolve_customer_for_period
 from file_naming import build_invoice_filename
 from services import build_service_items
 from email_service import MailDeliveryError, build_invoice_email, send_email
@@ -86,6 +87,7 @@ def process_invoices(
     history_path,
     interactive: bool = True,
     dry_run: bool = False,
+    summary: dict | None = None,
 ) -> int:
     """Verarbeitet alle faelligen Kundeneintraege fuer den Rechnungslauf."""
     context = RunContext(
@@ -109,13 +111,16 @@ def process_invoices(
     )
 
     customer_errors = 0
+    counts = {"prepared": 0, "sent": 0, "skipped": 0, "waiting_hours": 0}
     for customer in customers:
         try:
-            _process_customer_in_run(
+            outcome = _process_customer_in_run(
                 customers=customers,
                 customer=customer,
                 context=context,
             )
+            if outcome in counts:
+                counts[outcome] += 1
         except HoursFileError as err:
             customer_errors += 1
             logger.error(
@@ -148,6 +153,8 @@ def process_invoices(
                 exc_info=True,
             )
 
+    if summary is not None:
+        summary.update(counts, errors=customer_errors)
     if customer_errors:
         logger.error(
             "Rechnungslauf mit %s Fehlern bei der Kundenverarbeitung abgeschlossen.",
@@ -170,13 +177,15 @@ def _process_customer_in_run(
     customers: list,
     customer: dict,
     context: RunContext,
-) -> None:
+) -> str:
     """Prueft und verarbeitet einen Kunden innerhalb der sicheren Laufgrenze."""
+    if customer.get("_scheduled_changes"):
+        customer = resolve_customer_for_period(customer, current_date())
     if customer.get("active") is False:
         logger.info(
             "%s: Kunde ist deaktiviert - keine Abrechnung.", customer["company"]
         )
-        return
+        return "skipped"
 
     validate_customer_entry(customer)
 
@@ -186,9 +195,9 @@ def _process_customer_in_run(
 
     if not is_invoice_due(customer, context.history, context.previous_history):
         logger.info("%s: Keine Abrechnung faellig.", customer["company"])
-        return
+        return "skipped"
 
-    _process_customer_entry(
+    return _process_customer_entry(
         customers=customers,
         customer=customer,
         context=context,
@@ -199,7 +208,7 @@ def _process_customer_entry(
     customers: list,
     customer: dict,
     context: RunContext,
-) -> None:
+) -> str:
     """Erzeugt und versendet eine Rechnung fuer einen Kundeneintrag."""
     today = current_date()
     paths = context.paths
@@ -241,7 +250,7 @@ def _process_customer_entry(
                 "kein Zustand wurde gespeichert.",
                 customer["company"],
             )
-            return
+            return "waiting_hours"
         _save_zero_hours_status(
             customer,
             today,
@@ -255,7 +264,7 @@ def _process_customer_entry(
             hours_info=hours_info,
             missing_months=hours_info.get("missing_months", []),
         )
-        return
+        return "waiting_hours"
 
     tax_data = calculate_tax_values(total_amount, context.tax)
     mail_cc = normalize_email_list(customer.get("cc"), "cc")
@@ -323,7 +332,7 @@ def _process_customer_entry(
             customer["company"],
             tax_data["formatted_total"],
         )
-        return
+        return "prepared"
 
     delivery_entry = build_history_entry(
         customer,
@@ -354,6 +363,7 @@ def _process_customer_entry(
     _deactivate_customer_if_needed(
         customers, customer, today, paths, context.interactive
     )
+    return "sent"
 
 
 def _save_pending_status(

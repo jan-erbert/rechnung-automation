@@ -79,7 +79,9 @@ def build_template_context(
         "gross_amount": f"{gross_amount:.2f}".replace(".", ","),
         "net_amount": f"{total_amount:.2f}".replace(".", ","),
     }
-    if hours_info:
+    if hours_info and hours_info.get("mixed_rates"):
+        context["hourly_rate_note"] = "Stundensaetze je Leistungsmonat siehe Positionen."
+    elif hours_info:
         context["hourly_rate_note"] = (
             f"(Stundensatz: {hours_info['hourly_rate']:.2f} EUR pro Stunde)"
         )

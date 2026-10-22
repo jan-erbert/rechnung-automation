@@ -164,11 +164,11 @@ def _validate_tax_identifier(tax: dict) -> None:
 
 def load_mail_environment(path: Path, mail_settings: dict | None = None) -> dict:
     """Laedt Mail-Zugangsdaten ohne globale Umgebungsvariablen zu veraendern."""
-    if not path.exists():
+    required_fields = ("MAIL_SERVER", "MAIL_PORT", "MAIL_USER", "MAIL_PASS")
+    if not path.exists() and not all(os.environ.get(key) for key in required_fields):
         raise FileNotFoundError(f"Env-Datei '{path}' nicht gefunden.")
 
-    env = {**dotenv_values(path), **os.environ}
-    required_fields = ("MAIL_SERVER", "MAIL_PORT", "MAIL_USER", "MAIL_PASS")
+    env = {**(dotenv_values(path) if path.exists() else {}), **os.environ}
     missing_fields = [field for field in required_fields if not env.get(field)]
     if missing_fields:
         raise ValueError(
@@ -193,6 +193,27 @@ def load_mail_environment(path: Path, mail_settings: dict | None = None) -> dict
         "port": mail_port,
         "user": env["MAIL_USER"],
         "password": env["MAIL_PASS"],
+        "security": security,
+        "timeout": timeout,
+    }
+
+
+def validate_mail_config(config: dict) -> dict:
+    """Prueft explizit uebergebene SMTP-Werte ohne Secret-Ausgabe."""
+    if not isinstance(config, dict):
+        raise ValueError("SMTP-Konfiguration muss ein Objekt sein.")
+    for field in ("server", "user", "password"):
+        if not isinstance(config.get(field), str) or not config[field].strip():
+            raise ValueError("SMTP-Pflichtfeld fehlt: " + field)
+    port = validate_positive_integer(config.get("port"), "SMTP-Port")
+    if port > 65535:
+        raise ValueError("SMTP-Port darf hoechstens 65535 sein.")
+    security = config.get("security", "starttls")
+    if security not in {"starttls", "ssl"}:
+        raise ValueError("SMTP-Sicherheit muss starttls oder ssl sein.")
+    timeout = validate_positive_integer(config.get("timeout", 30), "SMTP-Timeout")
+    return {key: config[key] for key in ("server", "user", "password")} | {
+        "port": port,
         "security": security,
         "timeout": timeout,
     }

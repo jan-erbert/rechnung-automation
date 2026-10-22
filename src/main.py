@@ -1,8 +1,13 @@
 import argparse
 import logging
+from pathlib import Path
 
 from branding import validate_branding_config
-from configuration import load_invoice_config, load_mail_environment
+from configuration import (
+    load_invoice_config,
+    load_mail_environment,
+    validate_mail_config,
+)
 from customer_files import load_customer_files
 from design import validate_design_config
 from email_service import build_error_report_email, send_email
@@ -20,6 +25,7 @@ from logging_setup import (
 )
 from paths import create_paths
 from run_lock import RunLock
+from recipient_policy import validate_recipient_policy
 from settings_loader import load_settings
 from state_backup import create_state_backup, validate_backup_config
 from startup_checks import check_start_requirements
@@ -51,15 +57,38 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
-    """Startet den Rechnungslauf mit kontrollierter Fehlerausgabe."""
+    """Startet den bestehenden CLI-Einstieg mit unveraenderten Betriebsmodi."""
+    args = parse_args()
+    if args.dry_run:
+        mode = "dry-run"
+    else:
+        mode = "non-interactive" if args.non_interactive else "interactive"
+    return run_application(mode)
+
+
+def run_application(
+    mode: str = "dry-run",
+    mail_config: dict | None = None,
+    settings_path: Path | None = None,
+    summary: dict | None = None,
+    allowed_domains: list[str] | None = None,
+) -> int:
+    """Fuehrt dieselbe Rechnungslogik fuer CLI und optionale Orchestratoren aus."""
+    if mode not in {"interactive", "non-interactive", "dry-run"}:
+        raise ValueError("Unbekannter Betriebsmodus.")
+    supplied_mail = mail_config
+    args = argparse.Namespace(
+        non_interactive=mode == "non-interactive", dry_run=mode == "dry-run"
+    )
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     mail_config = None
     invoice_config = None
     error_collector = None
     try:
-        args = parse_args()
         show_startup_banner(non_interactive=args.non_interactive)
-        settings = load_settings()
+        settings = (
+            load_settings() if settings_path is None else load_settings(settings_path)
+        )
         paths = create_paths(settings)
         if args.dry_run:
             run_mode = "dry-run"
@@ -84,10 +113,16 @@ def main() -> int:
                 raise ValueError(
                     "Keine Kundendateien im Verzeichnis customers gefunden."
                 )
-            mail_config = load_mail_environment(
-                paths.base_dir / ".env", settings.get("mail", {})
+            mail_config = (
+                load_mail_environment(paths.base_dir / ".env", settings.get("mail", {}))
+                if supplied_mail is None
+                else validate_mail_config(supplied_mail)
             )
-            invoice_config = load_invoice_config(paths.invoice_config)
+            if summary is not None:
+                summary.update(mode=mode, customers=len(customers))
+            candidate_invoice = load_invoice_config(paths.invoice_config)
+            validate_recipient_policy(customers, candidate_invoice, allowed_domains)
+            invoice_config = candidate_invoice
             check_start_requirements(settings, paths, customers, mail_config)
             design_config = validate_design_config(settings.get("design", {}))
             branding_config = validate_branding_config(settings.get("branding", {}))
@@ -108,6 +143,7 @@ def main() -> int:
                 invoice_config,
                 design_config,
                 branding_config,
+                summary=summary,
             )
         if errors:
             return 1
@@ -137,6 +173,7 @@ def _run_invoices(
     invoice_config: dict,
     design_config: dict,
     branding_config: dict,
+    summary: dict | None = None,
 ) -> int:
     """Laedt Verlaeufe und verarbeitet alle faelligen Rechnungen."""
     current_year = today().year
@@ -178,6 +215,7 @@ def _run_invoices(
         history_path=current_path,
         interactive=not args.non_interactive and not args.dry_run,
         dry_run=args.dry_run,
+        summary=summary,
     )
 
 

@@ -103,11 +103,11 @@ jobs:
 
       - name: Black pruefen
         run: >-
-          python -m black --check --no-cache --workers 1
-          src tools tests install
+          python -m black --check --diff --no-cache --workers 1
+          src tools tests install integrations
 
       - name: Flake8 ausfuehren
-        run: python -m flake8 --jobs 1 src tools tests install
+        run: python -m flake8 --jobs 1 src tools tests install integrations
 
       - name: Shell-Syntax pruefen
         run: >-

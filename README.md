@@ -426,9 +426,8 @@ lokal. Die beiden Pushes sind nicht atomar: Schlaegt ein Ziel fehl, den Fehler
 beheben und den Push wiederholen.
 
 Entwicklung erfolgt auf `feature/...`, `fix/...` oder einem Entwicklungsbranch.
-Nur bewusst freigegebener Code wird nach `main` uebernommen. Windmill prueft
-Forgejo-`main` taeglich um 08:30 Uhr Europe/Berlin und uebernimmt geeignete neue
-Commits. Ein Feature-Push startet keine Rechnungsanwendung. Nach einem Merge
+Nur bewusst freigegebener Code wird nach `main` uebernommen. Die jeweilige Bereitstellung uebernimmt ausschliesslich freigegebenen
+Main-Code; Zeitpunkt und Ausloeser sind Umgebungskonfiguration. Ein Feature-Push startet keine Rechnungsanwendung. Nach einem Merge
 in der Forgejo-Oberflaeche muss der neue Main-Stand auch nach GitHub gepusht
 werden; fuer denselben Push zu beiden Zielen lokal mergen und anschliessend
 `git push origin main` verwenden.
@@ -438,6 +437,18 @@ Arbeitskopien ebenfalls eingerichtet werden. Pfade, Einrichtung und
 Betriebspruefungen stehen in der zentralen
 [Betriebsdokumentation](https://erbert-development.de/docs/default/component/je-infrastructure/systeme/windmill/rechnung-automation/).
 SMTP, Kundendaten und Laufzustand bleiben ausserhalb von Git.
+
+## Optionale Windmill-Anbindung und Kundenverwaltung
+
+Die CLI bleibt interaktiv, als Cronjob und im Dry-Run verwendbar. Zusaetzlich
+stehen ein gemeinsamer Python-Einstieg, Windmill-Flowdefinitionen und native
+Kundenformulare zur Verfuegung. SMTP kann aus Windmill-Ressourcen oder ueber
+einen eigenen begrenzten OpenBao-Abruf geladen werden. Windmill und OpenBao
+sind keine Pflicht fuer bestehende Installationen.
+
+Kundenkontakte lassen sich ohne Rechnungsausloesung bearbeiten; Preis- und
+Konditionsaenderungen gelten ab einer zukuenftigen Abrechnungsgrenze. Details,
+Sicherheitsgrenzen und Einrichtung: [Windmill-Integration](integrations/windmill/README.md).
 
 ## Tests und Codequalitaet
 
