@@ -17,6 +17,9 @@ Alle signifikanten Ã„nderungen dieses Projekts werden in diesem Dokument aufgefÃ
 
 ### Added
 
+- Lokales Lucide-Webseitensymbol im Mailfooter; nur bei vorhandener Webseite
+  eingebettet und ueber den bestehenden Symbolschalter abschaltbar.
+
 - Konfigurierbare PDF-Seitenabstaende von standardmaessig 15 mm passend zum
   freigegebenen Gestaltungsmuster; Vorlagen und Validierung synchronisiert.
 

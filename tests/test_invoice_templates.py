@@ -244,3 +244,17 @@ def test_pdf_uses_configured_page_and_footer_margins():
     assert "bottom: 15mm;" in html
     assert "left: 20mm;" in html
     assert "width: calc(100% - 30mm);" in html
+
+
+def test_website_icon_follows_website_and_global_icon_switch():
+    """Das Websymbol erscheint nur mit Website und aktiviertem Symbolschalter."""
+    template = load_templates(TEMPLATES_DIR).email
+    context = _template_context()
+    assert "cid:invoice-website-icon" not in template.render(context)
+    context["sender"]["website"] = "https://example.com"
+    html = template.render(context)
+    assert "cid:invoice-website-icon" in html
+    context["mail_icons_enabled"] = False
+    html = template.render(context)
+    assert "cid:invoice-website-icon" not in html
+    assert 'href="https://example.com"' in html

@@ -21,6 +21,7 @@ MAIL_ICONS = {
     "invoice-address-icon": "map-pin.png",
     "invoice-email-icon": "mail.png",
     "invoice-phone-icon": "phone.png",
+    "invoice-website-icon": "globe.png",
 }
 
 

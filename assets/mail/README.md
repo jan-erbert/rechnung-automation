@@ -11,6 +11,7 @@ lokalen Lucide-Katalog der Lauffreunde-Beitragsgestaltung.
 | map-pin | Adresse im Footer |
 | mail | E-Mail im Footer |
 | phone | Telefon im Footer |
+| globe | Webseite im Footer |
 
 SVG-Quellen und daraus erzeugte transparente PNG-Dateien (48 × 48,
 #333333). PNGs werden als lokale CID-Anhaenge eingebettet, ohne externe

@@ -132,7 +132,7 @@
         {{ mail_icon('email', 14) }}<a href="mailto:{{ sender.email }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.email }}</a> |
         {{ mail_icon('phone', 14) }}<a href="tel:{{ sender.phone | replace(' ', '') }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.phone }}</a>
         {% if sender.website %} |
-        <a href="{{ sender.website }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.website }}</a>
+        {{ mail_icon('website', 14) }}<a href="{{ sender.website }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.website }}</a>
         {% endif %}
       </p>
       {% if mail_automation_notice_enabled | default(false) %}
