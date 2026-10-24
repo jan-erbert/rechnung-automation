@@ -105,6 +105,9 @@ Secrets, Tokens, Passwoerter und vollstaendige Inhalte von lokalen Konfiguration
 - `main` ist der Freigabestand fuer die NAS-Bereitstellung. Neue Features,
   Umbauten und sonstige Entwicklung erfolgen auf `feature/...`, `fix/...`
   oder einem gesonderten Entwicklungsbranch, niemals direkt auf `main`.
+- Entwuerfe und neue Funktionen bleiben bis zur ausdruecklichen Main-Freigabe
+  des Betreibers auf dem Featurebranch. Eine Muster-Mail, ein PR-Push oder
+  gruene CI ist keine Freigabe fuer Merge oder Bereitstellung.
 - Vor einer Uebernahme nach `main` Diff, geeignete Tests und die konkreten
   Auswirkungen auf Rechnungsdaten und Mailversand pruefen. Die Freigabe
   nach `main` erfolgt bewusst; ein Push auf einen Featurebranch ist kein
