@@ -15,6 +15,10 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 
 ### Added
 
+- Lokale Lucide-Symbole fuer Leistungsuebersicht, Bankverbindung und
+  Adresse/E-Mail/Telefon im Mailfooter; alle Mail-Symbole ueber
+  `branding.mail_icons_enabled` abschaltbar.
+
 - Gemeinsamer Python-Einstieg fuer bestehende CLI und optionale Windmill-Flows.
 - Optionale SMTP-Ressourcen und begrenzter OpenBao-KV-v2-Abruf mit kurzlebigen
   AppRole-Sitzungen, HTTPS-Pruefung und anschliessendem Token-Widerruf.

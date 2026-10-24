@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_BRANDING = {
     "pdf_logo": "logo.png",
     "mail_logo": None,
+    "mail_icons_enabled": True,
     "pdf_logo_height": 40,
     "mail_logo_height": 60,
     "header_title": None,
@@ -69,6 +70,10 @@ def validate_branding_config(branding_config: dict | None) -> dict:
         ):
             raise ValueError(f"branding.{name} muss eine Ganzzahl von 10 bis 200 sein.")
         validated[name] = value
+    icons_enabled = branding_config.get("mail_icons_enabled", True)
+    if not isinstance(icons_enabled, bool):
+        raise ValueError("branding.mail_icons_enabled muss true oder false sein.")
+    validated["mail_icons_enabled"] = icons_enabled
     return validated
 
 

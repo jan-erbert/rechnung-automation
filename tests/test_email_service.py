@@ -266,3 +266,32 @@ def test_document_icon_is_embedded_with_or_without_logo(with_logo):
         part for part in msg.walk() if part.get_filename() == "rechnung.pdf"
     )
     assert attachment.get_payload(decode=True) == b"unchanged-pdf"
+
+
+def test_all_referenced_icons_are_embedded_once():
+    """Jede bekannte Symbolreferenz erhaelt genau einen lokalen PNG-Anhang."""
+    from email_service import MAIL_ICONS
+
+    html = "".join(f'<img src="cid:{cid}">' for cid in MAIL_ICONS)
+    msg = build_invoice_email(
+        "from@example.com", "to@example.com", "Test", html, b"pdf", "test.pdf"
+    )
+    images = [part for part in msg.walk() if part.get_content_maintype() == "image"]
+    assert len(images) == len(MAIL_ICONS)
+    assert {part["Content-ID"] for part in images} == {f"<{cid}>" for cid in MAIL_ICONS}
+    assert all(part.get_content_type() == "image/png" for part in images)
+
+
+def test_no_unused_icons_are_attached():
+    """Eine symbolfreie Mail mit Logo enthaelt keine ungenutzten Symbolbilder."""
+    msg = build_invoice_email(
+        "from@example.com",
+        "to@example.com",
+        "Test",
+        "<p>Text</p>",
+        b"pdf",
+        "test.pdf",
+        mail_logo=LogoAsset(b"logo", "png"),
+    )
+    images = [part for part in msg.walk() if part.get_content_maintype() == "image"]
+    assert [part["Content-ID"] for part in images] == ["<invoice-logo>"]

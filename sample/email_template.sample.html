@@ -1,3 +1,8 @@
+{% macro mail_icon(name, size=18) -%}
+{% if mail_icons_enabled | default(true) -%}
+<img src="cid:invoice-{{ name }}-icon" alt="" width="{{ size }}" height="{{ size }}" style="vertical-align: middle; margin-right: 6px; border: 0;">
+{%- endif %}
+{%- endmacro %}
 <!DOCTYPE html>
 <html>
   <head>
@@ -26,7 +31,7 @@
       </p>
       {% endif %}
 
-      <h2 style="color: #333;"><img src="cid:invoice-document-icon" alt="" width="24" height="24" style="vertical-align: middle; margin-right: 8px; border: 0;">Ihre Rechnung Nr. {{ invoice_number }}</h2>
+      <h2 style="color: #333;">{{ mail_icon('document', 24) }}Ihre Rechnung Nr. {{ invoice_number }}</h2>
       <p>Sehr geehrte(r) <strong>{{ name }}</strong>,</p>
       {% if billing_period %}
         <p>anbei erhalten Sie Ihre Rechnung für die Leistungen im Zeitraum <strong>{{ billing_period }}</strong>.</p>
@@ -61,7 +66,7 @@
         </tbody>
       </table>
 
-      <h3 style="margin-top: 30px;">Leistungsübersicht</h3>
+      <h3 style="margin-top: 30px;">{{ mail_icon('services', 20) }}Leistungsübersicht</h3>
       <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
         <thead>
           <tr>
@@ -105,7 +110,7 @@
 
       <p>Bitte überweisen Sie den Rechnungsbetrag bis spätestens <strong>{{ due_date }}</strong> auf das unten angegebene Konto.</p>
 
-      <h3 style="color: #333;">Bankverbindung</h3>
+      <h3 style="color: #333;">{{ mail_icon('bank', 20) }}Bankverbindung</h3>
       <p>
         <strong>Kontoinhaber:</strong> {{ bank.account_holder }}<br>
         <strong>Bank:</strong> {{ bank.name }}<br>
@@ -123,9 +128,9 @@
       <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
       <p style="text-align: center; font-size: 12px; color: #777;">
         <strong>{{ sender.name }} – {{ sender.company }}</strong><br>
-        {{ sender.street }}, {{ sender.postal_code }} {{ sender.city }}<br>
-        <a href="mailto:{{ sender.email }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.email }}</a> |
-        <a href="tel:{{ sender.phone | replace(' ', '') }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.phone }}</a>
+        {{ mail_icon('address', 14) }}{{ sender.street }}, {{ sender.postal_code }} {{ sender.city }}<br>
+        {{ mail_icon('email', 14) }}<a href="mailto:{{ sender.email }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.email }}</a> |
+        {{ mail_icon('phone', 14) }}<a href="tel:{{ sender.phone | replace(' ', '') }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.phone }}</a>
         {% if sender.website %} |
         <a href="{{ sender.website }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.website }}</a>
         {% endif %}

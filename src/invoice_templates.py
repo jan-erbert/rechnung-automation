@@ -63,6 +63,7 @@ def build_template_context(
         "formatted_total": formatted_total,
         "logo_base64": logo_base64,
         "mail_logo_cid": mail_logo_cid,
+        "mail_icons_enabled": branding.get("mail_icons_enabled", True),
         "sample_text": sample_text,
         "design": design,
         "header_title": branding.get("header_title") or sender["name"],

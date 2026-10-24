@@ -22,6 +22,8 @@ design:
 branding:
   pdf_logo: sample_logo.png
   mail_logo: mail_logo.png
+  # false blendet alle dekorativen Mail-Symbole aus.
+  mail_icons_enabled: true
   pdf_logo_height: 40
   mail_logo_height: 60
   header_title: null

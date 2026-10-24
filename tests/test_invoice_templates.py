@@ -181,3 +181,16 @@ def test_mail_has_left_aligned_wordmark_header_and_no_emojis():
     assert (TEMPLATES_DIR.parent / "sample/email_template.sample.html").read_text() == (
         TEMPLATES_DIR / "email_template.html"
     ).read_text()
+
+
+def test_mail_icons_switch_preserves_text_and_logo():
+    """Abschalten entfernt alle Symbol-CIDs, aber keine Kontaktdaten oder Logos."""
+    context = _template_context()
+    context.update(mail_logo_cid="invoice-logo", mail_icons_enabled=False)
+    html = load_templates(TEMPLATES_DIR).email.render(context)
+    assert "-icon" not in html
+    assert "cid:invoice-logo" in html
+    for text in (
+        "Leistungsübersicht", "Bankverbindung", "Musterstraße 1", "max@example.com"
+    ):
+        assert text in html

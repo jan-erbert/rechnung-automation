@@ -14,6 +14,15 @@ from time_utils import now
 
 logger = logging.getLogger(__name__)
 
+MAIL_ICONS = {
+    "invoice-document-icon": "file-text.png",
+    "invoice-services-icon": "list-checks.png",
+    "invoice-bank-icon": "landmark.png",
+    "invoice-address-icon": "map-pin.png",
+    "invoice-email-icon": "mail.png",
+    "invoice-phone-icon": "phone.png",
+}
+
 
 class MailDeliveryError(RuntimeError):
     """Beschreibt einen SMTP-Fehler mit sicherer Retry-Einordnung."""
@@ -47,8 +56,10 @@ def build_invoice_email(
     if mail_bcc:
         msg["Bcc"] = ", ".join(mail_bcc)
 
-    document_icon = "cid:invoice-document-icon" in mail_html
-    if mail_logo or document_icon:
+    inline_icons = {
+        cid: name for cid, name in MAIL_ICONS.items() if f"cid:{cid}" in mail_html
+    }
+    if mail_logo or inline_icons:
         related = MIMEMultipart("related")
         related.attach(MIMEText(mail_html, "html"))
     if mail_logo:
@@ -61,13 +72,13 @@ def build_invoice_email(
             filename=f"logo.{extension}",
         )
         related.attach(logo_part)
-    if document_icon:
-        icon_path = Path(__file__).resolve().parent.parent / "assets/mail/file-text.png"
+    for cid, filename in inline_icons.items():
+        icon_path = Path(__file__).resolve().parent.parent / "assets/mail" / filename
         icon_part = MIMEImage(icon_path.read_bytes(), _subtype="png")
-        icon_part.add_header("Content-ID", "<invoice-document-icon>")
-        icon_part.add_header("Content-Disposition", "inline", filename="file-text.png")
+        icon_part.add_header("Content-ID", f"<{cid}>")
+        icon_part.add_header("Content-Disposition", "inline", filename=filename)
         related.attach(icon_part)
-    if mail_logo or document_icon:
+    if mail_logo or inline_icons:
         msg.attach(related)
     else:
         msg.attach(MIMEText(mail_html, "html"))

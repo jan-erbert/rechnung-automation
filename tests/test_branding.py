@@ -8,6 +8,7 @@ def test_branding_defaults_keep_pdf_logo_and_disable_mail_logo():
     assert validate_branding_config({}) == {
         "pdf_logo": "logo.png",
         "mail_logo": None,
+        "mail_icons_enabled": True,
         "pdf_logo_height": 40,
         "mail_logo_height": 60,
         "header_title": None,
@@ -102,3 +103,16 @@ def test_missing_configured_logo_is_ignored_with_warning(tmp_path, caplog):
 
     assert logo is None
     assert "Testlogo nicht gefunden" in caplog.text
+
+
+@pytest.mark.parametrize("value", ["false", 0, None])
+def test_mail_icons_require_boolean(value):
+    """Der Schalter akzeptiert nur echte YAML-Booleans."""
+    with pytest.raises(ValueError, match="mail_icons_enabled"):
+        validate_branding_config({"mail_icons_enabled": value})
+
+
+def test_mail_icons_can_be_disabled():
+    """Dekorative Mail-Symbole lassen sich unabhaengig vom Logo abschalten."""
+    branding = validate_branding_config({"mail_icons_enabled": False})
+    assert branding["mail_icons_enabled"] is False
