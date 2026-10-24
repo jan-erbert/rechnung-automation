@@ -49,9 +49,7 @@ def test_table_colors_are_individually_configurable():
     assert design["tables"]["row_background"] == "#FFFFFF"
 
 
-@pytest.mark.parametrize(
-    "value", ["blue", "#abc", "#000000;display:none", None, False]
-)
+@pytest.mark.parametrize("value", ["blue", "#abc", "#000000;display:none", None, False])
 def test_invalid_table_colors_are_rejected(value):
     """Ungueltige CSS-Werte gelangen nicht in die Rechnungsvorlagen."""
     with pytest.raises(ValueError, match="design.tables.header_background"):
