@@ -15,6 +15,9 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 
 ### Added
 
+- Gemeinsam konfigurierbare PDF-/Mail-Tabellenfarben unter `design.tables`,
+  mit strikter Hex-Farbpruefung und drei kopierbaren Farbvorlagen.
+
 - Lokale Lucide-Symbole fuer Leistungsuebersicht, Bankverbindung und
   Adresse/E-Mail/Telefon im Mailfooter; alle Mail-Symbole ueber
   `branding.mail_icons_enabled` abschaltbar; privater Vorrang ueber

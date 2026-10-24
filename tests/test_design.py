@@ -40,3 +40,31 @@ def test_design_rejects_unknown_fields():
     """Tippfehler in Design-Feldern werden nicht still ignoriert."""
     with pytest.raises(ValueError, match="Unbekannte Felder"):
         validate_design_config({"pdf": {"accent_colour": "#123456"}})
+
+
+def test_table_colors_are_individually_configurable():
+    """Eigene Tabellenfarben ergaenzen fehlende Werte mit sicheren Defaults."""
+    design = validate_design_config({"tables": {"header_background": "#123456"}})
+    assert design["tables"]["header_background"] == "#123456"
+    assert design["tables"]["row_background"] == "#FFFFFF"
+
+
+@pytest.mark.parametrize(
+    "value", ["blue", "#abc", "#000000;display:none", None, False]
+)
+def test_invalid_table_colors_are_rejected(value):
+    """Ungueltige CSS-Werte gelangen nicht in die Rechnungsvorlagen."""
+    with pytest.raises(ValueError, match="design.tables.header_background"):
+        validate_design_config({"tables": {"header_background": value}})
+
+
+def test_documented_color_presets_are_valid():
+    """Alle veroeffentlichten Farbvorlagen verwenden die echte Konfigurationspruefung."""
+    from pathlib import Path
+    import yaml
+
+    path = Path(__file__).resolve().parents[1] / "sample/design-presets.yaml"
+    presets = yaml.safe_load(path.read_text())
+    assert len(presets) == 3
+    for preset in presets.values():
+        assert validate_design_config(preset["design"])["tables"]

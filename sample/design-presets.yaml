@@ -1,0 +1,28 @@
+# Einen design.tables-Block in config/settings.yaml uebernehmen.
+1_Dunkelblau:
+  design:
+    tables:
+      header_background: '#243447'
+      total_background: '#E9EEF3'
+      border_color: '#D5DEE7'
+      header_text_color: '#FFFFFF'
+      body_text_color: '#111827'
+      row_background: '#FFFFFF'
+2_Gedecktes_Blau:
+  design:
+    tables:
+      header_background: '#DCE8F1'
+      total_background: '#C9DAE7'
+      border_color: '#C6D5E0'
+      header_text_color: '#284359'
+      body_text_color: '#111827'
+      row_background: '#FFFFFF'
+3_Ruhiges_Petrol:
+  design:
+    tables:
+      header_background: '#DDEBED'
+      total_background: '#CADEE1'
+      border_color: '#C2D7DA'
+      header_text_color: '#2C4C52'
+      body_text_color: '#111827'
+      row_background: '#FFFFFF'

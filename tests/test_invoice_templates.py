@@ -197,3 +197,21 @@ def test_mail_icons_switch_preserves_text_and_logo():
         "max@example.com",
     ):
         assert text in html
+
+
+def test_pdf_and_mail_share_configured_table_colors():
+    """Dieselben Tabellenfarben erscheinen in beiden Rechnungsvorlagen."""
+    context = _template_context()
+    colors = {
+        "header_background": "#102030",
+        "total_background": "#405060",
+        "border_color": "#708090",
+        "header_text_color": "#A0B0C0",
+        "body_text_color": "#D0E0F0",
+        "row_background": "#F0E0D0",
+    }
+    context["design"] = validate_design_config({"tables": colors})
+    context["items"] = [{"description": "Test", "price": "10,00 EUR"}]
+    templates = load_templates(TEMPLATES_DIR)
+    for html in (templates.invoice.render(context), templates.email.render(context)):
+        assert all(value in html for value in colors.values())

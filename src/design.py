@@ -3,6 +3,14 @@ import re
 from strict_yaml import reject_unknown_keys
 
 DEFAULT_DESIGN = {
+    "tables": {
+        "header_background": "#E9EFF8",
+        "total_background": "#F9FAFB",
+        "border_color": "#E5E7EB",
+        "header_text_color": "#374151",
+        "body_text_color": "#111827",
+        "row_background": "#FFFFFF",
+    },
     "pdf": {
         "accent_color": "#2f3c50",
         "accent_text_color": "#ffffff",

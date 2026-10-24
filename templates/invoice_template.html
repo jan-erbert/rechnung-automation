@@ -63,11 +63,11 @@
         margin-top: 1cm;
     }
     th, td {
-        border: 1px solid #ccc;
+        border: 1px solid {{ design.tables.border_color }};
         padding: 8px;
     }
     th {
-        background: #e9eff8;
+        background: {{ design.tables.header_background }};
         text-align: left;
     }
     tfoot td {
@@ -85,6 +85,10 @@
         font-size: 9pt;
         padding-bottom: 0;
         z-index: 1;
+    }
+    .invoice-items th, .invoice-items td {
+        border-left: none;
+        border-right: none;
     }
   </style>
 </head>
@@ -148,26 +152,26 @@
       {% endif %}
     </div>
 
-    <table style="width: 100%; border-collapse: collapse; margin-top: 1cm; font-size: 11pt;">
+    <table class="invoice-items" style="width: 100%; border-collapse: collapse; margin-top: 1cm; font-size: 11pt;">
       <thead>
-        <tr style="background-color: #f4f6f8; color: #374151;">
-          <th style="text-align: left; padding: 12px 16px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">Bezeichnung</th>
-          <th style="text-align: right; padding: 12px 16px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">Betrag</th>
+        <tr style="background-color: {{ design.tables.header_background }}; color: {{ design.tables.header_text_color }};">
+          <th style="text-align: left; padding: 12px 16px; font-weight: 600; border-bottom: 1px solid {{ design.tables.border_color }};">Bezeichnung</th>
+          <th style="text-align: right; padding: 12px 16px; font-weight: 600; border-bottom: 1px solid {{ design.tables.border_color }};">Betrag</th>
         </tr>
       </thead>
       <tbody>
         {% for item in items %}
-        <tr style="background-color: #ffffff; color: #111827;">
-          <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">{{ item.description }}</td>
-          <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">{{ item.price }}</td>
+        <tr style="background-color: {{ design.tables.row_background }}; color: {{ design.tables.body_text_color }};">
+          <td style="padding: 12px 16px; border-bottom: 1px solid {{ design.tables.border_color }};">{{ item.description }}</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid {{ design.tables.border_color }}; text-align: right;">{{ item.price }}</td>
         </tr>
         {% endfor %}
       </tbody>
         <tfoot>
         {% if tax.small_business %}
-          <tr style="background-color: #f9fafb; font-weight: bold; color: #111827;">
-            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb;">Summe brutto</td>
-            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb; text-align: right;">{{ gross_amount }} EUR</td>
+          <tr style="background-color: {{ design.tables.total_background }}; font-weight: bold; color: {{ design.tables.body_text_color }};">
+            <td style="padding: 12px 16px; border-top: 1px solid {{ design.tables.border_color }};">Summe brutto</td>
+            <td style="padding: 12px 16px; border-top: 1px solid {{ design.tables.border_color }}; text-align: right;">{{ gross_amount }} EUR</td>
           </tr>
         {% else %}
           <tr>
@@ -178,9 +182,9 @@
             <td style="padding: 8px 16px; text-align: left;">zzgl. {{ vat_rate }}% MwSt</td>
             <td style="padding: 8px 16px; text-align: right;">{{ tax_amount }} EUR</td>
           </tr>
-          <tr style="background-color: #f9fafb; font-weight: bold; color: #111827;">
-            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb;">Gesamtsumme (Brutto)</td>
-            <td style="padding: 12px 16px; border-top: 1px solid #e5e7eb; text-align: right;">{{ gross_amount }} EUR</td>
+          <tr style="background-color: {{ design.tables.total_background }}; font-weight: bold; color: {{ design.tables.body_text_color }};">
+            <td style="padding: 12px 16px; border-top: 1px solid {{ design.tables.border_color }};">Gesamtsumme (Brutto)</td>
+            <td style="padding: 12px 16px; border-top: 1px solid {{ design.tables.border_color }}; text-align: right;">{{ gross_amount }} EUR</td>
           </tr>
         {% endif %}
       </tfoot>

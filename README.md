@@ -101,6 +101,14 @@ backup:
   keep_last: 30
 ```
 
+Tabellenfarben fuer PDF und E-Mail werden gemeinsam unter `design.tables`
+in `config/settings.yaml` konfiguriert: `header_background`, `total_background`,
+`border_color`, `header_text_color`, `body_text_color` und `row_background`.
+Jeder Wert ist eine sechsstellige Hex-Farbe (`#RRGGBB`); ungueltige Werte
+werden vor einem Rechnungslauf abgewiesen. Vollstaendige Beispiele stehen
+in [Farbvorlagen](sample/design-presets.yaml). Helle Schrift auf dunklen
+Tabellenkoepfen muss ueber `header_text_color` ausdruecklich gesetzt werden.
+
 Die dekorativen Lucide-Symbole in Rechnungsmails sind standardmaessig aktiv.
 `branding.mail_icons_enabled: false` in `config/settings.yaml` schaltet sie aus.
 Bei automatisch aktualisierten Installationen kann stattdessen in der privaten,
