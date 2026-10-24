@@ -18,9 +18,7 @@ def invoice_snapshot(customer, sender, bank, tax, services, dates, totals) -> di
     if not lines or any(line is None for line in lines):
         raise ValueError("ZF_DATA: Strukturierte Rechnungspositionen fehlen.")
     # Null-Stunden-Monate bleiben im Sichtteil, sind aber keine Rechnungsposten.
-    lines = [
-        line for line in lines if line["quantity"] != 0 or line["total"] != 0
-    ]
+    lines = [line for line in lines if line["quantity"] != 0 or line["total"] != 0]
     if not lines:
         raise ValueError("ZF_DATA: Keine abrechenbaren Positionen vorhanden.")
     return {

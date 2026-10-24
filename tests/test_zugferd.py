@@ -55,7 +55,12 @@ def test_services_keep_numeric_values_for_export(tmp_path):
                 "unit_price": "19,99",
             },
             "additional_services": [
-                {"description": "Inklusive", "unit": "included", "unit_price": None}
+                {
+                    "description": "Inklusive",
+                    "unit": "included",
+                    "unit_price": None,
+                },
+                {"description": "Zusatz", "unit": "month", "unit_price": "2,50"},
             ],
         },
         3,
@@ -66,6 +71,11 @@ def test_services_keep_numeric_values_for_export(tmp_path):
     assert line["unit_price"] == Decimal("19.99")
     assert line["total"] == Decimal("59.97")
     assert services["items"][1]["invoice_line"]["total"] == 0
+    additional = services["items"][2]["invoice_line"]
+    assert additional["quantity"] == 3
+    assert additional["unit_price"] == Decimal("2.50")
+    assert additional["total"] == Decimal("7.50")
+    assert additional["unit_code"] == "MON"
 
 
 def test_validation_failure_blocks_mail_archive_and_history(tmp_path, monkeypatch):

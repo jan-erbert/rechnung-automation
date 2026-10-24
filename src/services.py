@@ -249,7 +249,11 @@ def build_service_items(
             included_allowed=True,
         )
 
+        line_quantity = 1
+        line_price = Decimal("0")
+        line_unit = "C62"
         if price_amount is not None:
+            line_price = price_amount
             if additional_service.get("unit") == "flat" or (
                 "unit" not in additional_service and unit == "flat"
             ):
@@ -257,6 +261,8 @@ def build_service_items(
                 additional_text = ""
                 item_total = price_amount
             else:
+                line_quantity = cycle_months
+                line_unit = "MON"
                 item_total = price_amount * cycle_months
                 additional_text = (
                     f"({price_amount:.2f}".replace(".", ",")
@@ -274,7 +280,7 @@ def build_service_items(
                 + (f"<br><small>{additional_text}</small>" if additional_text else ""),
                 "price": formatted_price,
                 "invoice_line": _invoice_line(
-                    description, 1, item_total, item_total, "C62"
+                    description, line_quantity, line_price, item_total, line_unit
                 ),
             }
         )
