@@ -215,3 +215,18 @@ def test_pdf_and_mail_share_configured_table_colors():
     templates = load_templates(TEMPLATES_DIR)
     for html in (templates.invoice.render(context), templates.email.render(context)):
         assert all(value in html for value in colors.values())
+
+
+def test_automation_notice_is_optional_and_does_not_change_pdf():
+    """Der dezente Hinweis erscheint nur aktiviert in der Mail, nie im PDF."""
+    templates = load_templates(TEMPLATES_DIR)
+    context = _template_context()
+    notice = "Diese E-Mail wurde automatisch erstellt und versendet."
+    original_pdf = templates.invoice.render(context)
+    assert notice not in templates.email.render(context)
+    for enabled in (True, False):
+        context["mail_automation_notice_enabled"] = enabled
+        html = templates.email.render(context)
+        assert (notice in html) is enabled
+        assert "max@example.com" in html
+        assert templates.invoice.render(context) == original_pdf

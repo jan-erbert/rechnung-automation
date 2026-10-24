@@ -27,3 +27,4 @@ mail:
   from_name: Musterfirma Rechnungen
   # Optionaler privater Vorrang vor branding.mail_icons_enabled.
   icons_enabled: true
+  automation_notice_enabled: false

@@ -135,6 +135,11 @@
         <a href="{{ sender.website }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.website }}</a>
         {% endif %}
       </p>
+      {% if mail_automation_notice_enabled | default(false) %}
+      <p style="margin: 8px 0 0; text-align: center; font-size: 11px; line-height: 1.5; color: #777;">
+        Diese E-Mail wurde automatisch erstellt und versendet.
+      </p>
+      {% endif %}
       </div>
     </div>
   </body>

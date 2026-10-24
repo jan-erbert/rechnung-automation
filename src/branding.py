@@ -11,6 +11,7 @@ DEFAULT_BRANDING = {
     "pdf_logo": "logo.png",
     "mail_logo": None,
     "mail_icons_enabled": True,
+    "mail_automation_notice_enabled": False,
     "pdf_logo_height": 40,
     "mail_logo_height": 60,
     "header_title": None,
@@ -70,10 +71,11 @@ def validate_branding_config(branding_config: dict | None) -> dict:
         ):
             raise ValueError(f"branding.{name} muss eine Ganzzahl von 10 bis 200 sein.")
         validated[name] = value
-    icons_enabled = branding_config.get("mail_icons_enabled", True)
-    if not isinstance(icons_enabled, bool):
-        raise ValueError("branding.mail_icons_enabled muss true oder false sein.")
-    validated["mail_icons_enabled"] = icons_enabled
+    for name in ("mail_icons_enabled", "mail_automation_notice_enabled"):
+        value = branding_config.get(name, DEFAULT_BRANDING[name])
+        if not isinstance(value, bool):
+            raise ValueError(f"branding.{name} muss true oder false sein.")
+        validated[name] = value
     return validated
 
 
@@ -128,10 +130,14 @@ def _detect_logo_subtype(logo_path: Path) -> str:
 
 
 def resolve_mail_branding(branding: dict, mail: dict) -> dict:
-    """Uebernimmt einen privaten Symbolschalter ohne Aenderung des PDF-Brandings."""
+    """Uebernimmt private Mail-Schalter ohne Aenderung des PDF-Brandings."""
     return {
         **branding,
         "mail_icons_enabled": mail.get(
             "icons_enabled", branding.get("mail_icons_enabled", True)
+        ),
+        "mail_automation_notice_enabled": mail.get(
+            "automation_notice_enabled",
+            branding.get("mail_automation_notice_enabled", False),
         ),
     }

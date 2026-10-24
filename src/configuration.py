@@ -56,7 +56,9 @@ def load_invoice_config(path: Path) -> dict:
         },
         "tax",
     )
-    reject_unknown_keys(mail, {"bcc", "from_name", "icons_enabled"}, "mail")
+    reject_unknown_keys(
+        mail, {"bcc", "from_name", "icons_enabled", "automation_notice_enabled"}, "mail"
+    )
 
     _require_fields(
         sender,
@@ -90,8 +92,9 @@ def load_invoice_config(path: Path) -> dict:
         "bcc": _normalize_address_list(mail.get("bcc")),
         "from_name": mail.get("from_name") or None,
     }
-    if "icons_enabled" in mail:
-        normalized_mail["icons_enabled"] = mail["icons_enabled"]
+    for name in ("icons_enabled", "automation_notice_enabled"):
+        if name in mail:
+            normalized_mail[name] = mail[name]
 
     return {
         "sender": {
@@ -138,10 +141,9 @@ def _require_fields(config: dict, section: str, fields: tuple[str, ...]) -> None
 
 def _validate_mail_options(mail_config: dict) -> None:
     """Prueft optionale Einstellungen fuer erzeugte E-Mails."""
-    if "icons_enabled" in mail_config and not isinstance(
-        mail_config["icons_enabled"], bool
-    ):
-        raise ValueError("mail.icons_enabled muss true oder false sein.")
+    for name in ("icons_enabled", "automation_notice_enabled"):
+        if name in mail_config and not isinstance(mail_config[name], bool):
+            raise ValueError(f"mail.{name} muss true oder false sein.")
     from_name = mail_config.get("from_name")
     if from_name not in (None, "") and (
         not isinstance(from_name, str) or not from_name.strip()

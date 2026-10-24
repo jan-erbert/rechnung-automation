@@ -6,6 +6,8 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 
 ### Changed
 
+- Neutraler Standard fuer Tabellenfarben; farbige Vorlagen bleiben waehlbar.
+
 - Rechnungsmails ohne Emojis, mit einem lokal eingebetteten Lucide-Dokumentsymbol.
 - Mailkopf nach Mailvorlage: vollstaendige Wortmarke links auf dunklem Banner,
   ohne separaten Dokumenttitel; Branding-Texte als Ersatz bei fehlendem Logo.
@@ -14,6 +16,9 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 - PDF-Vorlagen und Rechnungs-/Versandlogik bleiben unveraendert.
 
 ### Added
+
+- Optionaler dezenter Automatikhinweis im Mailfooter, ueber Branding oder
+  private Mail-Konfiguration abschaltbar; standardmaessig deaktiviert.
 
 - Gemeinsam konfigurierbare PDF-/Mail-Tabellenfarben unter `design.tables`,
   mit strikter Hex-Farbpruefung und drei kopierbaren Farbvorlagen.

@@ -63,6 +63,7 @@ def test_documented_color_presets_are_valid():
 
     path = Path(__file__).resolve().parents[1] / "sample/design-presets.yaml"
     presets = yaml.safe_load(path.read_text())
-    assert len(presets) == 3
+    assert len(presets) == 4
+    assert "neutral" in presets
     for preset in presets.values():
         assert validate_design_config(preset["design"])["tables"]

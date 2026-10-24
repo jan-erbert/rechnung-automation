@@ -4,10 +4,10 @@ from strict_yaml import reject_unknown_keys
 
 DEFAULT_DESIGN = {
     "tables": {
-        "header_background": "#E9EFF8",
-        "total_background": "#F9FAFB",
-        "border_color": "#E5E7EB",
-        "header_text_color": "#374151",
+        "header_background": "#F1F3F5",
+        "total_background": "#EEF1F3",
+        "border_color": "#D9DEE3",
+        "header_text_color": "#303942",
         "body_text_color": "#111827",
         "row_background": "#FFFFFF",
     },

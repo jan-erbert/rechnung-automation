@@ -64,6 +64,9 @@ def build_template_context(
         "logo_base64": logo_base64,
         "mail_logo_cid": mail_logo_cid,
         "mail_icons_enabled": branding.get("mail_icons_enabled", True),
+        "mail_automation_notice_enabled": branding.get(
+            "mail_automation_notice_enabled", False
+        ),
         "sample_text": sample_text,
         "design": design,
         "header_title": branding.get("header_title") or sender["name"],

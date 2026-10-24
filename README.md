@@ -117,6 +117,12 @@ von Git ausgeschlossenen `config/invoice.yaml` unter `mail` der Schalter
 Texte, Kontaktlinks, Logo und PDFs bleiben unveraendert; ungenutzte Symbole
 werden nicht als Anhaenge mitgeschickt. Quellen und Lizenz: [Mail-Symbole](assets/mail/README.md).
 
+Der kleine Footerhinweis „Diese E-Mail wurde automatisch erstellt und versendet.“
+ist optional. `branding.mail_automation_notice_enabled: true` aktiviert ihn;
+`false` deaktiviert ihn (Standard). Ein privater Wert unter
+`mail.automation_notice_enabled` in `config/invoice.yaml` hat Vorrang.
+Der Hinweis betrifft nur die Rechnungsmail; PDF und Kontaktlinks bleiben erhalten.
+
 `mail.security` akzeptiert `starttls` oder `ssl`. Die passende Portnummer wird
 weiterhin in `.env` festgelegt.
 

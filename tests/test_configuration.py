@@ -85,9 +85,10 @@ def test_lade_configuration_rejects_whitespace_mail_sender_name(tmp_path):
         load_invoice_config(config_path)
 
 
+@pytest.mark.parametrize("option", ["icons_enabled", "automation_notice_enabled"])
 @pytest.mark.parametrize("value", [False, True, "false", 0, None])
-def test_private_mail_icons_option_is_strict_boolean(tmp_path, value):
-    """Der private Symbolschalter akzeptiert nur true und false."""
+def test_private_mail_option_is_strict_boolean(tmp_path, option, value):
+    """Der private Mail-Schalter akzeptiert nur true und false."""
     path = _write_config(
         tmp_path,
         {
@@ -98,10 +99,10 @@ def test_private_mail_icons_option_is_strict_boolean(tmp_path, value):
         },
     )
     config = yaml.safe_load(path.read_text())
-    config["mail"] = {"icons_enabled": value}
+    config["mail"] = {option: value}
     path.write_text(yaml.safe_dump(config))
     if isinstance(value, bool):
-        assert load_invoice_config(path)["mail"]["icons_enabled"] is value
+        assert load_invoice_config(path)["mail"][option] is value
     else:
-        with pytest.raises(ValueError, match="mail.icons_enabled"):
+        with pytest.raises(ValueError, match=f"mail.{option}"):
             load_invoice_config(path)

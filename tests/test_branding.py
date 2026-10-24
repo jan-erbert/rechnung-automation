@@ -9,6 +9,7 @@ def test_branding_defaults_keep_pdf_logo_and_disable_mail_logo():
         "pdf_logo": "logo.png",
         "mail_logo": None,
         "mail_icons_enabled": True,
+        "mail_automation_notice_enabled": False,
         "pdf_logo_height": 40,
         "mail_logo_height": 60,
         "header_title": None,
@@ -127,3 +128,22 @@ def test_private_mail_icons_override_keeps_pdf_branding():
     assert resolved["mail_icons_enabled"] is False
     assert resolved["pdf_logo"] == original["pdf_logo"]
     assert original["mail_icons_enabled"] is True
+
+
+@pytest.mark.parametrize("value", ["false", 0, None])
+def test_automation_notice_requires_boolean(value):
+    """Der Automatikhinweis akzeptiert nur echte YAML-Booleans."""
+    with pytest.raises(ValueError, match="mail_automation_notice_enabled"):
+        validate_branding_config({"mail_automation_notice_enabled": value})
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_private_automation_notice_overrides_shared_setting(enabled):
+    """Der private Schalter hat Vorrang ohne das Original zu veraendern."""
+    from branding import resolve_mail_branding
+
+    original = validate_branding_config({"mail_automation_notice_enabled": not enabled})
+    resolved = resolve_mail_branding(original, {"automation_notice_enabled": enabled})
+    assert resolved["mail_automation_notice_enabled"] is enabled
+    assert original["mail_automation_notice_enabled"] is not enabled
+    assert resolved["pdf_logo"] == original["pdf_logo"]
