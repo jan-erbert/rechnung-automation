@@ -169,9 +169,12 @@ def test_malformed_notification_file_stops_without_bcc_fallback(monkeypatch, tmp
     monkeypatch.setattr(application, "load_invoice_config", invoice)
     send = Mock()
     monkeypatch.setattr(notifications, "send_email", send)
-    assert application.run_application(
-        "non-interactive", mail_config=SMTP, notifications_path=path
-    ) == 1
+    assert (
+        application.run_application(
+            "non-interactive", mail_config=SMTP, notifications_path=path
+        )
+        == 1
+    )
     invoice.assert_not_called()
     send.assert_not_called()
 

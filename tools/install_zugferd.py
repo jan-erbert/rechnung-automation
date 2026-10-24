@@ -7,7 +7,6 @@ from pathlib import Path
 import subprocess
 import sys
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 REQUIREMENTS = PROJECT_ROOT / "install" / "requirements-zugferd.txt"
 

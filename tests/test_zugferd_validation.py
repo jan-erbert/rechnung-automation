@@ -103,9 +103,7 @@ def test_external_entity_rejected_without_reading_file(tmp_path, optional_depend
     private = tmp_path / "private.txt"
     private.write_text("PRIVATE_SENTINEL")
     xml = (
-        '<!DOCTYPE x [<!ENTITY leak SYSTEM "'
-        + private.as_uri()
-        + '">]><x>&leak;</x>'
+        '<!DOCTYPE x [<!ENTITY leak SYSTEM "' + private.as_uri() + '">]><x>&leak;</x>'
     ).encode()
     with pytest.raises(ValueError, match="ZUGFERD_XML") as error:
         validation.validate_invoice_xml(xml)

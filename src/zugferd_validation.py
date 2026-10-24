@@ -7,7 +7,6 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 from urllib.request import url2pathname
 
-
 RULES_DIRECTORY = (
     Path(__file__).resolve().parents[1] / "assets" / "zugferd" / "en16931-1.3.16"
 )

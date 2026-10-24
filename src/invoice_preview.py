@@ -108,8 +108,13 @@ def create_customer_invoice_preview(
         from zugferd import invoice_snapshot
 
         snapshot = invoice_snapshot(
-            customer, invoice_config["sender"], invoice_config["bank"],
-            invoice_config["tax"], service_data, invoice_data, tax_data
+            customer,
+            invoice_config["sender"],
+            invoice_config["bank"],
+            invoice_config["tax"],
+            service_data,
+            invoice_data,
+            tax_data,
         )
         pdf_bytes = generate_pdf_bytes(pdf_html, pdf_config, snapshot)
     else:

@@ -121,7 +121,11 @@ def load_invoice_config(path: Path) -> dict:
             "phone": str(sender.get("phone", "")),
             "email": sender["email"],
             "website": sender.get("website", ""),
-            **({"country_code": sender["country_code"]} if "country_code" in sender else {}),
+            **(
+                {"country_code": sender["country_code"]}
+                if "country_code" in sender
+                else {}
+            ),
         },
         "bank": {
             "name": bank.get("name", ""),

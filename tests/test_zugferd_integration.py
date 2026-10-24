@@ -53,7 +53,10 @@ def _html(snapshot):
     from invoice_templates import build_template_context, load_templates
 
     items = [
-        {"description": line["name"], "price": f"{line['total']:.2f}".replace(".", ",") + " EUR"}
+        {
+            "description": line["name"],
+            "price": f"{line['total']:.2f}".replace(".", ",") + " EUR",
+        }
         for line in snapshot["lines"]
     ]
     context = build_template_context(

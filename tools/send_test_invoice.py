@@ -95,7 +95,9 @@ def _send_sample_invoice() -> None:
     mail_html = templates.email.render(context)
     pdf_html = templates.invoice.render(context)
     if pdf_config["format"] == "zugferd":
-        pdf_bytes = generate_pdf_bytes(pdf_html, pdf_config, context["invoice_snapshot"])
+        pdf_bytes = generate_pdf_bytes(
+            pdf_html, pdf_config, context["invoice_snapshot"]
+        )
     else:
         pdf_bytes = generate_pdf_bytes(pdf_html, pdf_config)
     msg = build_invoice_email(

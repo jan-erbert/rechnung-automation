@@ -99,3 +99,33 @@ def test_validation_failure_blocks_mail_archive_and_history(tmp_path, monkeypatc
     assert events == []
     assert context.history == []
     assert not context.history_path.exists()
+
+
+def test_zero_hour_month_does_not_block_mixed_rate_invoice(tmp_path):
+    """Ein Nullmonat blockiert andere abrechenbare Stunden nicht."""
+    from datetime import date
+    from test_customer_billing_changes import customer
+    from hours_files import write_hours_month
+    from invoices import calculate_tax_values
+    from zugferd import invoice_snapshot
+
+    entry = customer(unit="hour", cycle=2)
+    write_hours_month(tmp_path / "2026-10.yaml", "2026-10", {"fixture": Decimal("0")})
+    write_hours_month(tmp_path / "2026-11.yaml", "2026-11", {"fixture": Decimal("1")})
+    services = build_service_items(
+        entry, 2, tmp_path, interactive=False, today=date(2026, 12, 1)
+    )
+    original = fixture_snapshot()
+    snapshot = invoice_snapshot(
+        original["customer"],
+        original["sender"],
+        original["bank"],
+        original["tax"],
+        services,
+        original["dates"],
+        calculate_tax_values(services["total_amount"], original["tax"]),
+    )
+    assert len(services["items"]) == 2
+    assert len(snapshot["lines"]) == 1
+    assert snapshot["lines"][0]["quantity"] == 1
+    _check_snapshot(snapshot)

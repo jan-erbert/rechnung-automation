@@ -310,8 +310,13 @@ def _process_customer_entry(
         from zugferd import invoice_snapshot
 
         snapshot = invoice_snapshot(
-            customer, context.sender, context.bank, context.tax,
-            service_data, invoice_data, tax_data
+            customer,
+            context.sender,
+            context.bank,
+            context.tax,
+            service_data,
+            invoice_data,
+            tax_data,
         )
         pdf_bytes = generate_pdf_bytes(pdf_html, context.pdf_config, snapshot)
     else:

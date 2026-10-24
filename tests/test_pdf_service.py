@@ -6,7 +6,8 @@ from pdf_service import archive_pdf, validate_pdf_config
 def test_validiere_pdf_config_accepts_weasyprint():
     """WeasyPrint ist die einzige gueltige PDF-Engine."""
     assert validate_pdf_config({"engine": "weasyprint"}) == {
-        "engine": "weasyprint", "format": "pdf"
+        "engine": "weasyprint",
+        "format": "pdf",
     }
 
 

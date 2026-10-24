@@ -17,6 +17,12 @@ def invoice_snapshot(customer, sender, bank, tax, services, dates, totals) -> di
     lines = [item.get("invoice_line") for item in services["items"]]
     if not lines or any(line is None for line in lines):
         raise ValueError("ZF_DATA: Strukturierte Rechnungspositionen fehlen.")
+    # Null-Stunden-Monate bleiben im Sichtteil, sind aber keine Rechnungsposten.
+    lines = [
+        line for line in lines if line["quantity"] != 0 or line["total"] != 0
+    ]
+    if not lines:
+        raise ValueError("ZF_DATA: Keine abrechenbaren Positionen vorhanden.")
     return {
         "customer": customer,
         "sender": sender,
@@ -131,7 +137,9 @@ def build_invoice_xml(snapshot: dict) -> bytes:
     breakdown.calculated_amount = _money(snapshot["tax_amount"])
     breakdown.basis_amount = _money(snapshot["net"])
     if exempt:
-        breakdown.exemption_reason = "Gemaess § 19 UStG wird keine Umsatzsteuer berechnet."
+        breakdown.exemption_reason = (
+            "Gemaess § 19 UStG wird keine Umsatzsteuer berechnet."
+        )
     settlement.trade_tax.add(breakdown)
     sums = settlement.monetary_summation
     sums.line_total = _money(snapshot["net"])
@@ -145,7 +153,9 @@ def build_invoice_xml(snapshot: dict) -> bytes:
     try:
         xml = doc.serialize(schema="FACTUR-X_EN16931")
     except Exception:
-        raise ValueError("ZF_SCHEMA: Rechnungsdaten entsprechen nicht dem Profil.") from None
+        raise ValueError(
+            "ZF_SCHEMA: Rechnungsdaten entsprechen nicht dem Profil."
+        ) from None
     validate_invoice_xml(xml)
     return xml
 
@@ -185,7 +195,9 @@ def _xmp_extension() -> bytes:
     properties = ET.SubElement(entry, f"{{{schema}}}property")
     sequence = ET.SubElement(properties, f"{{{RDF}}}Seq")
     for name in values:
-        item = ET.SubElement(sequence, f"{{{RDF}}}li", {f"{{{RDF}}}parseType": "Resource"})
+        item = ET.SubElement(
+            sequence, f"{{{RDF}}}li", {f"{{{RDF}}}parseType": "Resource"}
+        )
         for key, value in {
             "name": name,
             "valueType": "Text",
@@ -207,7 +219,9 @@ def generate_zugferd_pdf(pdf_html: str, snapshot: dict) -> bytes:
         file_obj=BytesIO(xml), name=XML_NAME, relationship="Alternative"
     )
     result = document.write_pdf(
-        pdf_variant="pdf/a-3u", attachments=[attachment], finisher=_unique_associated_files
+        pdf_variant="pdf/a-3u",
+        attachments=[attachment],
+        finisher=_unique_associated_files,
     )
     verify_embedded_invoice(result, xml)
     return result
@@ -252,4 +266,6 @@ def verify_embedded_invoice(pdf_bytes: bytes, expected_xml: bytes) -> None:
             if metadata.findtext(f".//{{{FX}}}{name}") != value:
                 raise ValueError("ZUGFeRD-Metadaten")
     except Exception:
-        raise ValueError("ZF_EMBEDDING: Eingebettete Rechnung konnte nicht bestaetigt werden.") from None
+        raise ValueError(
+            "ZF_EMBEDDING: Eingebettete Rechnung konnte nicht bestaetigt werden."
+        ) from None

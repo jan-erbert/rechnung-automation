@@ -4,7 +4,6 @@ import importlib.util
 from pathlib import Path
 from types import SimpleNamespace
 
-
 SCRIPT = Path(__file__).resolve().parents[1] / "tools" / "install_zugferd.py"
 SPEC = importlib.util.spec_from_file_location("install_zugferd", SCRIPT)
 installer = importlib.util.module_from_spec(SPEC)
@@ -74,7 +73,9 @@ def test_explicit_install_uses_current_python_and_wheels(monkeypatch):
 def test_failed_pip_stops_before_import_checks(monkeypatch):
     """Ein fehlgeschlagener Installationsprozess wird nicht als Erfolg gemeldet."""
     monkeypatch.setattr(
-        installer.subprocess, "run", lambda *args, **kwargs: SimpleNamespace(returncode=1)
+        installer.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=1),
     )
     assert installer.main(["--install"]) == 1
 

@@ -113,7 +113,11 @@ def test_private_pdf_format_is_validated(tmp_path, output_format):
     """Private Formatwahl akzeptiert nur die ausdruecklich unterstuetzten Formate."""
     path = _write_config(
         tmp_path,
-        {"identifier_type": "tax_number", "tax_number": "12/345", "small_business": True},
+        {
+            "identifier_type": "tax_number",
+            "tax_number": "12/345",
+            "small_business": True,
+        },
     )
     config = yaml.safe_load(path.read_text())
     config["pdf"] = {"format": output_format}

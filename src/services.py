@@ -183,8 +183,13 @@ def build_service_items(
                         ),
                         "price": f"{value:.2f}".replace(".", ",") + " EUR",
                         "invoice_line": _invoice_line(
-                            detail["month"] + ": " + main_service.get("description", "Leistung"),
-                            detail["hours"], detail["rate"], value, "HUR"
+                            detail["month"]
+                            + ": "
+                            + main_service.get("description", "Leistung"),
+                            detail["hours"],
+                            detail["rate"],
+                            value,
+                            "HUR",
                         ),
                     }
                 )
@@ -195,7 +200,10 @@ def build_service_items(
                     "price": f"{amount:.2f}".replace(".", ",") + " EUR",
                     "invoice_line": _invoice_line(
                         main_service.get("description", "Leistung"),
-                        hours_info["hours"], hours_info["hourly_rate"], amount, "HUR"
+                        hours_info["hours"],
+                        hours_info["hourly_rate"],
+                        amount,
+                        "HUR",
                     ),
                 }
             )
