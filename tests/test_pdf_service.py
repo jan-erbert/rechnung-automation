@@ -5,7 +5,9 @@ from pdf_service import archive_pdf, validate_pdf_config
 
 def test_validiere_pdf_config_accepts_weasyprint():
     """WeasyPrint ist die einzige gueltige PDF-Engine."""
-    assert validate_pdf_config({"engine": "weasyprint"}) == {"engine": "weasyprint"}
+    assert validate_pdf_config({"engine": "weasyprint"}) == {
+        "engine": "weasyprint", "format": "pdf"
+    }
 
 
 def test_validiere_pdf_config_rejects_unknown_engine():
@@ -35,3 +37,13 @@ def test_archive_falls_back_when_hardlinks_are_unavailable(tmp_path, monkeypatch
     archive_pdf(str(tmp_path), "Invoice_customer_01-2026.pdf", b"pdf")
 
     assert (tmp_path / "Invoice_customer_01-2026.pdf").read_bytes() == b"pdf"
+
+
+def test_private_format_override_does_not_modify_settings():
+    """Private Formatwahl hat Vorrang und laesst versionierte Settings erhalten."""
+    from pdf_service import resolve_pdf_config
+
+    original = {"engine": "weasyprint", "format": "pdf"}
+    resolved = resolve_pdf_config(original, {"pdf": {"format": "zugferd"}})
+    assert resolved["format"] == "zugferd"
+    assert original["format"] == "pdf"

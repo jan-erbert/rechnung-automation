@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from email.utils import parseaddr
@@ -193,3 +194,10 @@ def _validate_date_format(
     if parsed_date.strftime(format_string) != text:
         raise ValueError(f"{field} muss dem Format {format_name} entsprechen.")
     return text
+
+
+def validate_country_code(value: str) -> str:
+    """Prueft das Format eines optionalen ISO-Laendercodes."""
+    if not isinstance(value, str) or not re.fullmatch(r"[A-Z]{2}", value):
+        raise ValueError("country_code muss aus zwei Grossbuchstaben bestehen.")
+    return value

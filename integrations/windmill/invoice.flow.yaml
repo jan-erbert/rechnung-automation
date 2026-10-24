@@ -31,6 +31,9 @@ value:
         mode:
           type: javascript
           expr: flow_input.mode || 'dry-run'
+        notify_errors:
+          type: static
+          value: false
         smtp_resource:
           type: javascript
           expr: flow_input.smtp_resource || 'f/rechnung/smtp'
@@ -42,3 +45,16 @@ value:
         result:
           type: javascript
           expr: results.execute
+  failure_module:
+    id: failure
+    summary: Technischen Fehler melden
+    value:
+      type: script
+      path: f/rechnung/report_failure
+      input_transforms:
+        mode:
+          type: javascript
+          expr: flow_input.mode || 'dry-run'
+        smtp_resource:
+          type: javascript
+          expr: flow_input.smtp_resource || 'f/rechnung/smtp'

@@ -117,3 +117,20 @@ def test_flow_has_three_steps_without_retry_and_defaults_to_dry_run():
     assert result_transform["expr"] == "results.execute"
     assert modules[1]["value"]["path"] == "f/rechnung/run_native"
     json.dumps(flow)
+
+
+def test_invoice_flow_has_one_explicit_notification_owner(tmp_path):
+    """Flowfehler nutzen denselben repo-eigenen Bridge-Einstieg ohne Doppelmeldung."""
+    flow = deployment.invoice_flow()["value"]
+    execute = flow["modules"][1]["value"]["input_transforms"]
+    assert execute["notify_errors"] == {"type": "static", "value": False}
+    handler = flow["failure_module"]["value"]
+    assert handler["path"] == "f/rechnung/report_failure"
+    assert handler["input_transforms"]["mode"]["expr"] == "flow_input.mode || 'dry-run'"
+    definitions = deployment.script_definitions(str(tmp_path))
+    handler_script = next(
+        item for item in definitions if item["path"] == "f/rechnung/report_failure"
+    )
+    assert "integrations/windmill/bridge.py" in handler_script["content"]
+    assert "return invoke('report_failure'" in handler_script["content"]
+    assert "error" not in handler_script["schema"]["properties"]

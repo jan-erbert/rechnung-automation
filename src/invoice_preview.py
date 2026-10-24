@@ -28,6 +28,9 @@ def create_customer_invoice_preview(
     timestamp: datetime | None = None,
 ) -> Path:
     """Erzeugt eine markierte Kunden-Vorschau ohne Versand oder Statusaenderung."""
+    from pdf_service import resolve_pdf_config
+
+    pdf_config = resolve_pdf_config(pdf_config, invoice_config)
     preview_date = today()
     if customer.get("_scheduled_changes"):
         customer = resolve_customer_for_period(customer, preview_date)
@@ -101,7 +104,16 @@ def create_customer_invoice_preview(
         sample_text=PREVIEW_WATERMARK,
     )
     pdf_html = templates.invoice.render(template_context)
-    pdf_bytes = generate_pdf_bytes(pdf_html, pdf_config)
+    if pdf_config.get("format", "pdf") == "zugferd":
+        from zugferd import invoice_snapshot
+
+        snapshot = invoice_snapshot(
+            customer, invoice_config["sender"], invoice_config["bank"],
+            invoice_config["tax"], service_data, invoice_data, tax_data
+        )
+        pdf_bytes = generate_pdf_bytes(pdf_html, pdf_config, snapshot)
+    else:
+        pdf_bytes = generate_pdf_bytes(pdf_html, pdf_config)
 
     target = _next_preview_path(
         archive_directory,

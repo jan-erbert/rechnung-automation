@@ -11,6 +11,7 @@ from integrations.windmill import runtime
 FUNCTIONS = {
     "validate": ("validate_project", "Konfiguration pruefen"),
     "run_native": ("run", "Rechnungslauf"),
+    "report_failure": ("report_failure", "Technischen Flowfehler melden"),
     "customers": ("customers", "Kunden anzeigen"),
     "customer_create": ("new_customer", "Kunde anlegen"),
     "customer_edit": ("edit_customer", "Kunde bearbeiten"),
@@ -25,7 +26,7 @@ def _schema(function) -> dict:
         if name in {"allowed_domains", "resource_loader"}:
             continue
         field = {"type": "string", "title": name.replace("_", " ")}
-        if name in {"apply", "active"}:
+        if name in {"apply", "active", "notify_errors"}:
             field["type"] = "boolean"
         elif name == "cycle_months":
             field.update(type="integer", minimum=1)

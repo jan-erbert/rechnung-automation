@@ -15,6 +15,7 @@ from integrations.windmill import runtime  # noqa: E402
 FUNCTIONS = {
     "validate": runtime.validate_project,
     "run_native": runtime.run,
+    "report_failure": runtime.report_failure,
     "customers": runtime.customers,
     "customer_create": runtime.new_customer,
     "customer_edit": runtime.edit_customer,
@@ -49,7 +50,7 @@ def main() -> None:
         os.setgid(owner.st_gid)
         os.setuid(owner.st_uid)
     os.umask(0o077)
-    if sys.argv[1] == "run_native":
+    if sys.argv[1] in {"run_native", "report_failure"}:
         arguments["resource_loader"] = load_resource
     with contextlib.redirect_stdout(sys.stderr):
         result = FUNCTIONS[sys.argv[1]](**arguments)

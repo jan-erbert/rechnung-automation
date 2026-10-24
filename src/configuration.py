@@ -28,7 +28,7 @@ def load_invoice_config(path: Path) -> dict:
     mail = config.get("mail", {})
     if not isinstance(mail, dict):
         raise ValueError("Der Bereich 'mail' muss eine Map sein.")
-    reject_unknown_keys(config, {"sender", "bank", "tax", "mail"}, "invoice")
+    reject_unknown_keys(config, {"sender", "bank", "tax", "mail", "pdf"}, "invoice")
     reject_unknown_keys(
         sender,
         {
@@ -40,6 +40,7 @@ def load_invoice_config(path: Path) -> dict:
             "phone",
             "email",
             "website",
+            "country_code",
         },
         "sender",
     )
@@ -76,6 +77,11 @@ def load_invoice_config(path: Path) -> dict:
         if not isinstance(bank[field], str):
             raise ValueError(f"bank.{field} muss ein Text sein.")
 
+    if "country_code" in sender:
+        from validation import validate_country_code
+
+        validate_country_code(sender["country_code"])
+
     small_business = tax.get("small_business")
     if not isinstance(small_business, bool):
         raise ValueError("tax.small_business muss true oder false sein.")
@@ -87,6 +93,15 @@ def load_invoice_config(path: Path) -> dict:
         if not isinstance(tax["vat_rate"], str):
             raise ValueError("tax.vat_rate muss als Text in Anfuehrungszeichen stehen.")
         vat_rate = validate_percentage(tax["vat_rate"], "tax.vat_rate")
+
+    private_pdf = config.get("pdf", {})
+    if not isinstance(private_pdf, dict):
+        raise ValueError("invoice.pdf muss eine Map sein.")
+    reject_unknown_keys(private_pdf, {"format"}, "invoice.pdf")
+    if "format" in private_pdf:
+        from pdf_service import validate_pdf_config
+
+        validate_pdf_config(private_pdf)
 
     normalized_mail = {
         "bcc": _normalize_address_list(mail.get("bcc")),
@@ -106,6 +121,7 @@ def load_invoice_config(path: Path) -> dict:
             "phone": str(sender.get("phone", "")),
             "email": sender["email"],
             "website": sender.get("website", ""),
+            **({"country_code": sender["country_code"]} if "country_code" in sender else {}),
         },
         "bank": {
             "name": bank.get("name", ""),
@@ -121,6 +137,7 @@ def load_invoice_config(path: Path) -> dict:
             "vat_rate": vat_rate,
         },
         "mail": normalized_mail,
+        **({"pdf": private_pdf} if private_pdf else {}),
     }
 
 

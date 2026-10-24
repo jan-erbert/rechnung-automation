@@ -16,12 +16,23 @@ def validate_pdf_config(pdf_config: dict) -> dict:
     if engine != PDF_ENGINE:
         raise ValueError("Als PDF-Engine wird nur noch 'weasyprint' unterstuetzt.")
 
-    return {"engine": engine}
+    output_format = pdf_config.get("format", "pdf")
+    if not isinstance(output_format, str) or output_format not in {"pdf", "zugferd"}:
+        raise ValueError("pdf.format muss 'pdf' oder 'zugferd' sein.")
+    return {"engine": engine, "format": output_format}
 
 
-def generate_pdf_bytes(pdf_html: str, pdf_config: dict) -> bytes:
+def generate_pdf_bytes(
+    pdf_html: str, pdf_config: dict, invoice: dict | None = None
+) -> bytes:
     """Erzeugt PDF-Bytes mit der konfigurierten PDF-Engine."""
-    validate_pdf_config(pdf_config)
+    validated = validate_pdf_config(pdf_config)
+    if validated["format"] == "zugferd":
+        if invoice is None:
+            raise ValueError("ZF_DATA: Strukturierte Rechnungsdaten fehlen.")
+        from zugferd import generate_zugferd_pdf
+
+        return generate_zugferd_pdf(pdf_html, invoice)
     return _generate_with_weasyprint(pdf_html)
 
 
@@ -88,3 +99,8 @@ def _publish_exclusive(temporary_path: Path, target: Path) -> None:
         if created:
             target.unlink(missing_ok=True)
         raise
+
+
+def resolve_pdf_config(settings_pdf: dict, invoice_config: dict) -> dict:
+    """Uebernimmt die private Formatwahl ohne Aenderung versionierter Settings."""
+    return validate_pdf_config({**settings_pdf, **invoice_config.get("pdf", {})})

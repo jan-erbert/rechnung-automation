@@ -1,8 +1,8 @@
 # Rechnung-Automation
 
 Python-Tool zur automatisierten Erstellung, Archivierung und Versendung von
-PDF-Rechnungen. Linux und Windows werden ueber getrennte Start- und
-Installationsskripte unterstuetzt.
+PDF-Rechnungen. Linux und macOS nutzen die Shell-Skripte, Windows nutzt
+PowerShell-Skripte.
 
 **Aktuelle Version:** `1.4.1`
 
@@ -24,7 +24,8 @@ Installationsskripte unterstuetzt.
 ## Voraussetzungen
 
 - Python 3.10 oder neuer
-- Linux-Systembibliotheken und Fonts fuer WeasyPrint, distributionsabhaengig
+- Systembibliotheken und Fonts fuer WeasyPrint (Linux/macOS: Pango; Windows: DLLs
+  gemaess [WeasyPrint-Installation](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html))
 - SMTP-Zugang fuer den Mailversand
 
 ## Installation
@@ -35,7 +36,7 @@ Installationsskripte unterstuetzt.
 ```
 
 ```bash
-# Linux
+# Linux und macOS
 ./install/install.sh
 ```
 
@@ -59,6 +60,68 @@ und umgeleitete Standardausgabe enthalten kein Banner. Bei bestehenden
 Installationen werden neue Abhaengigkeiten mit
 `python -m pip install -r install/requirements.txt` nachinstalliert.
 
+## Optionale ZUGFeRD-Ausgabe ohne Java
+
+Die normale PDF-Ausgabe benoetigt keine weiteren Pakete. Fuer ZUGFeRD wird die
+vorhandene WeasyPrint-Engine weiterverwendet. Drafthorse erzeugt die strukturierte
+CII-XML, lxml prueft das Profil-XSD und SaxonC-HE fuehrt die lokal mitgelieferten
+EN-16931-Pruefregeln aus. pypdf prueft die eingebetteten Daten. Es gibt keine
+Java-Laufzeit, keinen zusaetzlichen Server und keinen Rechnungsupload an einen
+externen Dienst. Alle Rechnungsdaten bleiben bei der lokalen Verarbeitung.
+
+Bestehende Installation ausdruecklich ergaenzen:
+
+```bash
+# Linux/macOS, aus dem Projektverzeichnis
+.venv/bin/python tools/install_zugferd.py --install
+.venv/bin/python tools/install_zugferd.py
+```
+
+```powershell
+# Windows, aus dem Projektverzeichnis
+.venv\Scripts\python.exe tools/install_zugferd.py --install
+.venv\Scripts\python.exe tools/install_zugferd.py
+```
+
+Bei einer neuen Einrichtung kann stattdessen `./install/install.sh --zugferd`
+beziehungsweise `./install/install.ps1 -Zugferd` verwendet werden. Ohne diesen
+Schalter bleiben die optionalen Pakete unberuehrt. Die Helfer aendern weder
+Rechnungsdaten noch Versandstatus und aktivieren das Ausgabeformat nicht selbst.
+`--install` installiert die festgelegten Versionen aus
+`install/requirements-zugferd.txt` mit pip in den gerade verwendeten Interpreter.
+Es werden nur fertige Wheels verwendet; ein fehlendes Wheel wird als Setupfehler
+angezeigt, anstatt unbemerkt native Software aus Quellcode zu bauen.
+
+Die gepinnten SaxonC-Wheels unterstuetzen CPython 3.10/3.12 auf Linux x86_64 und
+ARM64 mit glibc ab 2.24, Windows x86_64 sowie macOS Intel und Apple Silicon.
+Windows ARM und Alpine/musl sind damit nicht abgedeckt. Python, Architektur und
+virtuelle Umgebung muessen zusammenpassen; die bestehende WeasyPrint-Installation
+mit ihren Systembibliotheken bleibt ebenfalls erforderlich. Der Shell-Installer
+verwendet Bash-3-kompatible Syntax fuer das mit macOS gelieferte Bash.
+
+Die Ausgabe wird getrennt vom Setup gewaehlt:
+
+```yaml
+pdf:
+  engine: weasyprint
+  format: zugferd  # pdf bleibt die bisherige, normale PDF-Ausgabe
+```
+
+Bei automatisch aktualisierten Installationen laesst sich die Wahl alternativ
+in der privaten `config/invoice.yaml` als `pdf.format: zugferd` setzen. Dieser
+Wert hat Vorrang; die versionierten Settings bleiben fuer Git-Updates unveraendert.
+
+Beim Rechnungslauf finden keine Paketinstallationen und keine Downloads statt.
+Fehlende optionale Pakete, ungueltige Rechnungsdaten oder gescheiterte Pruefungen
+stoppen die betroffene Rechnung; es gibt keinen stillen Rueckfall auf PDF.
+Die lokale XML-Pruefung ersetzt keine unabhaengige vollstaendige PDF/A-Pruefung.
+Sie ist auch keine pauschale Garantie fuer jeden denkbaren steuerlichen Fall.
+
+Die Werkzeuge werden ueber ihre regulaeren Python-Pakete installiert, ihre
+Quelltexte werden nicht in unser Tool kopiert. Versionen, Lizenzen und Hinweise
+zur Weitergabe stehen in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Die offiziellen lokalen Regeldateien behalten ihre eigenen Lizenzhinweise.
+
 ## Konfiguration
 
 Menschengepflegte Daten verwenden YAML. Maschinell erzeugte Verlaufsdaten
@@ -81,6 +144,7 @@ paths:
 
 pdf:
   engine: weasyprint
+  format: pdf
 
 file_naming:
   invoice_prefix: Rechnung
@@ -485,8 +549,13 @@ Black wird in diesem Projekt bewusst vom Nutzer ausgefuehrt.
 Forgejo Actions fuehrt die Tests fuer Python 3.10 und 3.12 sowie Black-,
 Flake8- und Shell-Syntaxpruefungen ueber `.forgejo/workflows/ci.yml` aus.
 GitHub Actions verwendet `.github/workflows/ci.yml` und prueft zusaetzlich die
-Tests und PowerShell-Syntax unter Windows. Beide Workflows starten keine
-Rechnungs- oder Mailablaeufe und benoetigen keine Secrets.
+Tests unter Windows und macOS sowie PowerShell-Syntax unter Windows. Separate
+ZUGFeRD-Jobs installieren die optionalen Pakete auf allen drei Betriebssystemen
+(GitHub) beziehungsweise Linux (Forgejo). Sie erzeugen ausschliesslich isolierte
+PDFs aus fiktiven Testdaten und validieren die eingebettete XML. Diese Jobs werden
+ueber `RUN_ZUGFERD_INTEGRATION=1` aktiviert. Es gibt keinen Zugriff auf private
+Konfigurationen, produktive Verlaeufe oder SMTP; die Workflows benoetigen keine
+Secrets.
 
 ## Projektstruktur
 
@@ -511,7 +580,7 @@ src/                         # Anwendungslogik
 templates/                   # produktive HTML-Vorlagen
 tests/                       # ungefaehrliche Tests
 tools/                       # Setup-, Kunden- und Migrationswerkzeuge
-install/                     # Linux-/Windows-Installer
+install/                     # Linux-/macOS-/Windows-Installer
 ```
 
 ## Lizenz
@@ -523,3 +592,20 @@ Die PDF-Seitenabstaende stehen unter `design.pdf_layout` in `config/settings.yam
 Standard sind jeweils 15 mm; zulaessig sind ganze Werte von 5 bis 30 mm.
 Der untere Wert bestimmt den Abstand des Fussbereichs zur Papierkante;
 der Inhaltsbereich behaelt seine bisherige Reserve von 40 mm fuer den Fussbereich.
+
+ZUGFeRD verwendet EUR und das Profil EN 16931. Bestehende deutsche Anschriften
+verwenden standardmaessig `DE`; ein abweichender Laendercode kann unter
+`sender.country_code` und `contact.country_code` des Kunden angegeben werden.
+Bei Kleinunternehmern wird die vorhandene Steuernummer zusaetzlich als interne
+Verkaeuferkennung uebertragen, ohne sie als Umsatzsteuer-ID zu kennzeichnen.
+Unterstuetzt sind die vorhandenen normalen Umsatzsteuer- und Kleinunternehmerfaelle.
+Andere Steuerbefreiungen ohne definierten Befreiungsgrund werden abgewiesen.
+Positionen behalten Menge, Einheit, Einzelpreis und Betrag als Zahlen; der Export
+liest keine Zahlen aus fertigen Preistexten zurueck. Stimmen gerundete
+Positionssummen und Gesamtbetrag nicht ueberein, wird die Rechnung blockiert.
+
+Die ZUGFeRD-Einbettung bleibt in WeasyPrint; die im festgelegten WeasyPrint 69
+auftretenden doppelten AF-Dateireferenzen werden vor Ausgabe zusammengefasst.
+Geprueft werden XML-Schema, die mitgelieferten EN-16931-Regeln, Summen, identische
+XML-Extraktion sowie Dateizuordnung und deklarierte Metadaten. Dies ist kein
+universeller PDF/A-Validator und keine XRechnung-Ausgabe.

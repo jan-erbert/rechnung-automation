@@ -1,0 +1,11 @@
+{
+  "version": "1.3.16",
+  "source": "https://github.com/ConnectingEurope/eInvoicing-EN16931/releases/download/validation-1.3.16/en16931-cii-1.3.16.zip",
+  "archive_sha256": "1cd53cb8a84d38aedc82c0caede217da983a7934dd663f793a092fd66443c561",
+  "files": {
+    "EN16931-CII-validation.xslt": "0b234dea2bbfee739b7761e607a992c17fab88773014ef56355b6158cfb1cc53",
+    "LICENSE.txt": "fc22ec1dcd8bee4636a395fb332e2308cde870fb3fdc71a2e260b919877cdef5"
+  },
+  "license": "EUPL-1.2",
+  "license_source": "https://raw.githubusercontent.com/ConnectingEurope/eInvoicing-EN16931/validation-1.3.16/LICENSE.txt"
+}

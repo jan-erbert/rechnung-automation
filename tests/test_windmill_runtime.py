@@ -136,3 +136,64 @@ def test_new_customer_preserves_optional_archive(
         ]
     else:
         assert list(tmp_path.iterdir()) == []
+
+
+def test_native_resource_error_preserves_failure_and_attempts_technical_report(
+    monkeypatch,
+):
+    """Secret-Ausfaelle fallen nie auf lokale SMTP-Dateien zurueck."""
+    monkeypatch.setattr(
+        runtime, "load_smtp_resource", Mock(side_effect=RuntimeError("private-secret"))
+    )
+    report = Mock(return_value={"notification_sent": False})
+    monkeypatch.setattr(runtime, "report_failure", report)
+    application = Mock()
+    monkeypatch.setattr(runtime, "run_application", application)
+    with pytest.raises(RuntimeError, match="SMTP-Zugang") as failure:
+        runtime.run("send")
+    assert "private-secret" not in str(failure.value)
+    application.assert_not_called()
+    assert report.call_args.kwargs["stage"] == "smtp"
+
+
+def test_flow_owned_native_resource_error_does_not_duplicate_notification(monkeypatch):
+    """Mit Flow-Handler bleibt der vorgelagerte Meldeweg ausgeschaltet."""
+    monkeypatch.setattr(runtime, "load_smtp_resource", Mock(side_effect=ValueError()))
+    report = Mock()
+    monkeypatch.setattr(runtime, "report_failure", report)
+    with pytest.raises(RuntimeError):
+        runtime.run("send", notify_errors=False)
+    report.assert_not_called()
+
+
+def test_failure_handler_skips_all_resources_during_dry_run(monkeypatch):
+    """Auch ein gescheiterter Dry-Run sendet keine Fehler-Mail."""
+    load = Mock(side_effect=AssertionError("must not load configuration"))
+    monkeypatch.setattr(runtime, "load_notification_config", load)
+    assert runtime.report_failure() == {"notification_sent": False}
+    load.assert_not_called()
+
+
+def test_failure_handler_uses_native_smtp_only(monkeypatch):
+    """Der Handler loest den konfigurierten Secret-Provider ohne .env auf."""
+    config = {"enabled": True, "recipient": "operator@example.invalid"}
+    monkeypatch.setattr(runtime, "load_notification_config", Mock(return_value=config))
+    loader = Mock()
+    smtp = Mock(return_value={"user": "native-user"})
+    monkeypatch.setattr(runtime, "load_smtp_resource", smtp)
+    report = Mock(return_value=True)
+    monkeypatch.setattr(runtime, "send_technical_report", report)
+    assert runtime.report_failure("send", "f/invoices/smtp", loader) == {
+        "notification_sent": True
+    }
+    assert report.call_args.args[:3] == (config, None, "windmill")
+    assert report.call_args.kwargs["mail_loader"]() == {"user": "native-user"}
+    smtp.assert_called_once_with("f/invoices/smtp", resource_loader=loader)
+
+
+def test_failed_application_stays_failed_even_if_notified(monkeypatch):
+    """Ein vorher gemeldeter Anwendungsfehler bleibt ein fehlgeschlagener Job."""
+    monkeypatch.setattr(runtime, "_run_smtp", Mock(return_value={}))
+    monkeypatch.setattr(runtime, "run_application", Mock(return_value=1))
+    with pytest.raises(RuntimeError, match="Rechnungslauf fehlgeschlagen"):
+        runtime.run("send")

@@ -25,7 +25,7 @@ from email_service import (  # noqa: E402
     send_email,
 )
 from paths import create_paths  # noqa: E402
-from pdf_service import generate_pdf_bytes, validate_pdf_config  # noqa: E402
+from pdf_service import generate_pdf_bytes  # noqa: E402
 from invoices import calculate_tax_values  # noqa: E402
 from settings_loader import load_settings  # noqa: E402
 from invoice_templates import build_template_context, load_templates  # noqa: E402
@@ -69,7 +69,9 @@ def _send_sample_invoice() -> None:
     mail_config = load_mail_environment(
         paths.base_dir / ".env", settings.get("mail", {})
     )
-    pdf_config = validate_pdf_config(settings.get("pdf", {}))
+    from pdf_service import resolve_pdf_config
+
+    pdf_config = resolve_pdf_config(settings.get("pdf", {}), invoice_config)
     design = validate_design_config(settings.get("design", {}))
     branding = validate_branding_config(settings.get("branding", {}))
     templates = load_templates(paths.templates_dir)
@@ -92,7 +94,10 @@ def _send_sample_invoice() -> None:
 
     mail_html = templates.email.render(context)
     pdf_html = templates.invoice.render(context)
-    pdf_bytes = generate_pdf_bytes(pdf_html, pdf_config)
+    if pdf_config["format"] == "zugferd":
+        pdf_bytes = generate_pdf_bytes(pdf_html, pdf_config, context["invoice_snapshot"])
+    else:
+        pdf_bytes = generate_pdf_bytes(pdf_html, pdf_config)
     msg = build_invoice_email(
         mail_user=mail_config["user"],
         recipient=recipient,
@@ -189,6 +194,28 @@ def build_sample_context(
         hours_info=service_data["hours_info"],
         sample_text="MUSTER",
     )
+    from zugferd import invoice_snapshot
+
+    context["invoice_snapshot"] = invoice_snapshot(
+        {
+            "name": context["name"],
+            "company": context["company"],
+            "street": context["street"],
+            "postal_code": context["postal_code"],
+            "city": context["city"],
+            "email": context["email"],
+        },
+        invoice_config["sender"],
+        invoice_config["bank"],
+        invoice_config["tax"],
+        service_data,
+        {
+            "invoice_number": context["invoice_number"],
+            "invoice_date": context["invoice_date"],
+            "due_date": context["due_date"],
+        },
+        tax_data,
+    )
     return context, mail_logo
 
 
@@ -200,6 +227,13 @@ def build_sample_service_data(sample_type: str) -> dict:
                 {
                     "description": "Monatliche Musterleistung fuer 1 Monat",
                     "price": "89,00 EUR",
+                    "invoice_line": {
+                        "name": "Musterleistung",
+                        "quantity": Decimal("1"),
+                        "unit_price": Decimal("89.00"),
+                        "total": Decimal("1") * Decimal("89.00"),
+                        "unit_code": "MON",
+                    },
                 }
             ],
             "total_amount": Decimal("89.00"),
@@ -211,6 +245,13 @@ def build_sample_service_data(sample_type: str) -> dict:
                 {
                     "description": "Einmalige Musterleistung (pauschal)",
                     "price": "450,00 EUR",
+                    "invoice_line": {
+                        "name": "Musterleistung",
+                        "quantity": Decimal("1"),
+                        "unit_price": Decimal("450.00"),
+                        "total": Decimal("1") * Decimal("450.00"),
+                        "unit_code": "C62",
+                    },
                 }
             ],
             "total_amount": Decimal("450.00"),
@@ -222,6 +263,13 @@ def build_sample_service_data(sample_type: str) -> dict:
                 {
                     "description": "6.5 Stunden x 75.00 EUR",
                     "price": "487,50 EUR",
+                    "invoice_line": {
+                        "name": "Musterleistung",
+                        "quantity": Decimal("6.5"),
+                        "unit_price": Decimal("75.00"),
+                        "total": Decimal("6.5") * Decimal("75.00"),
+                        "unit_code": "HUR",
+                    },
                 }
             ],
             "total_amount": Decimal("487.50"),

@@ -1,6 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
+INSTALL_ZUGFERD=false
+if [ "${1:-}" = "--zugferd" ] && [ "$#" -eq 1 ]; then
+    INSTALL_ZUGFERD=true
+elif [ "$#" -ne 0 ]; then
+    echo "Verwendung: $0 [--zugferd]" >&2
+    exit 2
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REQUIREMENTS_FILE="$SCRIPT_DIR/requirements.txt"
@@ -68,7 +76,7 @@ function read_yes_no() {
     local value=""
     while true; do
         read -r -p "$prompt: " value
-        case "${value,,}" in
+        case "$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')" in
             y|yes|j|ja)
                 printf 'y'
                 return
@@ -127,6 +135,9 @@ if [ ! -f "$REQUIREMENTS_FILE" ]; then
 fi
 echo "📦 Installiere Pakete aus $REQUIREMENTS_FILE..."
 "$VENV_PYTHON" -m pip install -r "$REQUIREMENTS_FILE"
+if [ "$INSTALL_ZUGFERD" = true ]; then
+    "$VENV_PYTHON" "$PROJECT_ROOT/tools/install_zugferd.py" --install
+fi
 
 # Vorhandene Installationen vor dem Anlegen neuer Konfiguration migrieren.
 "$VENV_PYTHON" "$LEGACY_MIGRATOR"

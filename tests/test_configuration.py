@@ -106,3 +106,20 @@ def test_private_mail_option_is_strict_boolean(tmp_path, option, value):
     else:
         with pytest.raises(ValueError, match=f"mail.{option}"):
             load_invoice_config(path)
+
+
+@pytest.mark.parametrize("output_format", ["pdf", "zugferd", "invalid"])
+def test_private_pdf_format_is_validated(tmp_path, output_format):
+    """Private Formatwahl akzeptiert nur die ausdruecklich unterstuetzten Formate."""
+    path = _write_config(
+        tmp_path,
+        {"identifier_type": "tax_number", "tax_number": "12/345", "small_business": True},
+    )
+    config = yaml.safe_load(path.read_text())
+    config["pdf"] = {"format": output_format}
+    path.write_text(yaml.safe_dump(config))
+    if output_format == "invalid":
+        with pytest.raises(ValueError, match="pdf.format"):
+            load_invoice_config(path)
+    else:
+        assert load_invoice_config(path)["pdf"]["format"] == output_format

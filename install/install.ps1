@@ -1,4 +1,5 @@
 # install.ps1 - Einrichtungsskript fuer Windows
+param([switch]$Zugferd)
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
@@ -154,6 +155,10 @@ if (-not (Test-Path $RequirementsFile)) {
 Write-Host "Installiere Pakete aus install/requirements.txt..."
 & $VenvPython -m pip install -r $RequirementsFile
 Assert-NativeSuccess "Installation der Python-Abhaengigkeiten"
+if ($Zugferd) {
+    & $VenvPython (Join-Path $ProjectRoot "tools\install_zugferd.py") --install
+    Assert-NativeSuccess "Installation der optionalen ZUGFeRD-Abhaengigkeiten"
+}
 
 & $VenvPython $LegacyMigrator
 Assert-NativeSuccess "Legacy-Migration"

@@ -41,7 +41,7 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> dict:
             "hours_dir",
             "backup_dir",
         },
-        "pdf": {"engine"},
+        "pdf": {"engine", "format"},
         "file_naming": {"invoice_prefix", "preview_prefix"},
         "logging": {"enabled", "directory", "level", "retention_files"},
         "mail": {"security", "timeout_seconds"},

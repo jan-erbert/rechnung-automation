@@ -182,6 +182,10 @@ def build_service_items(
                             f"× {detail['rate']:.2f} EUR"
                         ),
                         "price": f"{value:.2f}".replace(".", ",") + " EUR",
+                        "invoice_line": _invoice_line(
+                            detail["month"] + ": " + main_service.get("description", "Leistung"),
+                            detail["hours"], detail["rate"], value, "HUR"
+                        ),
                     }
                 )
         else:
@@ -189,6 +193,10 @@ def build_service_items(
                 {
                     "description": description,
                     "price": f"{amount:.2f}".replace(".", ",") + " EUR",
+                    "invoice_line": _invoice_line(
+                        main_service.get("description", "Leistung"),
+                        hours_info["hours"], hours_info["hourly_rate"], amount, "HUR"
+                    ),
                 }
             )
 
@@ -198,6 +206,7 @@ def build_service_items(
             {
                 "description": f"{description} (pauschal)",
                 "price": f"{amount:.2f}".replace(".", ",") + " EUR",
+                "invoice_line": _invoice_line(description, 1, amount, amount, "C62"),
             }
         )
 
@@ -213,6 +222,9 @@ def build_service_items(
             {
                 "description": description_with_period,
                 "price": f"{total_amount:.2f}".replace(".", ",") + " EUR",
+                "invoice_line": _invoice_line(
+                    description_with_period, cycle_months, amount, total_amount, "MON"
+                ),
             }
         )
 
@@ -253,6 +265,9 @@ def build_service_items(
                 "description": description
                 + (f"<br><small>{additional_text}</small>" if additional_text else ""),
                 "price": formatted_price,
+                "invoice_line": _invoice_line(
+                    description, 1, item_total, item_total, "C62"
+                ),
             }
         )
 
@@ -263,4 +278,15 @@ def build_service_items(
         "items": items,
         "total_amount": total_amount,
         "hours_info": hours_info,
+    }
+
+
+def _invoice_line(name, quantity, unit_price, total, unit_code) -> dict:
+    """Behaelt berechnete Positionswerte fuer den optionalen XML-Export."""
+    return {
+        "name": name,
+        "quantity": Decimal(str(quantity)),
+        "unit_price": Decimal(str(unit_price)),
+        "total": Decimal(str(total)),
+        "unit_code": unit_code,
     }

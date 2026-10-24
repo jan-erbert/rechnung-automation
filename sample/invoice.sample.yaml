@@ -1,4 +1,5 @@
 sender:
+  country_code: DE
   name: Max Mustermann
   company: Musterfirma GmbH
   street: Musterstraße 1
@@ -28,3 +29,7 @@ mail:
   # Optionaler privater Vorrang vor branding.mail_icons_enabled.
   icons_enabled: true
   automation_notice_enabled: false
+
+# Optionaler privater Vorrang; fuer ZUGFeRD zuerst Zusatzpakete installieren.
+pdf:
+  format: pdf

@@ -1,0 +1,4 @@
+# Als config/notifications.yaml speichern; niemals Kundenziele oder BCC verwenden.
+# Cron und Windmill-Sendelauf melden Fehler; interaktiv und Dry-Run versenden nichts.
+enabled: false
+recipient: null

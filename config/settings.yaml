@@ -9,6 +9,8 @@ paths:
 
 pdf:
   engine: weasyprint
+  # Optional nach Zusatzinstallation: zugferd (Profil EN 16931).
+  format: pdf
 
 design:
   # Seitenabstaende in mm, jeweils 5 bis 30.

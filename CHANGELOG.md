@@ -17,6 +17,13 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 
 ### Added
 
+- Optionale ZUGFeRD-Ausgabe im Profil EN 16931, ohne Java, mit lokalem XSD-/
+  Geschaeftsregelcheck, gepruefter PDF/XML-Einbettung und Formatwahl `pdf`/`zugferd`.
+- Separate private technische Fehleradresse statt Rechnungs-BCC; fruehe Fehler,
+  feste sichere Laufmeldungen und eigener Windmill-Fehlerhandler.
+- Optionale Python-Zusatzinstallation sowie echte PDF/XML-Pruefungen auf Linux,
+  Windows und macOS; normale PDF-Ausgabe bleibt Standard ohne Zusatzpakete.
+
 - Lokales Lucide-Webseitensymbol im Mailfooter; nur bei vorhandener Webseite
   eingebettet und ueber den bestehenden Symbolschalter abschaltbar.
 

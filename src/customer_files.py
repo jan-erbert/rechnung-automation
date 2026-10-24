@@ -85,6 +85,7 @@ def normalize_customer(raw_value: dict, file_path: Path | None = None) -> dict:
             "postal_code",
             "city",
             "website",
+            "country_code",
         },
         "contact",
     )
@@ -116,6 +117,10 @@ def normalize_customer(raw_value: dict, file_path: Path | None = None) -> dict:
     for field in ("name", "company", "email", "street", "postal_code", "city"):
         if not isinstance(contact.get(field), str) or not contact[field].strip():
             raise ValueError(f"contact.{field} muss ein nicht leerer Text sein.")
+    if "country_code" in contact:
+        from validation import validate_country_code
+
+        validate_country_code(contact["country_code"])
     if not isinstance(contact.get("cc", []), list):
         raise ValueError("contact.cc muss eine Liste sein.")
     if contact.get("website") is not None and not isinstance(
@@ -143,6 +148,7 @@ def normalize_customer(raw_value: dict, file_path: Path | None = None) -> dict:
         "postal_code": str(contact.get("postal_code", "")),
         "city": contact.get("city"),
         "website": contact.get("website"),
+        **({"country_code": contact["country_code"]} if "country_code" in contact else {}),
         "invoice_prefix": billing.get("invoice_prefix", ""),
         "cycle_months": billing.get("cycle_months", 1),
         "due_days": billing.get("due_days", 14),
@@ -264,6 +270,7 @@ def customer_to_yaml(customer: dict) -> dict:
             "cc": customer.get("cc", []),
             "street": customer.get("street"),
             "postal_code": str(customer.get("postal_code", "")),
+            **({"country_code": customer["country_code"]} if "country_code" in customer else {}),
             "city": customer.get("city"),
             "website": customer.get("website"),
         },

@@ -306,7 +306,16 @@ def _process_customer_entry(
 
     mail_html = context.templates.email.render(template_context)
     pdf_html = context.templates.invoice.render(template_context)
-    pdf_bytes = generate_pdf_bytes(pdf_html, context.pdf_config)
+    if context.pdf_config.get("format", "pdf") == "zugferd":
+        from zugferd import invoice_snapshot
+
+        snapshot = invoice_snapshot(
+            customer, context.sender, context.bank, context.tax,
+            service_data, invoice_data, tax_data
+        )
+        pdf_bytes = generate_pdf_bytes(pdf_html, context.pdf_config, snapshot)
+    else:
+        pdf_bytes = generate_pdf_bytes(pdf_html, context.pdf_config)
 
     attachment_name = build_invoice_filename(
         customer["id"],

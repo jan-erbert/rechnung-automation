@@ -45,3 +45,6 @@ customers/*.yml
 old/
 wiki/
 rechnung_automation_v*
+
+# Private technische Fehleradresse
+config/notifications.yaml

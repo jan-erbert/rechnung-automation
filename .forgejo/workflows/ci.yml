@@ -81,3 +81,27 @@ jobs:
           install/install.sh
           invoice_cron.sh
           generate_invoices.sh
+
+  zugferd:
+    name: ZUGFeRD integration (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RUN_ZUGFERD_INTEGRATION: "1"
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: https://data.forgejo.org/actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: PDF-Systembibliotheken
+        run: |
+          apt-get update
+          apt-get install -y libpango-1.0-0 libpangoft2-1.0-0
+      - name: Optionale Pakete ausdruecklich installieren
+        run: |
+          python -m pip install -r install/requirements.txt -r install/requirements-dev.txt
+          python tools/install_zugferd.py --install
+      - name: Lokale ZUGFeRD-Erzeugung und Validierung
+        run: python -m pytest tests/test_zugferd_integration.py

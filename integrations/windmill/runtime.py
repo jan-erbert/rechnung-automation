@@ -1,5 +1,7 @@
 """Optionale Windmill-Einstiege fuer die gemeinsame Python-Anwendung."""
 
+import logging
+import os
 from pathlib import Path
 import sys
 
@@ -18,6 +20,11 @@ from customer_management import (  # noqa: E402
 )
 from main import run_application  # noqa: E402
 from paths import create_paths  # noqa: E402
+from notifications import (  # noqa: E402
+    load_notification_config,
+    run_reference,
+    send_technical_report,
+)
 from settings_loader import load_settings  # noqa: E402
 from integrations.windmill.configuration import load_smtp_resource  # noqa: E402
 
@@ -39,11 +46,43 @@ def run(
     smtp_resource: str = "f/rechnung/smtp",
     resource_loader=None,
     allowed_domains: list[str] | None = None,
+    notify_errors: bool = True,
 ) -> dict:
     """Fuehrt die gemeinsame Anwendung aus und gibt nur Laufzaehler zurueck."""
     if mode not in {"dry-run", "send"}:
         raise ValueError("Erlaubte Modi: dry-run und send.")
-    smtp = (
+    if not isinstance(notify_errors, bool):
+        raise ValueError("notify_errors muss true oder false sein.")
+    try:
+        smtp = _run_smtp(mode, smtp_resource, resource_loader)
+    except Exception:
+        if mode == "send" and notify_errors:
+            report_failure(mode, smtp_resource, resource_loader, stage="smtp")
+        raise RuntimeError("SMTP-Zugang konnte nicht bereitgestellt werden.") from None
+    summary = {}
+    code = run_application(
+        "dry-run" if mode == "dry-run" else "non-interactive",
+        mail_config=smtp,
+        summary=summary,
+        allowed_domains=allowed_domains,
+        notify_errors=notify_errors,
+        reference=_job_reference(),
+    )
+    if code:
+        raise RuntimeError("Rechnungslauf fehlgeschlagen; Status und Log pruefen.")
+    return {**summary, "exit_code": code}
+
+
+def _job_reference() -> str:
+    """Verwendet eine sichere UUID des uebergeordneten Windmill-Laufs."""
+    return run_reference(
+        os.environ.get("WM_ROOT_FLOW_JOB_ID") or os.environ.get("WM_JOB_ID")
+    )
+
+
+def _run_smtp(mode, smtp_resource, resource_loader):
+    """Verwendet im Dry-Run Platzhalter und im Sendelauf nur native Ressourcen."""
+    return (
         {
             "server": "localhost",
             "port": 1,
@@ -53,16 +92,36 @@ def run(
         if mode == "dry-run"
         else load_smtp_resource(smtp_resource, resource_loader=resource_loader)
     )
-    summary = {}
-    code = run_application(
-        "dry-run" if mode == "dry-run" else "non-interactive",
-        mail_config=smtp,
-        summary=summary,
-        allowed_domains=allowed_domains,
+
+
+def report_failure(
+    mode: str = "dry-run",
+    smtp_resource: str = "f/rechnung/smtp",
+    resource_loader=None,
+    stage: str = "windmill",
+) -> dict:
+    """Meldet Flowfehler ohne Fehlerpayload; der Flow bleibt fehlgeschlagen."""
+    if mode not in {"dry-run", "send"}:
+        raise ValueError("Erlaubte Modi: dry-run und send.")
+    if mode == "dry-run":
+        return {"notification_sent": False}
+    try:
+        config = load_notification_config(PROJECT / "config" / "notifications.yaml")
+    except ValueError:
+        logging.getLogger(__name__).error(
+            "INV-NOTIFICATION: Technische Benachrichtigungskonfiguration ungueltig."
+        )
+        return {"notification_sent": False}
+    sent = send_technical_report(
+        config,
+        None,
+        stage,
+        _job_reference(),
+        mail_loader=lambda: load_smtp_resource(
+            smtp_resource, resource_loader=resource_loader
+        ),
     )
-    if code:
-        raise RuntimeError("Rechnungslauf fehlgeschlagen; Status und Log pruefen.")
-    return {**summary, "exit_code": code}
+    return {"notification_sent": sent}
 
 
 def customers() -> list[dict]:

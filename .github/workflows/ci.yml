@@ -22,6 +22,8 @@ jobs:
             python-version: "3.12"
           - os: windows-latest
             python-version: "3.12"
+          - os: macos-latest
+            python-version: "3.12"
 
     steps:
       - name: Repository auschecken
@@ -115,3 +117,50 @@ jobs:
           install/install.sh
           invoice_cron.sh
           generate_invoices.sh
+
+  zugferd:
+    name: ZUGFeRD integration (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      RUN_ZUGFERD_INTEGRATION: "1"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Linux PDF-Systembibliotheken
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0
+      - name: macOS PDF-Systembibliotheken
+        if: runner.os == 'macOS'
+        run: |
+          brew install pango
+          echo "DYLD_FALLBACK_LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
+      - name: Windows PDF-Systembibliotheken
+        if: runner.os == 'Windows'
+        id: msys2
+        uses: msys2/setup-msys2@v2
+        with:
+          install: mingw-w64-x86_64-pango
+          update: false
+      - name: Windows PDF-Bibliothekspfad
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          MSYS2_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
+        run: |
+          $dllPath = Join-Path $env:MSYS2_LOCATION "mingw64\bin"
+          "WEASYPRINT_DLL_DIRECTORIES=$dllPath" >> $env:GITHUB_ENV
+      - name: Optionale Pakete ausdruecklich installieren
+        run: |
+          python -m pip install -r install/requirements.txt -r install/requirements-dev.txt
+          python tools/install_zugferd.py --install
+      - name: Lokale ZUGFeRD-Erzeugung und Validierung
+        run: python -m pytest tests/test_zugferd_integration.py
