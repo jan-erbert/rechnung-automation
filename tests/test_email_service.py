@@ -243,3 +243,27 @@ def test_invoice_mail_from_header_uses_technical_smtp_address():
     )
 
     assert msg["From"] == "Musterfirma Rechnungen <smtp-login@example.com>"
+
+
+@pytest.mark.parametrize("with_logo", [False, True])
+def test_document_icon_is_embedded_with_or_without_logo(with_logo):
+    """Jede CID-Referenz bleibt auch ohne Betreiberlogo lokal aufloesbar."""
+    logo = LogoAsset(b"logo-data", "png") if with_logo else None
+    msg = build_invoice_email(
+        "sender@example.com",
+        "test@example.com",
+        "Designvorschau",
+        '<img src="cid:invoice-document-icon" alt="">',
+        b"unchanged-pdf",
+        "rechnung.pdf",
+        mail_logo=logo,
+    )
+    parts = {part.get("Content-ID"): part for part in msg.walk()}
+    assert parts["<invoice-document-icon>"].get_payload(decode=True).startswith(
+        b"\x89PNG\r\n\x1a\n"
+    )
+    assert ("<invoice-logo>" in parts) == with_logo
+    attachment = next(
+        part for part in msg.walk() if part.get_filename() == "rechnung.pdf"
+    )
+    assert attachment.get_payload(decode=True) == b"unchanged-pdf"

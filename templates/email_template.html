@@ -6,15 +6,15 @@
   </head>
   <body style="color: #000000; background-color: #FFFFFF;">
     <div style="max-width: 600px; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); margin: auto;">
-      <table style="width: 100%; background-color: {{ design.mail.accent_color }}; border-collapse: collapse;">
+      <table style="width: 100%; font-family: Arial, sans-serif; background-color: {{ design.mail.accent_color }}; border-collapse: collapse;">
         <tr>
-          <td style="padding: 15px; text-align: left;">
-            <h1 style="font-size: 28px; margin: 0; color: {{ design.pdf.accent_text_color }}; font-weight: bold;">{{ header_title }}</h1>
-            <h2 style="font-size: 22px; margin: 0; color: {{ design.pdf.accent_muted_text_color }}; font-weight: normal;">{{ header_subtitle }}</h2>
+          <td style="padding: 14px 18px; text-align: left; vertical-align: middle;">
+            <h1 style="font-size: 16pt; margin: 0; color: {{ design.pdf.accent_text_color }}; font-weight: bold;">{{ mail_header_title | default(header_title) }}</h1>
+            <h2 style="font-size: 9pt; margin: 0; color: {{ design.pdf.accent_muted_text_color }}; font-weight: normal;">{{ mail_header_subtitle | default(header_subtitle) }}</h2>
           </td>
           {% if mail_logo_cid %}
           <td style="padding: 15px; text-align: right; vertical-align: middle;">
-            <img src="cid:{{ mail_logo_cid }}" alt="Logo" style="display: block; max-width: 180px; max-height: {{ mail_logo_height }}px; margin-left: auto;">
+            <img src="cid:{{ mail_logo_cid }}" alt="Logo" style="display: block; max-width: 230px; max-height: {{ mail_logo_height }}px; margin-left: auto;">
           </td>
           {% endif %}
         </tr>
@@ -26,7 +26,7 @@
       </p>
       {% endif %}
 
-      <h2 style="color: #333;">📄 Ihre Rechnung Nr. {{ invoice_number }}</h2>
+      <h2 style="color: #333;"><img src="cid:invoice-document-icon" alt="" width="24" height="24" style="vertical-align: middle; margin-right: 8px; border: 0;">Ihre Rechnung Nr. {{ invoice_number }}</h2>
       <p>Sehr geehrte(r) <strong>{{ name }}</strong>,</p>
       {% if billing_period %}
         <p>anbei erhalten Sie Ihre Rechnung für die Leistungen im Zeitraum <strong>{{ billing_period }}</strong>.</p>
@@ -61,7 +61,7 @@
         </tbody>
       </table>
 
-      <h3 style="margin-top: 30px;">💼 Leistungsübersicht</h3>
+      <h3 style="margin-top: 30px;">Leistungsübersicht</h3>
       <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
         <thead>
           <tr>
@@ -105,7 +105,7 @@
 
       <p>Bitte überweisen Sie den Rechnungsbetrag bis spätestens <strong>{{ due_date }}</strong> auf das unten angegebene Konto.</p>
 
-      <h3 style="color: #333;">🏦 Bankverbindung</h3>
+      <h3 style="color: #333;">Bankverbindung</h3>
       <p>
         <strong>Kontoinhaber:</strong> {{ bank.account_holder }}<br>
         <strong>Bank:</strong> {{ bank.name }}<br>
@@ -113,7 +113,7 @@
         <strong>BIC:</strong> {{ bank.bic }}
       </p>
 
-      <p>📎 <strong>Die Rechnung ist als PDF im Anhang beigefügt.</strong></p>
+      <p><strong>Die Rechnung ist als PDF im Anhang beigefügt.</strong></p>
       <p>Sollten Sie Rückfragen haben oder weitere Informationen benötigen, stehe ich Ihnen jederzeit gerne zur Verfügung.</p>
       <p>Vielen Dank für Ihr Vertrauen! Ich freue mich auf unsere weitere Zusammenarbeit.</p>
 
@@ -123,11 +123,11 @@
       <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
       <p style="text-align: center; font-size: 12px; color: #777;">
         <strong>{{ sender.name }} – {{ sender.company }}</strong><br>
-        📍 {{ sender.street }}, {{ sender.postal_code }} {{ sender.city }}<br>
-        📧 <a href="mailto:{{ sender.email }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.email }}</a> |
-        📞 <a href="tel:{{ sender.phone | replace(' ', '') }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.phone }}</a>
+        {{ sender.street }}, {{ sender.postal_code }} {{ sender.city }}<br>
+        <a href="mailto:{{ sender.email }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.email }}</a> |
+        <a href="tel:{{ sender.phone | replace(' ', '') }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.phone }}</a>
         {% if sender.website %} |
-        🌐 <a href="{{ sender.website }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.website }}</a>
+        <a href="{{ sender.website }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.website }}</a>
         {% endif %}
       </p>
     </div>

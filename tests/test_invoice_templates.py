@@ -158,3 +158,25 @@ def test_templates_render_configured_accent_colors():
     for farbe in ("#abcdef", "#fedcba"):
         assert farbe in mail_html
     assert "background-color: #abcdef" in mail_html
+
+
+def test_mail_has_compact_document_header_and_no_emojis():
+    """Dokumentkopf und dezentes Symbol benoetigen keine externen Bilder."""
+    context = _template_context()
+    context.update(
+        mail_header_title="Rechnung",
+        mail_header_subtitle="Oktober 2026",
+        mail_logo_cid="invoice-logo",
+    )
+    html = load_templates(TEMPLATES_DIR).email.render(context)
+    header = html.split("</table>", 1)[0]
+    assert header.index("Rechnung") < header.index("Oktober 2026")
+    assert header.index("Oktober 2026") < header.index("cid:invoice-logo")
+    assert "font-size: 16pt" in header
+    assert "font-size: 9pt" in header
+    assert "cid:invoice-document-icon" in html
+    assert "<svg" not in html
+    assert not any(ord(character) >= 0x1F000 for character in html)
+    assert (TEMPLATES_DIR.parent / "sample/email_template.sample.html").read_text() == (
+        TEMPLATES_DIR / "email_template.html"
+    ).read_text()

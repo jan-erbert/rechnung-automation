@@ -7,6 +7,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
 from html import escape
+from pathlib import Path
 
 from branding import LogoAsset
 from time_utils import now
@@ -46,9 +47,11 @@ def build_invoice_email(
     if mail_bcc:
         msg["Bcc"] = ", ".join(mail_bcc)
 
-    if mail_logo:
+    document_icon = "cid:invoice-document-icon" in mail_html
+    if mail_logo or document_icon:
         related = MIMEMultipart("related")
         related.attach(MIMEText(mail_html, "html"))
+    if mail_logo:
         logo_part = MIMEImage(mail_logo.data, _subtype=mail_logo.subtype)
         logo_part.add_header("Content-ID", "<invoice-logo>")
         extension = "jpg" if mail_logo.subtype == "jpeg" else mail_logo.subtype
@@ -58,6 +61,13 @@ def build_invoice_email(
             filename=f"logo.{extension}",
         )
         related.attach(logo_part)
+    if document_icon:
+        icon_path = Path(__file__).resolve().parent.parent / "assets/mail/file-text.png"
+        icon_part = MIMEImage(icon_path.read_bytes(), _subtype="png")
+        icon_part.add_header("Content-ID", "<invoice-document-icon>")
+        icon_part.add_header("Content-Disposition", "inline", filename="file-text.png")
+        related.attach(icon_part)
+    if mail_logo or document_icon:
         msg.attach(related)
     else:
         msg.attach(MIMEText(mail_html, "html"))

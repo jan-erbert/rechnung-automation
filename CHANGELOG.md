@@ -4,6 +4,13 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 
 ## [Unreleased]
 
+### Changed
+
+- Rechnungsmails ohne Emojis, mit einem lokal eingebetteten Lucide-Dokumentsymbol.
+- Kompakter Mailkopf nach Vertragsvorlage: Dokumenttitel und kleinere
+  Zeitraumzeile links, Logo rechts; eigene Branding-Texte bleiben moeglich.
+- PDF-Vorlagen und Rechnungs-/Versandlogik bleiben unveraendert.
+
 ### Added
 
 - Gemeinsamer Python-Einstieg fuer bestehende CLI und optionale Windmill-Flows.
