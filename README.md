@@ -101,6 +101,14 @@ backup:
   keep_last: 30
 ```
 
+Die dekorativen Lucide-Symbole in Rechnungsmails sind standardmaessig aktiv.
+`branding.mail_icons_enabled: false` in `config/settings.yaml` schaltet sie aus.
+Bei automatisch aktualisierten Installationen kann stattdessen in der privaten,
+von Git ausgeschlossenen `config/invoice.yaml` unter `mail` der Schalter
+`icons_enabled: false` gesetzt werden. Dieser private Wert hat Vorrang.
+Texte, Kontaktlinks, Logo und PDFs bleiben unveraendert; ungenutzte Symbole
+werden nicht als Anhaenge mitgeschickt. Quellen und Lizenz: [Mail-Symbole](assets/mail/README.md).
+
 `mail.security` akzeptiert `starttls` oder `ssl`. Die passende Portnummer wird
 weiterhin in `.env` festgelegt.
 

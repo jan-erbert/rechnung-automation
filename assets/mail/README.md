@@ -16,5 +16,6 @@ SVG-Quellen und daraus erzeugte transparente PNG-Dateien (48 × 48,
 #333333). PNGs werden als lokale CID-Anhaenge eingebettet, ohne externe
 Bildabrufe oder Webfonts. Darstellung je nach Position mit 14 bis 24 Pixeln.
 `branding.mail_icons_enabled: false` schaltet alle Symbole gemeinsam aus;
-Text und Logo bleiben erhalten. Nur tatsaechlich referenzierte Symbole werden
+Alternativ hat `mail.icons_enabled` in der privaten `config/invoice.yaml`
+Vorrang, ohne den Git-Arbeitsbaum zu veraendern. Text und Logo bleiben erhalten. Nur tatsaechlich referenzierte Symbole werden
 angehaengt. Keine neuen Laufzeitabhaengigkeiten.

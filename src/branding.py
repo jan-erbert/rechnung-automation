@@ -125,3 +125,13 @@ def _detect_logo_subtype(logo_path: Path) -> str:
             "Logo-Dateien muessen das Format .png, .jpg oder .jpeg verwenden."
         )
     return subtype
+
+
+def resolve_mail_branding(branding: dict, mail: dict) -> dict:
+    """Uebernimmt einen privaten Symbolschalter ohne Aenderung des PDF-Brandings."""
+    return {
+        **branding,
+        "mail_icons_enabled": mail.get(
+            "icons_enabled", branding.get("mail_icons_enabled", True)
+        ),
+    }

@@ -17,7 +17,8 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 
 - Lokale Lucide-Symbole fuer Leistungsuebersicht, Bankverbindung und
   Adresse/E-Mail/Telefon im Mailfooter; alle Mail-Symbole ueber
-  `branding.mail_icons_enabled` abschaltbar.
+  `branding.mail_icons_enabled` abschaltbar; privater Vorrang ueber
+  `mail.icons_enabled` in `config/invoice.yaml` fuer automatische Deployments.
 
 - Gemeinsamer Python-Einstieg fuer bestehende CLI und optionale Windmill-Flows.
 - Optionale SMTP-Ressourcen und begrenzter OpenBao-KV-v2-Abruf mit kurzlebigen

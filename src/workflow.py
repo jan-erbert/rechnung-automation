@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from branding import load_logo_asset
+from branding import load_logo_asset, resolve_mail_branding
 from billing_schedule import is_invoice_due
 from customer_lifecycle import should_deactivate_customer, save_customer_data
 from customer_changes import resolve_customer_for_period
@@ -100,7 +100,9 @@ def process_invoices(
         mail_config=mail_config,
         pdf_config=pdf_config,
         design_config=design_config,
-        branding_config=branding_config,
+        branding_config=resolve_mail_branding(
+            branding_config, invoice_config.get("mail", {})
+        ),
         file_naming_config=file_naming_config,
         templates=templates,
         history=history,

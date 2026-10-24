@@ -10,7 +10,12 @@ SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from branding import LogoAsset, load_logo_asset, validate_branding_config  # noqa: E402
+from branding import (  # noqa: E402
+    LogoAsset,
+    load_logo_asset,
+    resolve_mail_branding,
+    validate_branding_config,
+)
 from design import validate_design_config  # noqa: E402
 from configuration import load_invoice_config, load_mail_environment  # noqa: E402
 from logging_setup import configure_logging  # noqa: E402
@@ -147,6 +152,7 @@ def build_sample_context(
 ) -> tuple[dict, LogoAsset | None]:
     """Baut den Template-Kontext fuer eine synthetische Musterrechnung."""
     timestamp = timestamp or now()
+    branding = resolve_mail_branding(branding, invoice_config.get("mail", {}))
     service_data = build_sample_service_data(sample_type)
     tax_data = calculate_tax_values(service_data["total_amount"], invoice_config["tax"])
     pdf_logo = load_logo_asset(image_dir, branding["pdf_logo"], "PDF-Logo")

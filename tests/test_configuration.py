@@ -83,3 +83,25 @@ def test_lade_configuration_rejects_whitespace_mail_sender_name(tmp_path):
 
     with pytest.raises(ValueError, match="mail.from_name"):
         load_invoice_config(config_path)
+
+
+@pytest.mark.parametrize("value", [False, True, "false", 0, None])
+def test_private_mail_icons_option_is_strict_boolean(tmp_path, value):
+    """Der private Symbolschalter akzeptiert nur true und false."""
+    path = _write_config(
+        tmp_path,
+        {
+            "identifier_type": "tax_number",
+            "tax_number": "12/345/67890",
+            "small_business": True,
+            "vat_rate": 0,
+        },
+    )
+    config = yaml.safe_load(path.read_text())
+    config["mail"] = {"icons_enabled": value}
+    path.write_text(yaml.safe_dump(config))
+    if isinstance(value, bool):
+        assert load_invoice_config(path)["mail"]["icons_enabled"] is value
+    else:
+        with pytest.raises(ValueError, match="mail.icons_enabled"):
+            load_invoice_config(path)

@@ -191,6 +191,9 @@ def test_mail_icons_switch_preserves_text_and_logo():
     assert "-icon" not in html
     assert "cid:invoice-logo" in html
     for text in (
-        "Leistungsübersicht", "Bankverbindung", "Musterstraße 1", "max@example.com"
+        "Leistungsübersicht",
+        "Bankverbindung",
+        "Musterstraße 1",
+        "max@example.com",
     ):
         assert text in html

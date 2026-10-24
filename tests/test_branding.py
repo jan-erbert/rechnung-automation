@@ -116,3 +116,14 @@ def test_mail_icons_can_be_disabled():
     """Dekorative Mail-Symbole lassen sich unabhaengig vom Logo abschalten."""
     branding = validate_branding_config({"mail_icons_enabled": False})
     assert branding["mail_icons_enabled"] is False
+
+
+def test_private_mail_icons_override_keeps_pdf_branding():
+    """Der private Schalter hat Vorrang und laesst das PDF-Logo unveraendert."""
+    from branding import resolve_mail_branding
+
+    original = validate_branding_config({})
+    resolved = resolve_mail_branding(original, {"icons_enabled": False})
+    assert resolved["mail_icons_enabled"] is False
+    assert resolved["pdf_logo"] == original["pdf_logo"]
+    assert original["mail_icons_enabled"] is True
