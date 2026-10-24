@@ -4,21 +4,21 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Ihre Rechnung Nr. {{ invoice_number }} – {{ month_year }}</title>
   </head>
-  <body style="color: #000000; background-color: #FFFFFF;">
-    <div style="max-width: 600px; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); margin: auto;">
-      <table style="width: 100%; font-family: Arial, sans-serif; background-color: {{ design.mail.accent_color }}; border-collapse: collapse;">
+  <body style="color: #000000; background-color: #f3f6f9;">
+    <div style="max-width: 600px; background: #ffffff; padding: 0; border: 1px solid #dce4eb; border-radius: 12px; overflow: hidden; margin: auto;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width: 100%; font-family: Arial, sans-serif; background-color: {{ design.mail.accent_color }}; border-collapse: collapse;">
         <tr>
-          <td style="padding: 14px 18px; text-align: left; vertical-align: middle;">
-            <h1 style="font-size: 16pt; margin: 0; color: {{ design.pdf.accent_text_color }}; font-weight: bold;">{{ mail_header_title | default(header_title) }}</h1>
-            <h2 style="font-size: 9pt; margin: 0; color: {{ design.pdf.accent_muted_text_color }}; font-weight: normal;">{{ mail_header_subtitle | default(header_subtitle) }}</h2>
+          <td style="padding: 22px 26px; text-align: left; vertical-align: middle;">
+            {% if mail_logo_cid %}
+            <img src="cid:{{ mail_logo_cid }}" alt="{{ header_title }} – {{ header_subtitle }}" width="300" style="display: block; width: 300px; max-width: 100%; height: auto; max-height: {{ mail_logo_height }}px; border: 0;">
+            {% else %}
+            <div style="font-size: 22px; color: {{ design.pdf.accent_text_color }}; font-weight: bold;">{{ header_title }}</div>
+            <div style="font-size: 14px; color: {{ design.pdf.accent_muted_text_color }};">{{ header_subtitle }}</div>
+            {% endif %}
           </td>
-          {% if mail_logo_cid %}
-          <td style="padding: 15px; text-align: right; vertical-align: middle;">
-            <img src="cid:{{ mail_logo_cid }}" alt="Logo" style="display: block; max-width: 230px; max-height: {{ mail_logo_height }}px; margin-left: auto;">
-          </td>
-          {% endif %}
         </tr>
       </table>
+      <div style="padding: 20px;">
 
       {% if sample_text %}
       <p style="margin: 20px 0; padding: 12px; background: #fff4cc; border: 1px solid #e5c04b; color: #5f4a00; font-weight: bold; text-align: center;">
@@ -130,6 +130,7 @@
         <a href="{{ sender.website }}" style="color: {{ design.mail.link_color }}; text-decoration: none;">{{ sender.website }}</a>
         {% endif %}
       </p>
+      </div>
     </div>
   </body>
 </html>

@@ -65,10 +65,6 @@ def build_template_context(
         "mail_logo_cid": mail_logo_cid,
         "sample_text": sample_text,
         "design": design,
-        "mail_header_title": branding.get("header_title") or "Rechnung",
-        "mail_header_subtitle": (
-            branding.get("header_subtitle") or billing_period or month_year
-        ),
         "header_title": branding.get("header_title") or sender["name"],
         "header_subtitle": branding.get("header_subtitle") or sender["company"],
         "pdf_logo_height": branding["pdf_logo_height"],

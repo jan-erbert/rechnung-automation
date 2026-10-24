@@ -7,8 +7,10 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 ### Changed
 
 - Rechnungsmails ohne Emojis, mit einem lokal eingebetteten Lucide-Dokumentsymbol.
-- Kompakter Mailkopf nach Vertragsvorlage: Dokumenttitel und kleinere
-  Zeitraumzeile links, Logo rechts; eigene Branding-Texte bleiben moeglich.
+- Mailkopf nach Mailvorlage: vollstaendige Wortmarke links auf dunklem Banner,
+  ohne separaten Dokumenttitel; Branding-Texte als Ersatz bei fehlendem Logo.
+- Getrennter Standardpfad `img/mail_logo.png` fuer das Mail-Logo, unabhaengig
+  vom PDF-Logo; Mail-Akzentfarbe auf `#243447` abgestimmt.
 - PDF-Vorlagen und Rechnungs-/Versandlogik bleiben unveraendert.
 
 ### Added

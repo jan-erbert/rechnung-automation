@@ -16,12 +16,12 @@ design:
     accent_text_color: "#ffffff"
     accent_muted_text_color: "#dbe2ea"
   mail:
-    accent_color: "#2f3c50"
+    accent_color: "#243447"
     link_color: "#007BFF"
 
 branding:
   pdf_logo: sample_logo.png
-  mail_logo: sample_logo.png
+  mail_logo: mail_logo.png
   pdf_logo_height: 40
   mail_logo_height: 60
   header_title: null

@@ -160,8 +160,8 @@ def test_templates_render_configured_accent_colors():
     assert "background-color: #abcdef" in mail_html
 
 
-def test_mail_has_compact_document_header_and_no_emojis():
-    """Dokumentkopf und dezentes Symbol benoetigen keine externen Bilder."""
+def test_mail_has_left_aligned_wordmark_header_and_no_emojis():
+    """Der Mailkopf zeigt nur die linke Wortmarke und keine Dokumenttitel."""
     context = _template_context()
     context.update(
         mail_header_title="Rechnung",
@@ -170,10 +170,11 @@ def test_mail_has_compact_document_header_and_no_emojis():
     )
     html = load_templates(TEMPLATES_DIR).email.render(context)
     header = html.split("</table>", 1)[0]
-    assert header.index("Rechnung") < header.index("Oktober 2026")
-    assert header.index("Oktober 2026") < header.index("cid:invoice-logo")
-    assert "font-size: 16pt" in header
-    assert "font-size: 9pt" in header
+    assert "text-align: left" in header
+    assert 'width="300"' in header
+    assert "padding: 22px 26px" in header
+    assert "<h1" not in header and "<h2" not in header
+    assert "Oktober 2026" not in header
     assert "cid:invoice-document-icon" in html
     assert "<svg" not in html
     assert not any(ord(character) >= 0x1F000 for character in html)
