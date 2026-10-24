@@ -517,3 +517,9 @@ install/                     # Linux-/Windows-Installer
 ## Lizenz
 
 Siehe `LICENSE.md` und `licenses/`.
+
+Die PDF-Seitenabstaende stehen unter `design.pdf_layout` in `config/settings.yaml`:
+`margin_top_mm`, `margin_right_mm`, `margin_bottom_mm`, `margin_left_mm`.
+Standard sind jeweils 15 mm; zulaessig sind ganze Werte von 5 bis 30 mm.
+Der untere Wert bestimmt den Abstand des Fussbereichs zur Papierkante;
+der Inhaltsbereich behaelt seine bisherige Reserve von 40 mm fuer den Fussbereich.

@@ -17,6 +17,9 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 
 ### Added
 
+- Konfigurierbare PDF-Seitenabstaende von standardmaessig 15 mm passend zum
+  freigegebenen Gestaltungsmuster; Vorlagen und Validierung synchronisiert.
+
 - Optionaler dezenter Automatikhinweis im Mailfooter, ueber Branding oder
   private Mail-Konfiguration abschaltbar; standardmaessig deaktiviert.
 

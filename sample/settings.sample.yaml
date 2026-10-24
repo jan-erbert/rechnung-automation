@@ -11,6 +11,12 @@ pdf:
   engine: weasyprint
 
 design:
+  # Seitenabstaende in mm, jeweils 5 bis 30.
+  pdf_layout:
+    margin_top_mm: 15
+    margin_right_mm: 15
+    margin_bottom_mm: 15
+    margin_left_mm: 15
   tables:
     header_background: "#F1F3F5"
     total_background: "#EEF1F3"

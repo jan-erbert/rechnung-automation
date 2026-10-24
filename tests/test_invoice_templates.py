@@ -230,3 +230,17 @@ def test_automation_notice_is_optional_and_does_not_change_pdf():
         assert (notice in html) is enabled
         assert "max@example.com" in html
         assert templates.invoice.render(context) == original_pdf
+
+
+def test_pdf_uses_configured_page_and_footer_margins():
+    """PDF-Inhalt und Fussbereich richten sich nach denselben Seitenraendern."""
+    context = _template_context()
+    context["design"] = validate_design_config(
+        {"pdf_layout": {"margin_left_mm": 20, "margin_right_mm": 10}}
+    )
+    templates = load_templates(TEMPLATES_DIR)
+    html = templates.invoice.render(context)
+    assert "padding: 15mm 10mm 40mm 20mm;" in html
+    assert "bottom: 15mm;" in html
+    assert "left: 20mm;" in html
+    assert "width: calc(100% - 30mm);" in html

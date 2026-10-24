@@ -3,6 +3,12 @@ import re
 from strict_yaml import reject_unknown_keys
 
 DEFAULT_DESIGN = {
+    "pdf_layout": {
+        "margin_top_mm": 15,
+        "margin_right_mm": 15,
+        "margin_bottom_mm": 15,
+        "margin_left_mm": 15,
+    },
     "tables": {
         "header_background": "#F1F3F5",
         "total_background": "#EEF1F3",
@@ -26,7 +32,7 @@ HEX_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 
 def validate_design_config(design_config: dict | None) -> dict:
-    """Prueft Designfarben und ergaenzt die bisherigen Standardwerte."""
+    """Prueft Designfarben und PDF-Abstaende mit sicheren Standardwerten."""
     if design_config is None:
         design_config = {}
     if not isinstance(design_config, dict):
@@ -43,6 +49,13 @@ def validate_design_config(design_config: dict | None) -> dict:
         validated[section] = {}
         for name, default in defaults.items():
             value = values.get(name, default)
+            if section == "pdf_layout":
+                if type(value) is not int or not 5 <= value <= 30:
+                    raise ValueError(
+                        f"design.{section}.{name} muss eine Ganzzahl von 5 bis 30 sein."
+                    )
+                validated[section][name] = value
+                continue
             if not isinstance(value, str) or not HEX_COLOR_PATTERN.fullmatch(value):
                 raise ValueError(
                     f"design.{section}.{name} muss eine sechsstellige "

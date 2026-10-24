@@ -67,3 +67,17 @@ def test_documented_color_presets_are_valid():
     assert "neutral" in presets
     for preset in presets.values():
         assert validate_design_config(preset["design"])["tables"]
+
+
+@pytest.mark.parametrize("value", [True, 0, 31, 15.5, "15", None])
+def test_invalid_pdf_margins_are_rejected(value):
+    """Unsichere oder nicht ganzzahlige Seitenabstaende werden abgewiesen."""
+    with pytest.raises(ValueError, match="design.pdf_layout.margin_left_mm"):
+        validate_design_config({"pdf_layout": {"margin_left_mm": value}})
+
+
+def test_pdf_margins_are_individually_configurable():
+    """Einzelne Seitenraender koennen ohne Aenderung der anderen gesetzt werden."""
+    design = validate_design_config({"pdf_layout": {"margin_left_mm": 20}})
+    assert design["pdf_layout"]["margin_left_mm"] == 20
+    assert design["pdf_layout"]["margin_right_mm"] == 15
