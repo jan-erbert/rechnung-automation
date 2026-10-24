@@ -259,9 +259,8 @@ def test_document_icon_is_embedded_with_or_without_logo(with_logo):
         mail_logo=logo,
     )
     parts = {part.get("Content-ID"): part for part in msg.walk()}
-    assert parts["<invoice-document-icon>"].get_payload(decode=True).startswith(
-        b"\x89PNG\r\n\x1a\n"
-    )
+    icon_data = parts["<invoice-document-icon>"].get_payload(decode=True)
+    assert icon_data.startswith(b"\x89PNG\r\n\x1a\n")
     assert ("<invoice-logo>" in parts) == with_logo
     attachment = next(
         part for part in msg.walk() if part.get_filename() == "rechnung.pdf"
