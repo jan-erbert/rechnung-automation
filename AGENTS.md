@@ -112,9 +112,14 @@ Secrets, Tokens, Passwoerter und vollstaendige Inhalte von lokalen Konfiguration
   Auswirkungen auf Rechnungsdaten und Mailversand pruefen. Die Freigabe
   nach `main` erfolgt bewusst; ein Push auf einen Featurebranch ist kein
   Deployment.
-- Bereitstellungen uebernehmen ausschliesslich freigegebenes `origin/main`
-  mit regulaer vorwaerts laufender Historie. Ausloeser und Zeitpunkt sind
-  Umgebungskonfiguration; keine Featurebranches automatisch bereitstellen.
+- Produktive Bereitstellungen uebernehmen ausschliesslich freigegebenes
+  `origin/main` mit regulaer vorwaerts laufender Historie.
+- Die getrennte Dev-Umgebung folgt nach Betreiberfreigabe ausschliesslich
+  `origin/dev`. Dev-Laeufe werden nur manuell gestartet; ihr erster Schritt
+  darf den Dev-Stand per Fast-Forward aktualisieren. Keine Dev-Zeitplaene.
+- Dev verwendet eigene Worker, private Daten, Historien und Archive.
+  Testempfaenger bleiben begrenzt; echte Kundendaten nicht nach Dev kopieren.
+  Eine Dev-Aenderung ist keine Main- oder Produktivfreigabe.
 - Kundendaten, SMTP-Zugang und NAS-Laufkonfiguration bleiben getrennt vom
   Quellcode. Git-Updates duerfen diese Daten nicht ersetzen.
 - Geaenderte Python-Abhaengigkeiten oder Laufzeitvoraussetzungen benoetigen
