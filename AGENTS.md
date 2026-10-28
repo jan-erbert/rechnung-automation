@@ -117,7 +117,9 @@ Secrets, Tokens, Passwoerter und vollstaendige Inhalte von lokalen Konfiguration
 - Die getrennte Dev-Umgebung folgt nach Betreiberfreigabe ausschliesslich
   `origin/dev`. Dev-Laeufe werden nur manuell gestartet; ihr erster Schritt
   darf den Dev-Stand per Fast-Forward aktualisieren. Keine Dev-Zeitplaene.
-- Dev verwendet eigene Worker, private Daten, Historien und Archive.
+- Dev verwendet eigene Codepfade, private Daten, Historien und Archive.
+  Worker duerfen gemeinsam genutzt werden; feste Umgebungspfade, Branchbindung
+  und Dateisperren muessen die getrennte Verarbeitung sicherstellen.
   Testempfaenger bleiben begrenzt; echte Kundendaten nicht nach Dev kopieren.
   Eine Dev-Aenderung ist keine Main- oder Produktivfreigabe.
 - Kundendaten, SMTP-Zugang und NAS-Laufkonfiguration bleiben getrennt vom
