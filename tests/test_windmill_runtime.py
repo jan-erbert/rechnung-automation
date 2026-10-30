@@ -200,6 +200,65 @@ def test_customer_contact_can_explicitly_become_an_organisation(monkeypatch, tmp
     assert update.call_args.kwargs["apply"] is False
 
 
+@pytest.mark.parametrize(
+    ("salutation", "names"),
+    [
+        ("organisation", {}),
+        ("frau", {"last_name": "Beispiel"}),
+        ("herr", {"last_name": "Beispiel"}),
+    ],
+)
+def test_new_customer_preview_allows_omitted_optional_names(
+    monkeypatch, tmp_path, salutation, names
+):
+    """Organisationen brauchen keine Person, bei Herr/Frau reicht der Nachname."""
+    paths = SimpleNamespace(
+        customers_dir=tmp_path / "customers", data_dir=tmp_path / "state"
+    )
+    monkeypatch.setattr(runtime, "project_paths", lambda: paths)
+
+    result = runtime.new_customer(
+        customer_id="fixture",
+        company="Fixture Company",
+        salutation=salutation,
+        email="fixture@example.invalid",
+        street="Fixture Street",
+        postal_code="00000",
+        city="Fixture City",
+        description="Hosting",
+        unit_price="50.00",
+        apply=False,
+        **names,
+    )
+
+    assert result["customer"]["contact"]["first_name"] == ""
+    assert result["customer"]["contact"]["last_name"] == names.get("last_name", "")
+    assert result["customer"]["contact"]["salutation"] == salutation
+    assert result["saved"] is False
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_new_customer_preview_still_requires_formal_last_name(monkeypatch, tmp_path):
+    """Optionale Formularfelder umgehen nicht die fachliche Nachnamenpflicht."""
+    paths = SimpleNamespace(customers_dir=tmp_path, data_dir=tmp_path)
+    monkeypatch.setattr(runtime, "project_paths", lambda: paths)
+
+    with pytest.raises(ValueError, match="last_name"):
+        runtime.new_customer(
+            customer_id="fixture",
+            company="Fixture Company",
+            salutation="frau",
+            email="fixture@example.invalid",
+            street="Fixture Street",
+            postal_code="00000",
+            city="Fixture City",
+            description="Hosting",
+            unit_price="50.00",
+        )
+
+    assert list(tmp_path.iterdir()) == []
+
+
 def test_native_resource_error_preserves_failure_and_attempts_technical_report(
     monkeypatch,
 ):

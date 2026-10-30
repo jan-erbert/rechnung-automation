@@ -119,15 +119,18 @@ def test_flow_has_three_steps_without_retry_and_defaults_to_dry_run():
     json.dumps(flow)
 
 
-def test_creation_form_requires_explicit_structured_identity(tmp_path):
-    """Die Anlage fragt einzelne Namen und eine ausdrueckliche Briefanrede ab."""
+def test_creation_form_requires_salutation_but_allows_empty_person_names(tmp_path):
+    """Organisationen brauchen keine Person, formelle Nachnamen prueft der Helper."""
     definition = next(
         item
         for item in deployment.script_definitions(str(tmp_path))
         if item["path"] == "f/rechnung/customer_create"
     )
     schema = definition["schema"]
-    assert {"first_name", "last_name", "salutation"} <= set(schema["required"])
+    assert "salutation" in schema["required"]
+    for name in ("first_name", "last_name"):
+        assert name not in schema["required"]
+        assert schema["properties"][name]["default"] == ""
     assert schema["properties"]["salutation"]["enum"] == [
         "frau",
         "herr",

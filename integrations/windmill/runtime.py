@@ -152,8 +152,6 @@ def customers() -> list[dict]:
 def new_customer(
     customer_id: str,
     company: str,
-    first_name: str,
-    last_name: str,
     salutation: str,
     email: str,
     street: str,
@@ -161,6 +159,8 @@ def new_customer(
     city: str,
     description: str,
     unit_price: str,
+    first_name: str = "",
+    last_name: str = "",
     cycle_months: int = 1,
     unit: str = "month",
     cc: list[str] | None = None,
