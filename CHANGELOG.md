@@ -6,6 +6,8 @@ Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgef�
 
 ### Changed
 
+- Schriftgröße im PDF-Footer unterhalb der Trennlinie leicht von 9 auf 8,5 pt reduziert.
+
 - Neutraler Standard fuer Tabellenfarben; farbige Vorlagen bleiben waehlbar.
 
 - Rechnungsmails ohne Emojis, mit einem lokal eingebetteten Lucide-Dokumentsymbol.
