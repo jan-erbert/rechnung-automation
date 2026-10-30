@@ -21,7 +21,9 @@ def customer(unit="month", cycle=1, effective="2026-11"):
         {
             "id": "fixture",
             "contact": {
-                "name": "Fixture",
+                "first_name": "Fixture",
+                "last_name": "",
+                "salutation": "neutral",
                 "company": "Fixture Company",
                 "email": "fixture@example.invalid",
                 "street": "Fixture Road 1",

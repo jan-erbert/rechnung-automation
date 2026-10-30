@@ -32,7 +32,7 @@
       {% endif %}
 
       <h2 style="color: #333;">{{ mail_icon('document', 24) }}Ihre Rechnung Nr. {{ invoice_number }}</h2>
-      <p>Sehr geehrte(r) <strong>{{ name }}</strong>,</p>
+      <p><strong>{{ mail_salutation }}</strong></p>
       {% if billing_period %}
         <p>anbei erhalten Sie Ihre Rechnung für die Leistungen im Zeitraum <strong>{{ billing_period }}</strong>.</p>
       {% else %}

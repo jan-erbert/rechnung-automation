@@ -9,6 +9,7 @@ import yaml
 from jinja2 import Environment, TemplateSyntaxError
 
 from configuration import load_invoice_config
+from contact_identity import normalize_contact_identity
 from customer_files import load_customer_files, save_customer_file
 from hours_files import (
     hours_file_path,
@@ -210,7 +211,7 @@ def convert_legacy_customers(values: list[dict]) -> list[dict]:
             {
                 "id": _create_customer_id(company, used),
                 "active": value.get("aktiv", True),
-                "name": value.get("name"),
+                **normalize_contact_identity(value),
                 "company": company,
                 "email": value.get("email"),
                 "cc": value.get("cc", []),

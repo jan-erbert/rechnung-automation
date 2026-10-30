@@ -40,7 +40,9 @@ def test_customer_rejects_unknown_active_field(tmp_path):
         """id: customer
 activee: false
 contact:
-  name: Erika Beispiel
+  first_name: Erika
+  last_name: Beispiel
+  salutation: frau
   company: Beispiel GmbH
   email: erika@example.com
   street: Beispielweg 1

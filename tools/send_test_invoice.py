@@ -17,6 +17,7 @@ from branding import (  # noqa: E402
     validate_branding_config,
 )
 from design import validate_design_config  # noqa: E402
+from contact_identity import normalize_contact_identity  # noqa: E402
 from configuration import load_invoice_config, load_mail_environment  # noqa: E402
 from logging_setup import configure_logging  # noqa: E402
 from email_service import (  # noqa: E402
@@ -165,9 +166,12 @@ def build_sample_context(
     pdf_logo = load_logo_asset(image_dir, branding["pdf_logo"], "PDF-Logo")
     mail_logo = load_logo_asset(image_dir, branding["mail_logo"], "Mail-Logo")
 
+    sample_contact = normalize_contact_identity(
+        {"first_name": "Erika", "last_name": "Beispiel", "salutation": "frau"}
+    )
     context = build_template_context(
         customer={
-            "name": "Erika Beispiel",
+            **sample_contact,
             "company": "Beispielfirma GmbH",
             "email": "muster@example.com",
             "street": "Beispielweg 12",
@@ -200,7 +204,7 @@ def build_sample_context(
 
     context["invoice_snapshot"] = invoice_snapshot(
         {
-            "name": context["name"],
+            **sample_contact,
             "company": context["company"],
             "street": context["street"],
             "postal_code": context["postal_code"],

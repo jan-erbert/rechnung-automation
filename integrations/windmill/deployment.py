@@ -7,6 +7,7 @@ import yaml
 from pathlib import Path
 
 from integrations.windmill import runtime
+from contact_identity import SALUTATIONS
 
 FUNCTIONS = {
     "validate": ("validate_project", "Konfiguration pruefen"),
@@ -47,6 +48,24 @@ def _schema(function) -> dict:
                 "enum": ["unchanged", "active", "inactive"],
                 "default": "unchanged",
             }
+        if name == "salutation":
+            field["title"] = "Briefanrede"
+            field["enum"] = list(SALUTATIONS)
+            field["description"] = (
+                "Bewusst auswaehlen; keine automatische Ableitung aus dem Vornamen."
+            )
+            if parameter.default is None:
+                field.update(
+                    default="unchanged",
+                    enum=["unchanged", *SALUTATIONS],
+                    nullable=False,
+                )
+        if name in {"first_name", "last_name"}:
+            field["title"] = "Vorname" if name == "first_name" else "Nachname"
+            field["description"] = (
+                "Ohne Herr/Frau eintragen. Leerer Text leert das Feld; "
+                "bei Bearbeitung bedeutet null unveraendert."
+            )
         if name == "effective_from":
             field["description"] = (
                 "Optional JJJJ-MM; leer = naechste zulaessige Periode."
@@ -99,7 +118,7 @@ def script_definitions(
         parameters = [
             (
                 p.replace(annotation=str, default="unchanged")
-                if p.name == "active" and p.default is None
+                if p.name in {"active", "salutation"} and p.default is None
                 else p
             )
             for p in parameters
@@ -109,7 +128,11 @@ def script_definitions(
             (
                 "'active': {'unchanged': None, 'active': True, 'inactive': False}[active]"
                 if p.name == "active" and p.default == "unchanged"
-                else f"{p.name!r}: {p.name}"
+                else (
+                    "'salutation': None if salutation == 'unchanged' else salutation"
+                    if p.name == "salutation" and p.default == "unchanged"
+                    else f"{p.name!r}: {p.name}"
+                )
             )
             for p in parameters
         ]

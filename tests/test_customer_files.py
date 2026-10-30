@@ -12,7 +12,9 @@ def _customer(customer_id: str = "musterfirma") -> dict:
         "id": customer_id,
         "active": True,
         "contact": {
-            "name": "Erika Beispiel",
+            "first_name": "Erika",
+            "last_name": "Beispiel",
+            "salutation": "frau",
             "company": "Musterfirma",
             "email": "erika@example.com",
             "cc": [],
@@ -40,6 +42,8 @@ def test_loads_one_customer_per_yaml_file(tmp_path):
 
     assert len(customers) == 1
     assert customers[0]["id"] == "musterfirma"
+    assert customers[0]["name"] == "Erika Beispiel"
+    assert customers[0]["mail_salutation"] == "Sehr geehrte Frau Beispiel,"
     assert customers[0]["postal_code"] == "01234"
     assert customers[0]["main_service"]["unit_price"] == "49.90"
     assert customers[0]["additional_services"][0]["unit_price"] is None
@@ -87,6 +91,9 @@ def test_customer_write_is_roundtrip_safe(tmp_path):
         "id": "musterfirma",
         "active": True,
         "name": "Erika Beispiel",
+        "first_name": "Erika",
+        "last_name": "Beispiel",
+        "salutation": "frau",
         "company": "Musterfirma",
         "email": "erika@example.com",
         "cc": [],
@@ -116,3 +123,43 @@ def test_customer_write_is_roundtrip_safe(tmp_path):
     assert loaded["id"] == internal["id"]
     assert loaded["postal_code"] == "01234"
     assert loaded["main_service"]["unit_price"] == "49.90"
+    contact = yaml.safe_load(target.read_text())["contact"]
+    assert contact["first_name"] == "Erika"
+    assert contact["last_name"] == "Beispiel"
+    assert contact["salutation"] == "frau"
+    assert "name" not in contact
+
+
+@pytest.mark.parametrize("keep_structured_fields", [False, True])
+def test_rejects_old_combined_contact_name(tmp_path, keep_structured_fields):
+    """Das alte Namensfeld wird weder allein noch neben neuen Feldern akzeptiert."""
+    customer = _customer()
+    if not keep_structured_fields:
+        for field in ("first_name", "last_name", "salutation"):
+            customer["contact"].pop(field)
+    customer["contact"]["name"] = "Frau Erika Beispiel"
+    path = tmp_path / "customer.yaml"
+    path.write_text(yaml.safe_dump(customer), encoding="utf-8")
+    before = path.read_bytes()
+
+    with pytest.raises(ValueError, match="contact.name"):
+        load_customer_files(tmp_path)
+
+    assert path.read_bytes() == before
+
+
+def test_organisation_without_personal_name_roundtrips(tmp_path):
+    """Eine Organisation braucht keinen erfundenen Ansprechpartner."""
+    customer = _customer()
+    customer["contact"].update(
+        first_name="", last_name="", salutation="organisation"
+    )
+    path = tmp_path / "customer.yaml"
+    path.write_text(yaml.safe_dump(customer), encoding="utf-8")
+
+    loaded = load_customer_files(tmp_path)[0]
+    assert loaded["name"] == ""
+    assert loaded["mail_salutation"] == "Sehr geehrte Damen und Herren,"
+    save_customer_file(loaded, path)
+
+    assert load_customer_files(tmp_path)[0]["salutation"] == "organisation"

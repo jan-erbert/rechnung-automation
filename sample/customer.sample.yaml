@@ -2,7 +2,9 @@ id: musterfirma
 active: true
 
 contact:
-  name: Herr Mustermann
+  first_name: Max
+  last_name: Mustermann
+  salutation: herr
   company: Musterfirma GmbH
   email: kunde@example.com
   cc:

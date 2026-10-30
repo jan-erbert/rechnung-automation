@@ -56,7 +56,9 @@ def test_customer_contact_fields_are_delegated_without_saving(monkeypatch, tmp_p
     result = runtime.edit_customer(
         "fixture",
         company="Fixture Company",
-        contact_name="Fixture Contact",
+        first_name="Fixture",
+        last_name="Contact",
+        salutation="neutral",
         street="Fixture Street",
         postal_code="00000",
         city="Fixture City",
@@ -68,7 +70,9 @@ def test_customer_contact_fields_are_delegated_without_saving(monkeypatch, tmp_p
     assert update.call_args.args[3] == {
         "contact": {
             "company": "Fixture Company",
-            "name": "Fixture Contact",
+            "first_name": "Fixture",
+            "last_name": "Contact",
+            "salutation": "neutral",
             "street": "Fixture Street",
             "postal_code": "00000",
             "city": "Fixture City",
@@ -97,6 +101,38 @@ def test_customer_write_still_requires_preview_revision(monkeypatch, tmp_path):
     update.assert_not_called()
 
 
+def test_customer_listing_shows_explicit_letter_salutation(monkeypatch, tmp_path):
+    """Die Verwaltungsansicht zeigt die Briefanrede getrennt vom Kontaktnamen."""
+    document = {
+        "id": "fixture",
+        "contact": {
+            "first_name": "Erika",
+            "last_name": "von Beispiel",
+            "salutation": "frau",
+            "company": "Fixture Company",
+            "email": "fixture@example.invalid",
+            "street": "Fixture Street",
+            "postal_code": "00000",
+            "city": "Fixture City",
+        },
+        "main_service": {"description": "Hosting", "unit_price": "50.00"},
+    }
+    monkeypatch.setattr(
+        runtime, "project_paths", lambda: SimpleNamespace(customers_dir=tmp_path)
+    )
+    monkeypatch.setattr(
+        runtime,
+        "list_customers",
+        Mock(return_value=[{"customer": document, "revision": "fixture-revision"}]),
+    )
+
+    row = runtime.customers()[0]
+
+    assert row["first_name"] == "Erika"
+    assert row["last_name"] == "von Beispiel"
+    assert row["mail_salutation"] == "Sehr geehrte Frau von Beispiel,"
+
+
 @pytest.mark.parametrize("archive_directory", [None, "prepared-archive/fixture"])
 @pytest.mark.parametrize("apply", [False, True])
 def test_new_customer_preserves_optional_archive(
@@ -114,7 +150,9 @@ def test_new_customer_preserves_optional_archive(
     result = runtime.new_customer(
         customer_id="fixture",
         company="Fixture Company",
-        contact_name="Fixture Contact",
+        first_name="Fixture",
+        last_name="Contact",
+        salutation="neutral",
         email="fixture@example.invalid",
         street="Fixture Street",
         postal_code="00000",
@@ -136,6 +174,30 @@ def test_new_customer_preserves_optional_archive(
         ]
     else:
         assert list(tmp_path.iterdir()) == []
+
+
+def test_customer_contact_can_explicitly_become_an_organisation(monkeypatch, tmp_path):
+    """Leere Personennamen sind echte Aenderungen und kein unveraenderter Wert."""
+    paths = SimpleNamespace(customers_dir=tmp_path, data_dir=tmp_path)
+    monkeypatch.setattr(runtime, "project_paths", lambda: paths)
+    monkeypatch.setattr(
+        runtime, "get_customer", Mock(return_value={"revision": "fixture-revision"})
+    )
+    update = Mock(return_value={"saved": False})
+    monkeypatch.setattr(runtime, "update_customer", update)
+
+    runtime.edit_customer(
+        "fixture", first_name="", last_name="", salutation="organisation"
+    )
+
+    assert update.call_args.args[3] == {
+        "contact": {
+            "first_name": "",
+            "last_name": "",
+            "salutation": "organisation",
+        }
+    }
+    assert update.call_args.kwargs["apply"] is False
 
 
 def test_native_resource_error_preserves_failure_and_attempts_technical_report(

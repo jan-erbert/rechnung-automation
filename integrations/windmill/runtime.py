@@ -135,6 +135,10 @@ def customers() -> list[dict]:
             {
                 "id": customer["id"],
                 "company": customer["company"],
+                "first_name": customer["first_name"],
+                "last_name": customer["last_name"],
+                "salutation": customer["salutation"],
+                "mail_salutation": customer["mail_salutation"],
                 "email": customer["email"],
                 "active": customer["active"],
                 "unit_price": customer["main_service"]["unit_price"],
@@ -148,7 +152,9 @@ def customers() -> list[dict]:
 def new_customer(
     customer_id: str,
     company: str,
-    contact_name: str,
+    first_name: str,
+    last_name: str,
+    salutation: str,
     email: str,
     street: str,
     postal_code: str,
@@ -168,7 +174,9 @@ def new_customer(
         "id": customer_id,
         "active": True,
         "contact": {
-            "name": contact_name,
+            "first_name": first_name,
+            "last_name": last_name,
+            "salutation": salutation,
             "company": company,
             "email": email,
             "cc": cc or [],
@@ -207,7 +215,9 @@ def edit_customer(
     apply: bool = False,
     allowed_domains: list[str] | None = None,
     company: str | None = None,
-    contact_name: str | None = None,
+    first_name: str | None = None,
+    last_name: str | None = None,
+    salutation: str | None = None,
     street: str | None = None,
     postal_code: str | None = None,
     city: str | None = None,
@@ -219,7 +229,9 @@ def edit_customer(
         raise ValueError("Zuerst Vorschau ausfuehren und deren revision uebernehmen.")
     changes = {}
     contact = {
-        "name": contact_name,
+        "first_name": first_name,
+        "last_name": last_name,
+        "salutation": salutation,
         "company": company,
         "email": email,
         "cc": cc,

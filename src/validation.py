@@ -3,6 +3,8 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from email.utils import parseaddr
 
+from contact_identity import normalize_contact_identity
+
 SUPPORTED_UNITS = ("month", "hour", "flat")
 CENT = Decimal("0.01")
 
@@ -105,6 +107,11 @@ def validate_customer_entry(entry: dict) -> None:
     """Prueft abrechnungsrelevante Werte eines Kundeneintrags."""
     if not isinstance(entry, dict):
         raise ValueError("Kundeneintrag muss ein Objekt sein.")
+    identity = normalize_contact_identity(entry)
+    if entry.get("name") != identity["name"]:
+        raise ValueError(
+            "Der vollständige Kontaktname passt nicht zu den Namensfeldern."
+        )
 
     if not isinstance(entry.get("active", True), bool):
         raise ValueError("active muss true oder false sein.")

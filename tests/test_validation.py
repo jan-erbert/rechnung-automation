@@ -55,6 +55,10 @@ def test_validiere_monat_rejects_invalid_formats(value):
 def test_validiere_kundeneintrag_rejects_invalid_main_amount():
     """Ein fehlerhafter Hauptbetrag stoppt den Kundeneintrag."""
     entry = {
+        "name": "Erika Beispiel",
+        "first_name": "Erika",
+        "last_name": "Beispiel",
+        "salutation": "frau",
         "email": "kunde@example.com",
         "main_service": {
             "description": "Hosting",
@@ -70,6 +74,10 @@ def test_validiere_kundeneintrag_rejects_invalid_main_amount():
 def test_validiere_kundeneintrag_accepts_inclusive_additional_service():
     """Eine inklusive Zusatzleistung bleibt ein gueltiger Hinweis."""
     entry = {
+        "name": "Erika Beispiel",
+        "first_name": "Erika",
+        "last_name": "Beispiel",
+        "salutation": "frau",
         "email": "kunde@example.com",
         "main_service": {
             "description": "Hosting",
@@ -106,6 +114,10 @@ def test_normalisiere_mail_liste_rejects_invalid_address():
 def test_validiere_kundeneintrag_rejects_multiple_main_recipients():
     """Die Hauptadresse bleibt eine einzelne To-Adresse."""
     entry = {
+        "name": "Erika Beispiel",
+        "first_name": "Erika",
+        "last_name": "Beispiel",
+        "salutation": "frau",
         "email": ["kunde@example.com", "team@example.com"],
         "main_service": {
             "description": "Hosting",

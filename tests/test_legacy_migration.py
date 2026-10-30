@@ -16,6 +16,9 @@ def _customer(customer_id: str, company: str) -> dict:
         "id": customer_id,
         "active": True,
         "name": "Erika Beispiel",
+        "first_name": "Erika",
+        "last_name": "Beispiel",
+        "salutation": "frau",
         "company": company,
         "email": "erika@example.com",
         "cc": [],
@@ -39,6 +42,24 @@ def _customer(customer_id: str, company: str) -> dict:
     }
 
 
+def test_legacy_customer_requires_explicit_name_fields():
+    """Ein alter Anzeigename wird nicht in Namen oder Geschlecht umgedeutet."""
+    legacy = {
+        "name": "Frau Erika von Beispiel",
+        "firma": "Musterfirma",
+        "email": "erika@example.com",
+        "strasse": "Musterweg 1",
+        "plz": "12345",
+        "ort": "Musterstadt",
+        "hauptleistung": {
+            "beschreibung": "Hosting", "einheit": "monat", "betrag": "10.00"
+        },
+    }
+
+    with pytest.raises(ValueError, match="contact.first_name"):
+        convert_legacy_customers([legacy])
+
+
 def test_startup_migration_is_complete_and_idempotent(tmp_path):
     """Der Start migriert alte Daten einmalig und behaelt die Quellen."""
     data_dir = tmp_path / "data"
@@ -49,6 +70,9 @@ def test_startup_migration_is_complete_and_idempotent(tmp_path):
     templates_dir.mkdir()
     legacy_customer = {
         "name": "Erika Beispiel",
+        "first_name": "Erika",
+        "last_name": "Beispiel",
+        "salutation": "frau",
         "firma": "Beispiel GmbH",
         "email": "erika@example.com",
         "strasse": "Beispielweg 1",
@@ -160,6 +184,9 @@ def test_startup_migration_resumes_partial_customer_conversion(tmp_path):
     legacy_customers = [
         {
             "name": "Erika Beispiel",
+            "first_name": "Erika",
+            "last_name": "Beispiel",
+            "salutation": "frau",
             "firma": "Erste Firma",
             "email": "erika@example.com",
             "strasse": "Beispielweg 1",
@@ -173,6 +200,9 @@ def test_startup_migration_resumes_partial_customer_conversion(tmp_path):
         },
         {
             "name": "Max Beispiel",
+            "first_name": "Max",
+            "last_name": "Beispiel",
+            "salutation": "herr",
             "firma": "Zweite Firma",
             "email": "max@example.com",
             "strasse": "Beispielweg 2",

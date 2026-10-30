@@ -35,6 +35,9 @@ def _customer(archive_directory: Path | None) -> dict:
         "id": "example",
         "active": True,
         "name": "Erika Beispiel",
+        "first_name": "Erika",
+        "last_name": "Beispiel",
+        "salutation": "frau",
         "company": "Example GmbH",
         "email": "erika@example.com",
         "cc": [],
@@ -127,6 +130,8 @@ def test_preview_writes_only_watermarked_pdf_to_customer_archive(tmp_path, monke
     assert target.name == "VORSCHAU_Rechnung_example_09-2026_2026-09-04_14-30-00.pdf"
     assert target.read_bytes() == b"pdf"
     assert templates.contexts[0]["sample_text"] == "VORSCHAU"
+    assert templates.contexts[0]["name"] == "Erika Beispiel"
+    assert templates.contexts[0]["mail_salutation"] == "Sehr geehrte Frau Beispiel,"
     assert templates.contexts[0]["invoice_number"] == "09-2026"
     assert list(archive_directory.iterdir()) == [target]
 

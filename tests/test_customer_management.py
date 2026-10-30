@@ -16,7 +16,9 @@ def document():
     return {
         "id": "fixture",
         "contact": {
-            "name": "Fixture",
+            "first_name": "Fixture",
+            "last_name": "",
+            "salutation": "neutral",
             "company": "Fixture Company",
             "email": "invoice@example.invalid",
             "cc": [],
@@ -123,6 +125,36 @@ def test_contact_change_is_immediate_and_does_not_add_invoice_state(tmp_path):
     assert sorted(p.name for p in (tmp_path / "state").iterdir()) == [
         ".invoice-run.lock",
     ]
+
+
+def test_structured_name_edit_preserves_history_and_billing(tmp_path):
+    """Eine neue Briefanrede verändert weder alte Rechnungen noch Konditionen."""
+    created = create(tmp_path)
+    path = completed_history(tmp_path)
+    history = json.loads(path.read_text())
+    history[0]["name"] = "Historischer Kontaktname"
+    path.write_text(json.dumps(history), encoding="utf-8")
+    before = path.read_bytes()
+    original = load_customer_files(tmp_path / "customers")[0]
+
+    update(
+        tmp_path,
+        created["revision"],
+        {
+            "contact": {
+                "first_name": "Erika",
+                "last_name": "von Beispiel",
+                "salutation": "frau",
+            }
+        },
+    )
+
+    customer = load_customer_files(tmp_path / "customers")[0]
+    assert customer["name"] == "Erika von Beispiel"
+    assert customer["mail_salutation"] == "Sehr geehrte Frau von Beispiel,"
+    assert customer["main_service"] == original["main_service"]
+    assert customer["cycle_months"] == original["cycle_months"]
+    assert path.read_bytes() == before
 
 
 def test_stale_form_is_rejected(tmp_path):

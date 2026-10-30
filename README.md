@@ -266,7 +266,9 @@ id: musterfirma
 active: true
 
 contact:
-  name: Herr Mustermann
+  first_name: Max
+  last_name: Mustermann
+  salutation: herr
   company: Musterfirma GmbH
   email: kunde@example.com
   cc:
@@ -304,6 +306,40 @@ Zusatzleistungen verwenden `month`, `flat` oder `included`. Postleitzahlen,
 Telefonnummern, Geldwerte und Prozentwerte sollten immer als Text in
 Anfuehrungszeichen stehen. `billing.invoice_date` verwendet `YYYY-MM-DD`,
 `billing.end_month` verwendet `YYYY-MM`.
+
+### Kontaktname und Briefanrede
+
+Vorname und Nachname werden getrennt gepflegt. `salutation` wird bewusst
+ausgewaehlt; die Anwendung leitet weder Geschlecht noch Anrede aus einem
+Vornamen ab. Im Rechnungsadressblock steht der vollstaendige Kontaktname ohne
+vorangestelltes „Herr“ oder „Frau“. Die E-Mail verwendet eine zentral erzeugte
+Briefanrede:
+
+| `contact.salutation` | Beispiel fuer die E-Mail |
+| --- | --- |
+| `frau` | Sehr geehrte Frau Beispiel, |
+| `herr` | Sehr geehrter Herr Beispiel, |
+| `neutral` | Guten Tag Erika Beispiel, |
+| `organisation` | Sehr geehrte Damen und Herren, |
+
+Eigene Mailvorlagen verwenden `{{ mail_salutation }}` fuer die vollstaendige
+Briefanrede inklusive Komma. `{{ name }}` enthaelt weiterhin den abgeleiteten
+vollstaendigen Kontaktnamen und ist kein Anredetext.
+
+`first_name`, `last_name` und `salutation` sind ausdrueckliche Pflichtfelder
+des Kundenschemas. Vorname und Nachname sind Texte und duerfen abhaengig von
+der Auswahl leer sein: `frau` und `herr` brauchen einen Nachnamen; `neutral`
+braucht mindestens einen der beiden Namen. Bei `organisation` duerfen beide
+leer bleiben. Mehrteilige Nachnamen werden vollstaendig in `last_name`
+eingetragen, beispielsweise `von Beispiel`. Titel oder „Herr“/„Frau“ werden
+nicht als Teil des Vor- oder Nachnamens gepflegt.
+
+Das fruehere Feld `contact.name` wird nicht mehr unterstuetzt. Bestehende
+Kundendateien muessen vor einem Lauf gezielt auf die drei neuen Felder
+umgestellt werden; es gibt keine automatische Namenszerlegung oder
+Geschlechtszuordnung. Vergangene Rechnungsdateien und Versandverlaeufe werden
+dadurch nicht umgeschrieben. Die gemeinsame Namens- und Anredeformatierung
+gilt fuer lokale Ausfuehrung, Cron und die optionale Windmill-Integration.
 
 Neue Kunden koennen interaktiv angelegt werden:
 
@@ -357,6 +393,13 @@ python tools/migrate_legacy_hours.py --delete-legacy
 
 ## Migration von JSON nach YAML
 
+Die Kundenkonvertierung setzt auch in der JSON-Quelle ausdruecklich gepflegte
+Felder `first_name`, `last_name` und `salutation` voraus. Ein bisheriges
+einzelnes `name`-Feld reicht nicht aus. Diese Angaben muessen vor der
+Konvertierung kontrolliert ergaenzt werden; das Werkzeug zerlegt keine alten
+Namen und errät keine Anrede. Die hier beschriebene Dateikonvertierung ist
+keine automatische Anpassung alter Namensschemata.
+
 Das Migrationswerkzeug veraendert die alten JSON-Dateien standardmaessig nicht.
 `--apply` erzeugt die YAML-Dateien und vergleicht sie anschliessend mit den
 JSON-Quellen. Eine bestehende Migration kann separat geprueft werden:
@@ -382,7 +425,8 @@ der Migration sollte zusaetzlich `python tools/check_setup.py` ausgefuehrt
 werden. Erst danach sollte ein Rechnungslauf gestartet werden.
 
 Beim normalen Start und durch die Installer wird dieselbe Migration
-automatisch und idempotent ausgefuehrt. Sie umfasst alte Kunden- und
+bei entsprechend vorbereiteten Quellen automatisch und idempotent ausgefuehrt.
+Fehlende strukturierte Namensfelder fuehren zum Abbruch. Sie umfasst Kunden- und
 Konfigurations-JSONs, Stunden-JSONs, `verlauf-YYYY.json` sowie alte technische
 Templatenamen. Widerspruechliche vorhandene Ziele fuehren zu einem sicheren
 Abbruch; Legacy-Quellen werden nie automatisch geloescht.

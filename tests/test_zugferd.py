@@ -94,6 +94,9 @@ def test_validation_failure_blocks_mail_archive_and_history(tmp_path, monkeypatc
     monkeypatch.setattr("workflow.archive_pdf", lambda *args: events.append("archive"))
     monkeypatch.setattr("workflow.send_email", lambda *args: events.append("mail"))
     customer = {
+        "first_name": "Test",
+        "last_name": "",
+        "salutation": "neutral",
         "id": "muster",
         "name": "Test",
         "company": "Testfirma",

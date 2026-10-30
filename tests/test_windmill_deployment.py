@@ -119,6 +119,64 @@ def test_flow_has_three_steps_without_retry_and_defaults_to_dry_run():
     json.dumps(flow)
 
 
+def test_creation_form_requires_explicit_structured_identity(tmp_path):
+    """Die Anlage fragt einzelne Namen und eine ausdrueckliche Briefanrede ab."""
+    definition = next(
+        item
+        for item in deployment.script_definitions(str(tmp_path))
+        if item["path"] == "f/rechnung/customer_create"
+    )
+    schema = definition["schema"]
+    assert {"first_name", "last_name", "salutation"} <= set(schema["required"])
+    assert schema["properties"]["salutation"]["enum"] == [
+        "frau",
+        "herr",
+        "neutral",
+        "organisation",
+    ]
+    assert "contact_name" not in schema["properties"]
+
+
+@pytest.mark.parametrize(
+    ("selection", "expected"),
+    [
+        (None, None),
+        ("unchanged", None),
+        ("frau", "frau"),
+        ("organisation", "organisation"),
+    ],
+)
+def test_edit_form_preserves_or_explicitly_changes_salutation(
+    tmp_path, selection, expected
+):
+    """Ein unangetastetes Anredefeld behaelt den bestehenden Kontakt bei."""
+    definition = next(
+        item
+        for item in deployment.script_definitions(str(tmp_path))
+        if item["path"] == "f/rechnung/customer_edit"
+    )
+    field = definition["schema"]["properties"]["salutation"]
+    assert field["default"] == "unchanged"
+    assert field["enum"] == ["unchanged", "frau", "herr", "neutral", "organisation"]
+    namespace = {}
+    exec(definition["content"], namespace)
+    captured = {}
+
+    def capture(action, arguments):
+        """Erfasst nur den Formularpayload, ohne einen Worker aufzurufen."""
+        captured.update(arguments)
+        return action
+
+    namespace["invoke"] = capture
+    arguments = {"customer_id": "fixture", "first_name": "", "last_name": ""}
+    if selection is not None:
+        arguments["salutation"] = selection
+    assert namespace["main"](**arguments) == "customer_edit"
+    assert captured["salutation"] == expected
+    assert captured["first_name"] == captured["last_name"] == ""
+    assert captured["apply"] is False
+
+
 def test_invoice_flow_has_one_explicit_notification_owner(tmp_path):
     """Flowfehler nutzen denselben repo-eigenen Bridge-Einstieg ohne Doppelmeldung."""
     flow = deployment.invoice_flow()["value"]

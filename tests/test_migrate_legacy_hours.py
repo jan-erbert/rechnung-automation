@@ -15,7 +15,9 @@ def _schreibe_kunde(customers_dir):
         "id": "musterfirma",
         "active": True,
         "contact": {
-            "name": "Erika Beispiel",
+            "first_name": "Erika",
+            "last_name": "Beispiel",
+            "salutation": "frau",
             "company": "Musterfirma",
             "email": "erika@example.com",
             "street": "Musterweg 1",

@@ -20,6 +20,10 @@ from validation import (  # noqa: E402
     validate_positive_integer,
 )
 from customer_files import load_customer_files, save_customer_file  # noqa: E402
+from contact_identity import (  # noqa: E402
+    SALUTATIONS,
+    normalize_contact_identity,
+)
 
 
 def load_customer_data(file_name: Path = DEFAULT_CUSTOMERS_PATH) -> list:
@@ -92,7 +96,7 @@ def new_customer() -> dict:
     print("\nNeuen Kunden anlegen:\n")
 
     customer = {
-        "name": ask_value("Name oder Ansprechpartner: ", optional=False),
+        **ask_contact_identity(),
         "company": ask_value("Firma: ", optional=False),
         "email": ask_value("E-Mail: ", optional=False),
         "street": ask_value("Strasse und Hausnummer: ", optional=False),
@@ -134,6 +138,29 @@ def new_customer() -> dict:
         customer["active"] = False
 
     return customer
+
+
+def ask_contact_identity() -> dict:
+    """Fragt strukturierte Namen und eine ausdruecklich gewaehlte Briefanrede ab."""
+    while True:
+        contact = {
+            "salutation": ask_validated(
+                "Briefanrede (frau, herr, neutral, organisation): ",
+                _validate_salutation,
+            ),
+            "first_name": ask_value("Vorname (optional): ") or "",
+            "last_name": ask_value("Nachname (bei Herr/Frau erforderlich): ") or "",
+        }
+        try:
+            return normalize_contact_identity(contact)
+        except ValueError as err:
+            print(f"Ungueltige Kontaktangaben: {err}")
+
+
+def _validate_salutation(value: str) -> None:
+    """Akzeptiert ausschliesslich die vier expliziten Anredeoptionen."""
+    if value not in SALUTATIONS:
+        raise ValueError("Bitte frau, herr, neutral oder organisation auswaehlen.")
 
 
 def ask_email_cc() -> list[str]:

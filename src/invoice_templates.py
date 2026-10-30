@@ -4,6 +4,8 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, Template
 
+from contact_identity import normalize_contact_identity
+
 
 @dataclass(frozen=True)
 class InvoiceTemplates:
@@ -49,6 +51,7 @@ def build_template_context(
     """Baut den gemeinsamen Kontext fuer E-Mail- und PDF-Templates."""
     context = {
         "name": customer["name"],
+        "mail_salutation": normalize_contact_identity(customer)["mail_salutation"],
         "company": customer["company"],
         "email": customer["email"],
         "street": customer["street"],

@@ -8,6 +8,7 @@ from pathlib import Path
 import yaml
 
 from strict_yaml import load_yaml, reject_unknown_keys
+from contact_identity import normalize_contact_identity
 from validation import validate_customer_entry
 
 CUSTOMER_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -77,7 +78,9 @@ def normalize_customer(raw_value: dict, file_path: Path | None = None) -> dict:
     reject_unknown_keys(
         contact,
         {
-            "name",
+            "first_name",
+            "last_name",
+            "salutation",
             "company",
             "email",
             "cc",
@@ -114,7 +117,8 @@ def normalize_customer(raw_value: dict, file_path: Path | None = None) -> dict:
         raise ValueError(
             "main_service.unit_price muss als Text in Anfuehrungszeichen stehen."
         )
-    for field in ("name", "company", "email", "street", "postal_code", "city"):
+    identity = normalize_contact_identity(contact)
+    for field in ("company", "email", "street", "postal_code", "city"):
         if not isinstance(contact.get(field), str) or not contact[field].strip():
             raise ValueError(f"contact.{field} muss ein nicht leerer Text sein.")
     if "country_code" in contact:
@@ -140,7 +144,7 @@ def normalize_customer(raw_value: dict, file_path: Path | None = None) -> dict:
     customer = {
         "id": customer_id,
         "active": raw_value.get("active", True),
-        "name": contact.get("name"),
+        **identity,
         "company": contact.get("company"),
         "email": contact.get("email"),
         "cc": contact.get("cc", []),
@@ -268,7 +272,9 @@ def customer_to_yaml(customer: dict) -> dict:
         "id": customer["id"],
         "active": customer.get("active", True),
         "contact": {
-            "name": customer.get("name"),
+            "first_name": customer["first_name"],
+            "last_name": customer["last_name"],
+            "salutation": customer["salutation"],
             "company": customer.get("company"),
             "email": customer.get("email"),
             "cc": customer.get("cc", []),

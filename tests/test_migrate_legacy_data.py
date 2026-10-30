@@ -15,6 +15,9 @@ def schreibe_json_quellen(tmp_path):
     customers = [
         {
             "name": "Erika Beispiel",
+            "first_name": "Erika",
+            "last_name": "Beispiel",
+            "salutation": "frau",
             "firma": "Musterfirma",
             "email": "erika@example.com",
             "strasse": "Musterweg 1",
@@ -122,6 +125,28 @@ def test_migration_writes_yaml_without_changing_json_sources(
     assert load_customer_files(customers_dir)[0]["id"] == "musterfirma"
     assert load_invoice_config(invoice_yaml)["sender"]["name"] == "Max Mustermann"
     assert "Pruefung erfolgreich" in capsys.readouterr().out
+
+
+def test_missing_explicit_name_fields_never_write_migration(tmp_path, monkeypatch):
+    """Fehlende Identitätsangaben stoppen die Übernahme vor jedem Zieldatensatz."""
+    data_json, config_json = schreibe_json_quellen(tmp_path)
+    customers = json.loads(data_json.read_text())
+    for field in ("first_name", "last_name", "salutation"):
+        customers[0].pop(field)
+    data_json.write_text(json.dumps(customers), encoding="utf-8")
+    before = data_json.read_bytes()
+    customers_dir = tmp_path / "customers"
+    invoice_yaml = tmp_path / "invoice.yaml"
+    setze_argumente(
+        monkeypatch, data_json, config_json, customers_dir, invoice_yaml, "--apply"
+    )
+
+    with pytest.raises(ValueError, match="contact.first_name"):
+        migrate_legacy_data.main()
+
+    assert data_json.read_bytes() == before
+    assert not customers_dir.exists()
+    assert not invoice_yaml.exists()
 
 
 def test_verify_accepts_matching_existing_yaml(tmp_path, monkeypatch, capsys):

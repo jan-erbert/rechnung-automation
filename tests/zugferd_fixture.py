@@ -9,6 +9,9 @@ def invoice_snapshot() -> dict:
         "customer": {
             "company": "Musterkunde GmbH",
             "name": "Erika Beispiel",
+            "first_name": "Erika",
+            "last_name": "Beispiel",
+            "salutation": "frau",
             "street": "Testweg 1",
             "postal_code": "12345",
             "city": "Musterstadt",

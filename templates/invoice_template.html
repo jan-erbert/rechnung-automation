@@ -121,7 +121,7 @@
           </div>
           <div style="font-size: 14px; line-height: 1.6;">
             <strong>{{ company }}</strong><br>
-            {{ name }}<br>
+            {% if name %}{{ name }}<br>{% endif %}
             {{ street }}<br>
             {{ postal_code }} {{ city }}<br>
             {{ email }}

@@ -6,6 +6,12 @@ Alle signifikanten √Ñnderungen dieses Projekts werden in diesem Dokument aufgef√
 
 ### Changed
 
+- Kundenkontakte verwenden getrennte Felder fuer Vorname, Nachname und
+  ausdruecklich gewaehlte Briefanrede (`frau`, `herr`, `neutral`, `organisation`).
+  Rechnungsmails sprechen Personen foermlich mit dem Nachnamen an; der volle
+  Kontaktname bleibt im Rechnungsadressblock erhalten. Das bisherige
+  `contact.name` wird ohne automatische Umstellung ersetzt.
+
 - Neutraler Standard fuer Tabellenfarben; farbige Vorlagen bleiben waehlbar.
 
 - Rechnungsmails ohne Emojis, mit einem lokal eingebetteten Lucide-Dokumentsymbol.

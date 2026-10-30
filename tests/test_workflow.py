@@ -100,6 +100,9 @@ def test_failed_mail_is_marked_for_retry(tmp_path, monkeypatch, caplog):
         _send_email_with_status(
             customer={
                 "name": "Erika Beispiel",
+                "first_name": "Erika",
+                "last_name": "Beispiel",
+                "salutation": "frau",
                 "email": "erika@example.com",
             },
             mail_config={
@@ -137,6 +140,9 @@ def test_customer_cc_recipients_are_sent_with_invoice(tmp_path, monkeypatch):
         customer={
             "id": "beispielfirma",
             "name": "Erika Beispiel",
+            "first_name": "Erika",
+            "last_name": "Beispiel",
+            "salutation": "frau",
             "company": "Beispielfirma",
             "email": "erika@example.com",
             "cc": ["buchhaltung@example.com", "team@example.com"],
@@ -182,6 +188,9 @@ def test_dry_run_renders_without_writes_or_mail(tmp_path, monkeypatch, caplog):
         customer={
             "id": "beispielfirma",
             "name": "Erika Beispiel",
+            "first_name": "Erika",
+            "last_name": "Beispiel",
+            "salutation": "frau",
             "company": "Beispielfirma",
             "email": "erika@example.com",
             "cc": [],
@@ -226,6 +235,9 @@ def test_workflow_uses_configured_invoice_filename(tmp_path, monkeypatch):
         customer={
             "id": "tv-alzey",
             "name": "Erika Beispiel",
+            "first_name": "Erika",
+            "last_name": "Beispiel",
+            "salutation": "frau",
             "company": "Beispielfirma",
             "email": "erika@example.com",
             "cc": [],
@@ -279,6 +291,9 @@ def test_hourly_invoice_uses_service_period_and_records_hours(tmp_path, monkeypa
         customer={
             "id": "beispielfirma",
             "name": "Erika Beispiel",
+            "first_name": "Erika",
+            "last_name": "Beispiel",
+            "salutation": "frau",
             "company": "Beispielfirma",
             "email": "erika@example.com",
             "cc": [],
@@ -326,6 +341,9 @@ def test_ambiguous_mail_failure_remains_pending(tmp_path, monkeypatch, caplog):
         _send_email_with_status(
             customer={
                 "name": "Erika Beispiel",
+                "first_name": "Erika",
+                "last_name": "Beispiel",
+                "salutation": "frau",
                 "email": "erika@example.com",
             },
             mail_config={
@@ -363,6 +381,9 @@ def test_successful_mail_is_marked_as_sent(tmp_path, monkeypatch):
     _send_email_with_status(
         customer={
             "name": "Erika Beispiel",
+            "first_name": "Erika",
+            "last_name": "Beispiel",
+            "salutation": "frau",
             "email": "erika@example.com",
         },
         mail_config={
@@ -405,6 +426,9 @@ def test_failed_sent_confirmation_remains_pending(tmp_path, monkeypatch, caplog)
         _send_email_with_status(
             customer={
                 "name": "Erika Beispiel",
+                "first_name": "Erika",
+                "last_name": "Beispiel",
+                "salutation": "frau",
                 "email": "erika@example.com",
             },
             mail_config={
@@ -516,6 +540,10 @@ def test_missing_archive_error_is_specific_and_processing_continues(tmp_path, ca
     """Ein fehlendes Archiv wird ohne irrefuehrenden internen Fehler gemeldet."""
     caplog.set_level("INFO")
     customer = {
+        "name": "Fixture",
+        "first_name": "Fixture",
+        "last_name": "",
+        "salutation": "neutral",
         "id": "example",
         "company": "Beispielfirma",
         "email": "kunde@example.com",
@@ -574,6 +602,10 @@ def test_unreachable_archive_skips_customer_before_due_check(
         _process_customer_in_run(
             customers=[],
             customer={
+                "name": "Fixture",
+                "first_name": "Fixture",
+                "last_name": "",
+                "salutation": "neutral",
                 "company": "Beispielfirma",
                 "email": "kunde@example.com",
                 "archive_directory": str(tmp_path / "fehlt"),
