@@ -52,7 +52,9 @@ def test_legacy_customer_requires_explicit_name_fields():
         "plz": "12345",
         "ort": "Musterstadt",
         "hauptleistung": {
-            "beschreibung": "Hosting", "einheit": "monat", "betrag": "10.00"
+            "beschreibung": "Hosting",
+            "einheit": "monat",
+            "betrag": "10.00",
         },
     }
 

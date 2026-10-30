@@ -151,9 +151,7 @@ def test_rejects_old_combined_contact_name(tmp_path, keep_structured_fields):
 def test_organisation_without_personal_name_roundtrips(tmp_path):
     """Eine Organisation braucht keinen erfundenen Ansprechpartner."""
     customer = _customer()
-    customer["contact"].update(
-        first_name="", last_name="", salutation="organisation"
-    )
+    customer["contact"].update(first_name="", last_name="", salutation="organisation")
     path = tmp_path / "customer.yaml"
     path.write_text(yaml.safe_dump(customer), encoding="utf-8")
 
