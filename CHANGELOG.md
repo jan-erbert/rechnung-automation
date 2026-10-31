@@ -11,6 +11,7 @@ Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgef�
   Rechnungsmails sprechen Personen foermlich mit dem Nachnamen an; der volle
   Kontaktname bleibt im Rechnungsadressblock erhalten. Das bisherige
   `contact.name` wird ohne automatische Umstellung ersetzt.
+- Schriftgröße im PDF-Footer unterhalb der Trennlinie leicht von 9 auf 8,5 pt reduziert.
 
 - Neutraler Standard fuer Tabellenfarben; farbige Vorlagen bleiben waehlbar.
 
