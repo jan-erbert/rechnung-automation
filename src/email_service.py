@@ -1,5 +1,6 @@
 import logging
 import smtplib
+import ssl
 from datetime import datetime
 from email.mime.image import MIMEImage
 from email.mime.application import MIMEApplication
@@ -217,10 +218,15 @@ def send_email(
     server = None
     try:
         if security == "ssl":
-            server = smtplib.SMTP_SSL(mail_server, mail_port, timeout=timeout)
+            server = smtplib.SMTP_SSL(
+                mail_server,
+                mail_port,
+                timeout=timeout,
+                context=ssl.create_default_context(),
+            )
         elif security == "starttls":
             server = smtplib.SMTP(mail_server, mail_port, timeout=timeout)
-            server.starttls()
+            server.starttls(context=ssl.create_default_context())
         else:
             raise ValueError("SMTP-Sicherheitsmodus muss starttls oder ssl sein.")
         server.login(mail_user, mail_pass)

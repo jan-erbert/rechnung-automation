@@ -6,6 +6,8 @@ Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgef�
 
 ### Changed
 
+- SMTP prüft Zertifikate und Hostnamen bei STARTTLS und implizitem TLS ausdrücklich vor Anmeldung und Versand.
+
 - Kundenkontakte verwenden getrennte Felder fuer Vorname, Nachname und
   ausdruecklich gewaehlte Briefanrede (`frau`, `herr`, `neutral`, `organisation`).
   Rechnungsmails sprechen Personen foermlich mit dem Nachnamen an; der volle

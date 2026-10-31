@@ -1,4 +1,5 @@
 import smtplib
+import ssl
 from datetime import datetime
 from email import message_from_string
 
@@ -22,9 +23,11 @@ class FakeSmtp:
         self.send_error = send_error
         self.refused = refused or {}
         self.login_error = login_error
+        self.tls_context = None
 
-    def starttls(self):
+    def starttls(self, *, context=None):
         """Simuliert den TLS-Start."""
+        self.tls_context = context
 
     def login(self, user, password):
         """Simuliert die SMTP-Anmeldung."""
@@ -105,12 +108,14 @@ def test_partial_delivery_is_ambiguous(monkeypatch):
 
 
 def test_implicit_tls_uses_smtp_ssl(monkeypatch):
-    """Der Sicherheitsmodus ssl nutzt eine implizit verschluesselte Verbindung."""
+    """Implizites TLS prueft Serverzertifikat und Hostnamen."""
     smtp = FakeSmtp()
     verbindungen = []
     monkeypatch.setattr(
         "email_service.smtplib.SMTP_SSL",
-        lambda server, port, timeout: verbindungen.append((server, port, timeout))
+        lambda server, port, timeout, context: verbindungen.append(
+            (server, port, timeout, context)
+        )
         or smtp,
     )
 
@@ -125,7 +130,55 @@ def test_implicit_tls_uses_smtp_ssl(monkeypatch):
         timeout=15,
     )
 
-    assert verbindungen == [("smtp.example.com", 465, 15)]
+    assert len(verbindungen) == 1
+    server, port, timeout, context = verbindungen[0]
+    assert (server, port, timeout) == ("smtp.example.com", 465, 15)
+    assert context.check_hostname is True
+    assert context.verify_mode == ssl.CERT_REQUIRED
+
+
+def test_starttls_verifies_server_certificate_and_hostname(monkeypatch):
+    """STARTTLS erhaelt denselben verifizierenden Standardkontext."""
+    smtp = FakeSmtp()
+    monkeypatch.setattr(
+        "email_service.smtplib.SMTP", lambda server, port, timeout: smtp
+    )
+
+    send_email("smtp.example.com", 587, "sender", "secret", object(), ["to"])
+
+    assert smtp.tls_context.check_hostname is True
+    assert smtp.tls_context.verify_mode == ssl.CERT_REQUIRED
+
+
+def test_failed_tls_verification_prevents_login_and_delivery(monkeypatch):
+    """Ein ungueltiges Zertifikat bricht vor Anmeldung und Mailuebergabe ab."""
+    calls = []
+
+    class InvalidCertificateSmtp(FakeSmtp):
+        """Simuliert ausschliesslich einen abgelehnten TLS-Handshake."""
+
+        def starttls(self, *, context=None):
+            """Verweigert ein ungueltiges Zertifikat vor SMTP-Zugangsdaten."""
+            raise ssl.SSLCertVerificationError("certificate rejected")
+
+        def login(self, user, password):
+            """Erfasst eine unerlaubte Anmeldung nach TLS-Abbruch."""
+            calls.append("login")
+
+        def send_message(self, msg, from_addr, to_addrs):
+            """Erfasst eine unerlaubte Mailuebergabe nach TLS-Abbruch."""
+            calls.append("send")
+
+    smtp = InvalidCertificateSmtp()
+    monkeypatch.setattr(
+        "email_service.smtplib.SMTP", lambda server, port, timeout: smtp
+    )
+
+    with pytest.raises(MailDeliveryError) as exc_info:
+        send_email("smtp.example.com", 587, "sender", "secret", object(), ["to"])
+
+    assert calls == []
+    assert exc_info.value.retry_safe is True
 
 
 def test_error_report_mail_contains_escaped_errors():
