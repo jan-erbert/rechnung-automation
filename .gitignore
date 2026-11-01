@@ -48,3 +48,6 @@ rechnung_automation_v*
 
 # Private technische Fehleradresse
 config/notifications.yaml
+
+# Generierte MkDocs-HTML-Ausgabe
+site/

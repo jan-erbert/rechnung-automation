@@ -83,6 +83,19 @@ in `catalog-info.yaml` verknüpft das Projekt mit dieser Dokumentation. Eine
 Änderung erzeugt keinen Rechnungszeitplan. Der Dokumentationsdienst baut und
 veröffentlicht HTML-Seiten getrennt vom Python-Rechnungslauf.
 
+Für eine lokale HTML-Vorschau in einer **separaten virtuellen Doku-Umgebung**
+das TechDocs-Plugin installieren; dies ist keine Abhängigkeit der Rechnungsanwendung:
+
+```bash
+python -m pip install mkdocs-techdocs-core==1.7.1
+python -m mkdocs build --strict
+python -m mkdocs serve
+```
+
+Die letzten beiden Befehle im Repository-Root ausführen. Der Build liegt unter
+`site/` und wird nicht versioniert; `serve` zeigt die lokale Vorschau an.
+Backstage baut dieselben Quellen mit seiner eigenen vorbereiteten Laufzeit.
+
 Die Wikis von Forgejo und GitHub sind jeweils eigene Git-Repositories. Ein
 normaler Push zu den beiden Code-Remotes aktualisiert diese Wikis nicht.
 `tools/build_wiki.py` liest das Handbuch im aktuellen Checkout. Zuerst den
