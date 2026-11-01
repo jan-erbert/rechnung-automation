@@ -4,8 +4,8 @@ Python-Tool zur Erstellung, Archivierung und zum SMTP-Versand von Rechnungen.
 Es läuft interaktiv, als Cronjob oder optional als Windmill-Flow unter Linux,
 Windows und macOS. Die Rechnungslogik ist für alle Einstiege dieselbe.
 
-**Letzter Release: 1.4.1.** Dieses Handbuch beschreibt den aktuellen Quellstand;
-noch nicht veröffentlichte Änderungen stehen im [Changelog](CHANGELOG.md).
+**Version: 2.0.0.** Dieses Handbuch beschreibt den aktuellen Quellstand.
+Änderungen und Hinweise zu Updates stehen im [Changelog](CHANGELOG.md).
 Das neue Kontaktschema erfordert eine bewusste [Datenumstellung](docs/kunden.md).
 
 ## Was das Tool bietet

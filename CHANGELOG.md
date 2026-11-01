@@ -4,6 +4,10 @@ Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgef�
 
 ## [Unreleased]
 
+Noch keine Änderungen nach 2.0.0.
+
+## [2.0.0] - 2026-11-01
+
 ### Breaking changes
 
 - Das bisherige Kundenfeld `contact.name` entfällt. Bestehende Akten vor dem

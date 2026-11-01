@@ -119,14 +119,17 @@ Software-Release veröffentlicht werden.
 
 ## Release vorbereiten und freigeben
 
-Der letzte veröffentlichte Stand ist `1.4.1`; die zentrale Versionsangabe liegt
-in [install/version.py](https://github.com/jan-erbert/rechnung-automation/blob/main/install/version.py). Änderungen danach stehen im
-[Changelog](https://github.com/jan-erbert/rechnung-automation/blob/main/CHANGELOG.md) unter `Unreleased` und sind noch kein neuer Release.
+Die zentrale Versionsangabe liegt in
+[install/version.py](https://github.com/jan-erbert/rechnung-automation/blob/main/install/version.py).
+Version, README, Handbuch und [Changelog](https://github.com/jan-erbert/rechnung-automation/blob/main/CHANGELOG.md)
+vor jeder Veröffentlichung abgleichen. Änderungen nach dem letzten Release
+stehen unter `Unreleased` und sind noch kein neuer Release.
 Insbesondere ersetzt das neue Kontaktschema `contact.name` durch drei Felder.
 Bestehende Kundendaten benötigen vor dem Update die bewusste [Umstellung](kunden.md).
 
 1. Umfang, Migration und Versionssprung prüfen. Die inkompatible Schemaänderung
-   spricht für einen neuen Hauptversionsstand; Nummer erst bei Freigabe festlegen.
+   wurde mit dem Hauptversionssprung auf 2.0.0 veröffentlicht; künftige Nummern
+   anhand der jeweiligen Änderungen festlegen.
 2. Versionsdatei, Changelog, Handbuch und Beispielkonfigurationen abgleichen.
    Erforderliche Tests und CI auf dem konkreten Kandidaten abschließen.
 3. Erst nach Betreiberfreigabe nach Main übernehmen, Tag und Release auf beiden

@@ -4,9 +4,9 @@ Rechnung-Automation erzeugt Rechnungen aus YAML-Kundenakten, rendert PDFs und
 versendet sie per SMTP. CLI, Cron und optionale Windmill-Flows teilen sich die
 Python-Anwendungslogik. Windmill und OpenBao sind keine Voraussetzung.
 
-Dieses Handbuch beschreibt den aktuellen Quellstand. Der letzte veröffentlichte
-Release ist **1.4.1**; spätere Änderungen sind im
-[Changelog](https://github.com/jan-erbert/rechnung-automation/blob/main/CHANGELOG.md) unter `Unreleased` aufgeführt.
+Dieses Handbuch beschreibt **Version 2.0.0**. Änderungen und Hinweise zu Updates
+stehen im [Changelog](https://github.com/jan-erbert/rechnung-automation/blob/main/CHANGELOG.md).
+Vor dem Wechsel von 1.4.1 die [Umstellung der Kundenkontakte](kunden.md) beachten.
 
 ## Einrichtung in sinnvoller Reihenfolge
 
