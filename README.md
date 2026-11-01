@@ -1,461 +1,50 @@
 # Rechnung-Automation
 
-Python-Tool zur automatisierten Erstellung, Archivierung und Versendung von
-PDF-Rechnungen. Linux und macOS nutzen die Shell-Skripte, Windows nutzt
-PowerShell-Skripte.
+Python-Tool zur Erstellung, Archivierung und zum SMTP-Versand von Rechnungen.
+Es läuft interaktiv, als Cronjob oder optional als Windmill-Flow unter Linux,
+Windows und macOS. Die Rechnungslogik ist für alle Einstiege dieselbe.
 
-**Aktuelle Version:** `1.4.1`
+**Letzter Release: 1.4.1.** Dieses Handbuch beschreibt den aktuellen Quellstand;
+noch nicht veröffentlichte Änderungen stehen im [Changelog](CHANGELOG.md).
+Das neue Kontaktschema erfordert eine bewusste [Datenumstellung](docs/kunden.md).
 
-## Funktionen
+## Was das Tool bietet
 
-- PDF-Erzeugung aus HTML-Vorlagen mit WeasyPrint
-- Versand per SMTP mit optionalen CC- und BCC-Empfaengern
-- STARTTLS oder implizites TLS/SSL
+- PDF-Rechnungen aus anpassbaren HTML-Vorlagen mit WeasyPrint
+- Optionale ZUGFeRD-PDF mit eingebetteter XML, ohne Java
 - Monatliche, pauschale, einmalige und stundenbasierte Abrechnung
-- Sichere Versandzustaende `pending`, `sent` und `failed`
-- Atomare Speicherung von Verlauf und Kundendateien
-- Eine uebersichtliche YAML-Datei pro Kunde
-- Konfigurierbares Design, Branding, PDF-Dateinamen und Logging
-- Nicht-interaktiver Cronbetrieb mit Fehlerbericht
-- Seiteneffektfreier Dry-Run inklusive PDF-Rendering
-- Automatische, verifizierte Zustandsbackups mit begrenzter Aufbewahrung
-- Ungefaehrlicher Setup-Check ohne Rechnungs- oder Mailerzeugung
+- SMTP mit TLS, CC/BCC und eigener technischer Fehleradresse
+- YAML-Kundenakten, nachvollziehbarer Versandverlauf und Zustandsbackups
+- Konfigurierbares Branding, Tabellenfarben, Symbole und PDF-Seitenabstände
+- Optionale Windmill-Flows und Kundenformulare mit SMTP-Ressourcen/OpenBao
 
-## Voraussetzungen
+## Einstieg
 
-- Python 3.10 oder neuer
-- Systembibliotheken und Fonts fuer WeasyPrint (Linux/macOS: Pango; Windows: DLLs
-  gemaess [WeasyPrint-Installation](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html))
-- SMTP-Zugang fuer den Mailversand
-
-## Installation
-
-```powershell
-# Windows PowerShell
-./install/install.ps1
-```
+Python ab 3.10 und die Systembibliotheken für WeasyPrint werden benötigt.
+Die [Installation](docs/installation.md) beschreibt Einrichtung und Voraussetzungen.
+Im frisch geklonten Projekt:
 
 ```bash
 # Linux und macOS
 ./install/install.sh
 ```
 
-Die Installer erstellen `.venv`, installieren die Abhaengigkeiten und legen
-die lokale `.env` sowie `config/invoice.yaml` an. Bestehende lokale Dateien
-werden nicht ueberschrieben. Vorhandene Legacy-Dateien werden vor der
-Neuanlage erkannt, in die aktuelle Struktur migriert und anschliessend
-validiert; die alten Quellen bleiben dabei als Sicherung erhalten.
-
-Entwicklerabhaengigkeiten:
-
-```bash
-source .venv/bin/activate
-python -m pip install -r install/requirements-dev.txt
-```
-
-Beim interaktiven Start ueber `generate_invoices.sh`, `generate_invoices.ps1`
-oder `python src/main.py` erscheint ein blau-weisses Terminalbanner mit Rich.
-Schmale Terminals zeigen einen kompakten Titel. Cronlaeufe (`--non-interactive`)
-und umgeleitete Standardausgabe enthalten kein Banner. Bei bestehenden
-Installationen werden neue Abhaengigkeiten mit
-`python -m pip install -r install/requirements.txt` nachinstalliert.
-
-## Optionale ZUGFeRD-Ausgabe ohne Java
-
-Die normale PDF-Ausgabe benoetigt keine weiteren Pakete. Fuer ZUGFeRD wird die
-vorhandene WeasyPrint-Engine weiterverwendet. Drafthorse erzeugt die strukturierte
-CII-XML, lxml prueft das Profil-XSD und SaxonC-HE fuehrt die lokal mitgelieferten
-EN-16931-Pruefregeln aus. pypdf prueft die eingebetteten Daten. Es gibt keine
-Java-Laufzeit, keinen zusaetzlichen Server und keinen Rechnungsupload an einen
-externen Dienst. Alle Rechnungsdaten bleiben bei der lokalen Verarbeitung.
-
-Bestehende Installation ausdruecklich ergaenzen:
-
-```bash
-# Linux/macOS, aus dem Projektverzeichnis
-.venv/bin/python tools/install_zugferd.py --install
-.venv/bin/python tools/install_zugferd.py
-```
-
 ```powershell
-# Windows, aus dem Projektverzeichnis
-.venv\Scripts\python.exe tools/install_zugferd.py --install
-.venv\Scripts\python.exe tools/install_zugferd.py
+# Windows PowerShell
+./install/install.ps1
 ```
 
-Bei einer neuen Einrichtung kann stattdessen `./install/install.sh --zugferd`
-beziehungsweise `./install/install.ps1 -Zugferd` verwendet werden. Ohne diesen
-Schalter bleiben die optionalen Pakete unberuehrt. Die Helfer aendern weder
-Rechnungsdaten noch Versandstatus und aktivieren das Ausgabeformat nicht selbst.
-`--install` installiert die festgelegten Versionen aus
-`install/requirements-zugferd.txt` mit pip in den gerade verwendeten Interpreter.
-Es werden nur fertige Wheels verwendet; ein fehlendes Wheel wird als Setupfehler
-angezeigt, anstatt unbemerkt native Software aus Quellcode zu bauen.
-
-Die gepinnten SaxonC-Wheels unterstuetzen CPython 3.10/3.12 auf Linux x86_64 und
-ARM64 mit glibc ab 2.24, Windows x86_64 sowie macOS Intel und Apple Silicon.
-Windows ARM und Alpine/musl sind damit nicht abgedeckt. Python, Architektur und
-virtuelle Umgebung muessen zusammenpassen; die bestehende WeasyPrint-Installation
-mit ihren Systembibliotheken bleibt ebenfalls erforderlich. Der Shell-Installer
-verwendet Bash-3-kompatible Syntax fuer das mit macOS gelieferte Bash.
-
-Die Ausgabe wird getrennt vom Setup gewaehlt:
-
-```yaml
-pdf:
-  engine: weasyprint
-  format: zugferd  # pdf bleibt die bisherige, normale PDF-Ausgabe
-```
-
-Bei automatisch aktualisierten Installationen laesst sich die Wahl alternativ
-in der privaten `config/invoice.yaml` als `pdf.format: zugferd` setzen. Dieser
-Wert hat Vorrang; die versionierten Settings bleiben fuer Git-Updates unveraendert.
-
-Beim Rechnungslauf finden keine Paketinstallationen und keine Downloads statt.
-Fehlende optionale Pakete, ungueltige Rechnungsdaten oder gescheiterte Pruefungen
-stoppen die betroffene Rechnung; es gibt keinen stillen Rueckfall auf PDF.
-Die lokale XML-Pruefung ersetzt keine unabhaengige vollstaendige PDF/A-Pruefung.
-Sie ist auch keine pauschale Garantie fuer jeden denkbaren steuerlichen Fall.
-
-Die Werkzeuge werden ueber ihre regulaeren Python-Pakete installiert, ihre
-Quelltexte werden nicht in unser Tool kopiert. Versionen, Lizenzen und Hinweise
-zur Weitergabe stehen in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-Die offiziellen lokalen Regeldateien behalten ihre eigenen Lizenzhinweise.
-
-## Konfiguration
-
-Menschengepflegte Daten verwenden YAML. Maschinell erzeugte Verlaufsdaten
-bleiben JSON. Zugangsdaten stehen ausschliesslich in `.env`.
-
-### `config/settings.yaml`
-
-Enthaelt technische Einstellungen fuer Pfade, PDF, Design, Branding,
-Dateibenennung, Logging und SMTP-Verhalten:
-
-```yaml
-paths:
-  data_dir: data
-  customers_dir: customers
-  invoice_config: config/invoice.yaml
-  templates_dir: templates
-  image_dir: img
-  hours_dir: hours
-  backup_dir: backup
-
-pdf:
-  engine: weasyprint
-  format: pdf
-
-file_naming:
-  invoice_prefix: Rechnung
-  preview_prefix: VORSCHAU
-
-mail:
-  security: starttls
-  timeout_seconds: 30
-
-logging:
-  enabled: true
-  directory: logs
-  level: INFO
-  retention_files: 100
-
-backup:
-  enabled: true
-  keep_last: 30
-```
-
-Tabellenfarben fuer PDF und E-Mail werden gemeinsam unter `design.tables`
-in `config/settings.yaml` konfiguriert: `header_background`, `total_background`,
-`border_color`, `header_text_color`, `body_text_color` und `row_background`.
-Jeder Wert ist eine sechsstellige Hex-Farbe (`#RRGGBB`); ungueltige Werte
-werden vor einem Rechnungslauf abgewiesen. Vollstaendige Beispiele stehen
-in [Farbvorlagen](sample/design-presets.yaml). Helle Schrift auf dunklen
-Tabellenkoepfen muss ueber `header_text_color` ausdruecklich gesetzt werden.
-
-Die dekorativen Lucide-Symbole in Rechnungsmails sind standardmaessig aktiv.
-`branding.mail_icons_enabled: false` in `config/settings.yaml` schaltet sie aus.
-Bei automatisch aktualisierten Installationen kann stattdessen in der privaten,
-von Git ausgeschlossenen `config/invoice.yaml` unter `mail` der Schalter
-`icons_enabled: false` gesetzt werden. Dieser private Wert hat Vorrang.
-Texte, Kontaktlinks, Logo und PDFs bleiben unveraendert; ungenutzte Symbole
-werden nicht als Anhaenge mitgeschickt. Quellen und Lizenz: [Mail-Symbole](assets/mail/README.md).
-
-Der kleine Footerhinweis „Diese E-Mail wurde automatisch erstellt und versendet.“
-ist optional. `branding.mail_automation_notice_enabled: true` aktiviert ihn;
-`false` deaktiviert ihn (Standard). Ein privater Wert unter
-`mail.automation_notice_enabled` in `config/invoice.yaml` hat Vorrang.
-Der Hinweis betrifft nur die Rechnungsmail; PDF und Kontaktlinks bleiben erhalten.
-
-`mail.security` akzeptiert `starttls` oder `ssl`. Die passende Portnummer wird
-weiterhin in `.env` festgelegt.
-
-`file_naming.invoice_prefix` bestimmt den Anfang von Archivdatei und
-PDF-Mailanhang. `file_naming.preview_prefix` kennzeichnet Vorschauen. Erlaubt
-sind Buchstaben, Zahlen, Bindestriche und Unterstriche. Ohne diese optionalen
-Angaben bleiben aus Kompatibilitaetsgruenden die bisherigen Werte `Invoice`
-und `PREVIEW` aktiv.
-
-Aktivierte Laufprotokolle erhalten gut lesbare, nach Betriebsart getrennte Namen:
-`invoice-interactive-YYYY-MM-DD_HH-MM-SS.log` fuer interaktive Laeufe,
-`invoice-cron-YYYY-MM-DD_HH-MM-SS.log` fuer Cronlaeufe und `invoice-tool-...`
-fuer Hilfswerkzeuge. Dry-Runs verwenden `invoice-dry-run-...`, gespeicherte
-Kundenvorschauen `invoice-preview-...`. Falls zwei Laeufe in derselben Sekunde
-starten, wird automatisch ein Zaehlsuffix wie `-02` angehaengt. Neue Logs
-werden unter POSIX mit Dateirechten `0600` angelegt.
-`logging.retention_files` begrenzt die Anzahl automatisch aufbewahrter
-`invoice-*.log`-Dateien; fremde Logdateien bleiben unberuehrt.
-
-### `config/invoice.yaml`
-
-Enthaelt Absender-, Bank-, Steuer- und sichtbare Mailangaben. Die lokale Datei
-wird wegen personenbezogener Daten nicht versioniert. Eine vollstaendige
-Vorlage liegt unter `sample/invoice.sample.yaml`.
-
-```yaml
-sender:
-  name: Max Mustermann
-  company: Musterfirma GmbH
-  street: Musterstraße 1
-  postal_code: "01234"
-  city: Musterstadt
-  phone: "+49 123 456789"
-  email: max@example.com
-
-bank:
-  name: Musterbank
-  account_holder: Max Mustermann
-  iban: DE12345678901234567890
-  bic: MUSTDE00XXX
-
-tax:
-  identifier_type: tax_number
-  tax_number: 12/345/67890
-  small_business: false
-  vat_rate: "19.00"
-
-mail:
-  bcc:
-    - rechnung@example.com
-  from_name: Musterfirma Rechnungen
-```
-
-Als `identifier_type` werden `tax_number` und `vat_id` unterstuetzt. Geld- und
-Prozentwerte muessen in Anfuehrungszeichen stehen und werden intern mit
-`Decimal` verarbeitet.
-
-### `.env`
-
-```dotenv
-MAIL_SERVER=smtp.example.com
-MAIL_PORT=587
-MAIL_USER=deine@email.de
-MAIL_PASS=dein_passwort
-```
-
-Diese Datei darf nicht committed werden.
-
-## Kundendateien
-
-Jeder Kunde liegt in einer eigenen Datei unter `customers/`. Die stabile `id`
-entspricht im Normalfall dem Dateinamen. Eine vollstaendige Vorlage befindet
-sich unter `sample/customer.sample.yaml`.
-
-```yaml
-id: musterfirma
-active: true
-
-contact:
-  first_name: Max
-  last_name: Mustermann
-  salutation: herr
-  company: Musterfirma GmbH
-  email: kunde@example.com
-  cc:
-    - buchhaltung@example.com
-  street: Musterstraße 1
-  postal_code: "12345"
-  city: Musterstadt
-
-billing:
-  invoice_prefix: MF
-  cycle_months: 3
-  due_days: 14
-  end_month: null
-  invoice_date: null
-  one_time: false
-
-main_service:
-  description: Individuelle Beratung
-  unit: month
-  unit_price: "65.00"
-
-additional_services:
-  - description: Zusatzleistung
-    unit: flat
-    unit_price: "9.99"
-  - description: Support inklusive
-    unit: included
-
-archive:
-  directory: null
-```
-
-Unterstuetzte Einheiten der Hauptleistung sind `month`, `hour` und `flat`.
-Zusatzleistungen verwenden `month`, `flat` oder `included`. Postleitzahlen,
-Telefonnummern, Geldwerte und Prozentwerte sollten immer als Text in
-Anfuehrungszeichen stehen. `billing.invoice_date` verwendet `YYYY-MM-DD`,
-`billing.end_month` verwendet `YYYY-MM`.
-
-### Kontaktname und Briefanrede
-
-Vorname und Nachname werden getrennt gepflegt. `salutation` wird bewusst
-ausgewaehlt; die Anwendung leitet weder Geschlecht noch Anrede aus einem
-Vornamen ab. Im Rechnungsadressblock steht der vollstaendige Kontaktname ohne
-vorangestelltes „Herr“ oder „Frau“. Die E-Mail verwendet eine zentral erzeugte
-Briefanrede:
-
-| `contact.salutation` | Beispiel fuer die E-Mail |
-| --- | --- |
-| `frau` | Sehr geehrte Frau Beispiel, |
-| `herr` | Sehr geehrter Herr Beispiel, |
-| `neutral` | Guten Tag Erika Beispiel, |
-| `organisation` | Sehr geehrte Damen und Herren, |
-
-Eigene Mailvorlagen verwenden `{{ mail_salutation }}` fuer die vollstaendige
-Briefanrede inklusive Komma. `{{ name }}` enthaelt weiterhin den abgeleiteten
-vollstaendigen Kontaktnamen und ist kein Anredetext.
-
-`first_name`, `last_name` und `salutation` sind ausdrueckliche Pflichtfelder
-des Kundenschemas. Vorname und Nachname sind Texte und duerfen abhaengig von
-der Auswahl leer sein: `frau` und `herr` brauchen einen Nachnamen; `neutral`
-braucht mindestens einen der beiden Namen. Bei `organisation` duerfen beide
-leer bleiben. Mehrteilige Nachnamen werden vollstaendig in `last_name`
-eingetragen, beispielsweise `von Beispiel`. Titel oder „Herr“/„Frau“ werden
-nicht als Teil des Vor- oder Nachnamens gepflegt.
-
-Das fruehere Feld `contact.name` wird nicht mehr unterstuetzt. Bestehende
-Kundendateien muessen vor einem Lauf gezielt auf die drei neuen Felder
-umgestellt werden; es gibt keine automatische Namenszerlegung oder
-Geschlechtszuordnung. Vergangene Rechnungsdateien und Versandverlaeufe werden
-dadurch nicht umgeschrieben. Die gemeinsame Namens- und Anredeformatierung
-gilt fuer lokale Ausfuehrung, Cron und die optionale Windmill-Integration.
-
-Neue Kunden koennen interaktiv angelegt werden:
+Danach private Absender-/SMTP-Daten und Kunden nach den mitgelieferten Vorlagen
+pflegen. Die Installer überschreiben bestehende private Dateien nicht und
+richten keinen Zeitplan ein. Vor einem Versand zuerst prüfen:
 
 ```bash
-python tools/create_customer.py
-```
-
-Abgeschlossene einmalige Kunden werden im interaktiven Lauf auf Wunsch durch
-`active: false` deaktiviert, nicht geloescht.
-
-## Stundenbasierte Abrechnung
-
-Monatliche Stundenwerte liegen unter `hours/` in einer YAML-Datei pro
-Leistungsmonat. Der Dateiname und `period` verwenden `YYYY-MM`; Kunden werden
-ueber ihre stabile ID referenziert. Eine Vorlage liegt unter
-`sample/hours.sample.yaml`.
-
-```yaml
-period: "2026-08"
-
-customers:
-  musterfirma:
-    hours: 8.50
-```
-
-Stundenwerte duerfen als einfache YAML-Zahlen ohne Anfuehrungszeichen notiert
-werden und muessen nichtnegativ sein sowie hoechstens zwei Nachkommastellen
-besitzen. Ein Lauf im
-September liest fuer einen monatlich abgerechneten Stundenkunden den
-Leistungsmonat August. Bei mehrmonatigen Zyklen werden entsprechend mehrere
-abgeschlossene Vormonate geladen.
-
-Fehlt ein Wert im interaktiven Lauf, wird die abgefragte Stundenanzahl atomar
-in der passenden Monatsdatei gespeichert. Im nicht-interaktiven Cronlauf wird
-keine Eingabe erfunden; die Abrechnung bleibt mit `waiting_hours` offen.
-
-Alte Dateien wie `stunden_2026_08.json` koennen kontrolliert migriert werden:
-
-```bash
-python tools/migrate_legacy_hours.py
-python tools/migrate_legacy_hours.py --apply
-python tools/migrate_legacy_hours.py --verify
-```
-
-Nach erfolgreicher Pruefung koennen die alten Stunden-JSONs explizit entfernt
-werden:
-
-```bash
-python tools/migrate_legacy_hours.py --delete-legacy
-```
-
-## Migration von JSON nach YAML
-
-Die Kundenkonvertierung setzt auch in der JSON-Quelle ausdruecklich gepflegte
-Felder `first_name`, `last_name` und `salutation` voraus. Ein bisheriges
-einzelnes `name`-Feld reicht nicht aus. Diese Angaben muessen vor der
-Konvertierung kontrolliert ergaenzt werden; das Werkzeug zerlegt keine alten
-Namen und errät keine Anrede. Die hier beschriebene Dateikonvertierung ist
-keine automatische Anpassung alter Namensschemata.
-
-Das Migrationswerkzeug veraendert die alten JSON-Dateien standardmaessig nicht.
-`--apply` erzeugt die YAML-Dateien und vergleicht sie anschliessend mit den
-JSON-Quellen. Eine bestehende Migration kann separat geprueft werden:
-
-```bash
-python tools/migrate_legacy_data.py
-python tools/migrate_legacy_data.py --apply
-python tools/migrate_legacy_data.py --verify
-```
-
-Erst wenn dieser Vergleich und die normalen YAML-Loader erfolgreich sind, kann
-das Werkzeug mit folgendem expliziten Schalter die beiden alten Dateien
-`data/daten.json` und `data/konfiguration.json` loeschen:
-
-```bash
-python tools/migrate_legacy_data.py --delete-legacy
-```
-
-Das Loeschen ist nicht rueckgaengig zu machen. Eine Sicherung der JSON-Dateien
-ist daher sinnvoll. Ohne `--delete-legacy` bleiben sie immer erhalten. Beim
-Erzeugen bricht das Werkzeug ab, sobald eine Zieldatei bereits existiert. Nach
-der Migration sollte zusaetzlich `python tools/check_setup.py` ausgefuehrt
-werden. Erst danach sollte ein Rechnungslauf gestartet werden.
-
-Beim normalen Start und durch die Installer wird dieselbe Migration
-bei entsprechend vorbereiteten Quellen automatisch und idempotent ausgefuehrt.
-Fehlende strukturierte Namensfelder fuehren zum Abbruch. Sie umfasst Kunden- und
-Konfigurations-JSONs, Stunden-JSONs, `verlauf-YYYY.json` sowie alte technische
-Templatenamen. Widerspruechliche vorhandene Ziele fuehren zu einem sicheren
-Abbruch; Legacy-Quellen werden nie automatisch geloescht.
-
-## Setup pruefen
-
-```bash
+# In der aktivierten .venv, aus dem Projektverzeichnis
 python tools/check_setup.py
 ```
 
-Der Check erzeugt keine Rechnungen und versendet keine E-Mails. Er validiert
-Settings, Rechnungskonfiguration, alle Kunden- und Stunden-YAMLs, Templates,
-Branding, SMTP-Schluessel und konfigurierte Pfade. Schreibproben verwenden
-kurzlebige Testdateien und entfernen sie sofort wieder.
-
-## Rechnungslauf
-
-```bash
-# Produktiver interaktiver Lauf
-./generate_invoices.sh
-
-# Produktiver nicht-interaktiver Lauf
-./invoice_cron.sh
-```
-
-Unter Windows werden `generate_invoices.ps1` beziehungsweise fuer die
-Aufgabenplanung `invoice_cron.ps1` verwendet.
-
-Vor dem ersten echten Lauf empfiehlt sich eine vollstaendige Vorschau:
+Ein ausdrücklich gestarteter Dry-Run rendert fällige PDFs im Speicher und
+schreibt ein Log. Er versendet nichts und verändert keinen Rechnungszustand:
 
 ```bash
 ./generate_invoices.sh --dry-run
@@ -465,191 +54,29 @@ Vor dem ersten echten Lauf empfiehlt sich eine vollstaendige Vorschau:
 ./generate_invoices.ps1 -DryRun
 ```
 
-Der Dry-Run prueft Faelligkeit, Stunden, Templates, Mailaufbau und PDF-Rendering.
-Er versendet keine Mail, archiviert keine PDF und veraendert weder Verlauf,
-Stundendateien noch Kundendaten. Legacy-Migrationen werden im Dry-Run ebenfalls
-nicht geschrieben.
+**Die Startskripte ohne Dry-Run-Schalter versenden echte Rechnungen.**
+Vorher Empfänger einschließlich CC/BCC, Fälligkeit und Archivpfade kontrollieren.
+Der [Betriebsleitfaden](docs/betrieb.md) erklärt Vorschau, Zeitplanung und Fehlerfälle.
 
-### Kundenbezogene PDF-Vorschau
+## Handbuch
 
-Eine reale Kundenrechnung kann als deutlich markierte Vorschau ausschliesslich
-im konfigurierten Kundenarchiv abgelegt werden:
+Das vollständige Handbuch liegt versioniert unter [docs/](docs/index.md).
+Es ist zugleich die Quelle für Backstage TechDocs und die beiden Projekt-Wikis.
 
-```bash
-python tools/preview_customer_invoice.py <customer-id>
-```
+| Thema | Inhalt |
+| --- | --- |
+| [Installation](docs/installation.md) | Linux, Windows, macOS und bestehende Installationen |
+| [Konfiguration](docs/konfiguration.md) | Absender, SMTP, Design, Vorlagen und Dateipfade |
+| [Kunden und Abrechnung](docs/kunden.md) | Anreden, Fälligkeit, Stunden und zukünftige Konditionen |
+| [Betrieb](docs/betrieb.md) | Laufarten, Scheduler, Versandstatus, Fehler und Backups |
+| [ZUGFeRD](docs/zugferd.md) | Optionale Installation, Formatwahl und XML-Prüfung |
+| [Windmill](docs/windmill.md) | Flows, Ressourcen, OpenBao und Kundenformulare |
+| [Entwicklung](docs/entwicklung.md) | Tests, Dokumentationspflege, Git und Releases |
 
-Die PDF erhaelt ein grosses `VORSCHAU`-Wasserzeichen und bei der oben gezeigten
-Konfiguration einen Dateinamen nach dem Schema
-`VORSCHAU_Rechnung_<customer-id>_<MM-YYYY>_<YYYY-MM-DD_HH-MM-SS>.pdf`.
-Das Werkzeug versendet keine E-Mail, schreibt keinen Rechnungsverlauf, aendert
-keine Kundendatei und archiviert keine unmarkierte Rechnung. Fehlende
-Stundenwerte werden nicht interaktiv erfragt oder gespeichert, sondern fuehren
-zu einem kontrollierten Abbruch.
-
-Eine projektweite Sperrdatei verhindert parallele Rechnungsläufe und damit
-versehentliche Doppelversendungen. Die Sperre verwendet unter Linux und Windows
-eine echte Betriebssystem-Dateisperre und wird bei einem Prozessabbruch
-automatisch freigegeben.
-
-> Achtung: Rechnungsläufe koennen PDFs erzeugen, E-Mails versenden,
-> Verlaufsdaten aktualisieren und Archive beschreiben.
-
-## Zustandsbackups und Wiederherstellung
-
-Vor jedem echten interaktiven oder Cronlauf wird standardmaessig ein verifiziertes
-Backup unter `backup/state-backup-YYYY-MM-DD_HH-MM-SS.zip` erstellt. Es enthaelt
-die Rechnungskonfiguration, Kundendateien, Stundenwerte und Rechnungsverlaeufe.
-`backup.keep_last` begrenzt die Anzahl der Sicherungen. Backups erhalten unter
-POSIX die Dateirechte `0600`.
-
-Manuelle Erstellung und Pruefung:
-
-```bash
-python tools/manage_backups.py create
-python tools/manage_backups.py verify backup/state-backup-YYYY-MM-DD_HH-MM-SS.zip
-```
-
-Eine Wiederherstellung schreibt aus Sicherheitsgruenden niemals direkt ueber
-den aktiven Zustand. Sie erfolgt in ein neues oder leeres Zielverzeichnis:
-
-```bash
-python tools/manage_backups.py restore \
-  backup/state-backup-YYYY-MM-DD_HH-MM-SS.zip backup/restored-state
-```
-
-Danach muessen die Dateien bei gestopptem Rechnungslauf geprueft und passend zu
-den unter `paths` konfigurierten Zielverzeichnissen uebernommen werden. Externe
-PDF-Archive und `.env` sind bewusst nicht Bestandteil des Zustandsbackups und
-muessen separat gesichert werden. Ein lokales Backup ersetzt kein externes,
-getrennt aufbewahrtes Sicherungskonzept.
-
-## Cronbetrieb
-
-Der Cronlauf kann taeglich gestartet werden; die Anwendung entscheidet selbst,
-welche Kunden faellig sind. Beispiel fuer `crontab -e`:
-
-```cron
-15 6 * * * /absoluter/pfad/rechnung-automation/invoice_cron.sh
-```
-
-Der Cronjob muss unter demselben Benutzer laufen, dem Konfiguration, Verlauf,
-Backups und Archive gehoeren. Exitcode `0` bedeutet einen fehlerfreien Lauf,
-Exitcode `1` mindestens einen Fehler. Cron-Logs sind am Namensbestandteil
-`invoice-cron-` erkennbar. Zusaetzlich sollte der Cron-Dienst fehlgeschlagene
-Exitcodes beziehungsweise seine Standardfehlerausgabe ueberwachen, weil sehr
-fruehe Konfigurations- oder SMTP-Fehler nicht immer per Fehlerbericht zugestellt
-werden koennen.
-
-Unter Windows wird in der Aufgabenplanung `invoice_cron.ps1` ohne angemeldete
-Benutzersitzung gestartet. Programm: `powershell.exe`; Argumente:
-`-NoProfile -ExecutionPolicy Bypass -File "C:\Pfad\invoice_cron.ps1"`.
-
-## Git und NAS-Bereitstellung
-
-Forgejo ist das fuehrende Repository:
-[adminjan/rechnung-automation](https://git.jecloud.de/adminjan/rechnung-automation).
-GitHub bleibt als zweites Push-Ziel erhalten. Die eingerichtete lokale
-Arbeitskopie liest mit `git pull` von Forgejo; ein `git push` sendet denselben
-Branch zuerst nach Forgejo und danach nach GitHub. Ein Commit allein bleibt
-lokal. Die beiden Pushes sind nicht atomar: Schlaegt ein Ziel fehl, den Fehler
-beheben und den Push wiederholen.
-
-Entwicklung erfolgt auf `feature/...`, `fix/...` oder einem Entwicklungsbranch.
-Nur bewusst freigegebener Code wird nach `main` uebernommen. Die jeweilige Bereitstellung uebernimmt ausschliesslich freigegebenen
-Main-Code; Zeitpunkt und Ausloeser sind Umgebungskonfiguration. Ein Feature-Push startet keine Rechnungsanwendung. Nach einem Merge
-in der Forgejo-Oberflaeche muss der neue Main-Stand auch nach GitHub gepusht
-werden; fuer denselben Push zu beiden Zielen lokal mergen und anschliessend
-`git push origin main` verwenden.
-
-Die zwei Push-URLs sind lokale Git-Konfiguration und muessen fuer weitere
-Arbeitskopien ebenfalls eingerichtet werden. Pfade, Einrichtung und
-Betriebspruefungen stehen in der zentralen
-[Betriebsdokumentation](https://erbert-development.de/docs/default/component/je-infrastructure/systeme/windmill/rechnung-automation/).
-SMTP, Kundendaten und Laufzustand bleiben ausserhalb von Git.
-
-## Optionale Windmill-Anbindung und Kundenverwaltung
-
-Die CLI bleibt interaktiv, als Cronjob und im Dry-Run verwendbar. Zusaetzlich
-stehen ein gemeinsamer Python-Einstieg, Windmill-Flowdefinitionen und native
-Kundenformulare zur Verfuegung. SMTP kann aus Windmill-Ressourcen oder ueber
-einen eigenen begrenzten OpenBao-Abruf geladen werden. Windmill und OpenBao
-sind keine Pflicht fuer bestehende Installationen.
-
-Kundenkontakte lassen sich ohne Rechnungsausloesung bearbeiten; Preis- und
-Konditionsaenderungen gelten ab einer zukuenftigen Abrechnungsgrenze. Details,
-Sicherheitsgrenzen und Einrichtung: [Windmill-Integration](integrations/windmill/README.md).
-
-## Tests und Codequalitaet
-
-```bash
-python -m pytest
-python -m flake8 .
-python -m black --check .
-```
-
-Black wird in diesem Projekt bewusst vom Nutzer ausgefuehrt.
-
-Forgejo Actions fuehrt die Tests fuer Python 3.10 und 3.12 sowie Black-,
-Flake8- und Shell-Syntaxpruefungen ueber `.forgejo/workflows/ci.yml` aus.
-GitHub Actions verwendet `.github/workflows/ci.yml` und prueft zusaetzlich die
-Tests unter Windows und macOS sowie PowerShell-Syntax unter Windows. Separate
-ZUGFeRD-Jobs installieren die optionalen Pakete auf allen drei Betriebssystemen
-(GitHub) beziehungsweise Linux (Forgejo). Sie erzeugen ausschliesslich isolierte
-PDFs aus fiktiven Testdaten und validieren die eingebettete XML. Diese Jobs werden
-ueber `RUN_ZUGFERD_INTEGRATION=1` aktiviert. Es gibt keinen Zugriff auf private
-Konfigurationen, produktive Verlaeufe oder SMTP; die Workflows benoetigen keine
-Secrets.
-
-## Projektstruktur
-
-```text
-config/
-├── settings.yaml
-└── invoice.yaml              # lokal, nicht versioniert
-customers/
-└── <customer-id>.yaml        # lokal, nicht versioniert
-data/
-└── invoice-history-<year>.json       # maschinell erzeugter Zustand
-hours/
-└── YYYY-MM.yaml              # Stunden pro Leistungsmonat
-sample/
-├── customer.sample.yaml
-├── hours.sample.yaml
-├── invoice.sample.yaml
-├── email_template.sample.html
-├── invoice_template.sample.html
-└── settings.sample.yaml
-src/                         # Anwendungslogik
-templates/                   # produktive HTML-Vorlagen
-tests/                       # ungefaehrliche Tests
-tools/                       # Setup-, Kunden- und Migrationswerkzeuge
-install/                     # Linux-/macOS-/Windows-Installer
-```
+Konfigurationsbeispiele stehen unter [sample/](sample/). Private Daten,
+Zugangsdaten, Logs und Rechnungen gehören nicht in Git.
 
 ## Lizenz
 
-Siehe `LICENSE.md` und `licenses/`.
-
-Die PDF-Seitenabstaende stehen unter `design.pdf_layout` in `config/settings.yaml`:
-`margin_top_mm`, `margin_right_mm`, `margin_bottom_mm`, `margin_left_mm`.
-Standard sind jeweils 15 mm; zulaessig sind ganze Werte von 5 bis 30 mm.
-Der untere Wert bestimmt den Abstand des Fussbereichs zur Papierkante;
-der Inhaltsbereich behaelt seine bisherige Reserve von 40 mm fuer den Fussbereich.
-
-ZUGFeRD verwendet EUR und das Profil EN 16931. Bestehende deutsche Anschriften
-verwenden standardmaessig `DE`; ein abweichender Laendercode kann unter
-`sender.country_code` und `contact.country_code` des Kunden angegeben werden.
-Bei Kleinunternehmern wird die vorhandene Steuernummer zusaetzlich als interne
-Verkaeuferkennung uebertragen, ohne sie als Umsatzsteuer-ID zu kennzeichnen.
-Unterstuetzt sind die vorhandenen normalen Umsatzsteuer- und Kleinunternehmerfaelle.
-Andere Steuerbefreiungen ohne definierten Befreiungsgrund werden abgewiesen.
-Positionen behalten Menge, Einheit, Einzelpreis und Betrag als Zahlen; der Export
-liest keine Zahlen aus fertigen Preistexten zurueck. Stimmen gerundete
-Positionssummen und Gesamtbetrag nicht ueberein, wird die Rechnung blockiert.
-
-Die ZUGFeRD-Einbettung bleibt in WeasyPrint; die im festgelegten WeasyPrint 69
-auftretenden doppelten AF-Dateireferenzen werden vor Ausgabe zusammengefasst.
-Geprueft werden XML-Schema, die mitgelieferten EN-16931-Regeln, Summen, identische
-XML-Extraktion sowie Dateizuordnung und deklarierte Metadaten. Dies ist kein
-universeller PDF/A-Validator und keine XRechnung-Ausgabe.
+Projektlizenz: [LICENSE.md](LICENSE.md). Hinweise zu eingebundenen Komponenten
+und Symbolen: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

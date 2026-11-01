@@ -4,54 +4,53 @@ Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgef�
 
 ## [Unreleased]
 
+### Breaking changes
+
+- Das bisherige Kundenfeld `contact.name` entfällt. Bestehende Akten vor dem
+  Update ausdrücklich auf `first_name`, `last_name` und `salutation` umstellen;
+  es gibt keine automatische Namenszerlegung. Details im [Handbuch](docs/kunden.md).
+
 ### Changed
 
 - PDF-Footer gibt den konfigurierten Finanzamtsnamen ohne doppeltes festes „Finanzamt:“-Präfix aus.
-
 - SMTP prüft Zertifikate und Hostnamen bei STARTTLS und implizitem TLS ausdrücklich vor Anmeldung und Versand.
-
 - Kundenkontakte verwenden getrennte Felder fuer Vorname, Nachname und
   ausdruecklich gewaehlte Briefanrede (`frau`, `herr`, `neutral`, `organisation`).
   Rechnungsmails sprechen Personen foermlich mit dem Nachnamen an; der volle
   Kontaktname bleibt im Rechnungsadressblock erhalten. Das bisherige
   `contact.name` wird ohne automatische Umstellung ersetzt.
 - Schriftgröße im PDF-Footer unterhalb der Trennlinie leicht von 9 auf 8,5 pt reduziert.
-
 - Neutraler Standard fuer Tabellenfarben; farbige Vorlagen bleiben waehlbar.
-
 - Rechnungsmails ohne Emojis, mit einem lokal eingebetteten Lucide-Dokumentsymbol.
 - Mailkopf nach Mailvorlage: vollstaendige Wortmarke links auf dunklem Banner,
   ohne separaten Dokumenttitel; Branding-Texte als Ersatz bei fehlendem Logo.
 - Getrennter Standardpfad `img/mail_logo.png` fuer das Mail-Logo, unabhaengig
   vom PDF-Logo; Mail-Akzentfarbe auf `#243447` abgestimmt.
-- PDF-Vorlagen und Rechnungs-/Versandlogik bleiben unveraendert.
 
 ### Added
 
+- Versioniertes Handbuch unter `docs/`, mit TechDocs-Navigation und eigener
+  Backstage-Katalogdatei für den bestehenden Repository-Eintrag.
+- Lokaler Wiki-Export aus denselben Handbuchseiten mit Verweisen für alte Wiki-URLs;
+  die Veröffentlichung der Wiki-Repositories bleibt ein gesonderter Schritt.
 - Optionale ZUGFeRD-Ausgabe im Profil EN 16931, ohne Java, mit lokalem XSD-/
   Geschaeftsregelcheck, gepruefter PDF/XML-Einbettung und Formatwahl `pdf`/`zugferd`.
 - Separate private technische Fehleradresse statt Rechnungs-BCC; fruehe Fehler,
   feste sichere Laufmeldungen und eigener Windmill-Fehlerhandler.
 - Optionale Python-Zusatzinstallation sowie echte PDF/XML-Pruefungen auf Linux,
   Windows und macOS; normale PDF-Ausgabe bleibt Standard ohne Zusatzpakete.
-
 - Lokales Lucide-Webseitensymbol im Mailfooter; nur bei vorhandener Webseite
   eingebettet und ueber den bestehenden Symbolschalter abschaltbar.
-
 - Konfigurierbare PDF-Seitenabstaende von standardmaessig 15 mm passend zum
   freigegebenen Gestaltungsmuster; Vorlagen und Validierung synchronisiert.
-
 - Optionaler dezenter Automatikhinweis im Mailfooter, ueber Branding oder
   private Mail-Konfiguration abschaltbar; standardmaessig deaktiviert.
-
 - Gemeinsam konfigurierbare PDF-/Mail-Tabellenfarben unter `design.tables`,
   mit strikter Hex-Farbpruefung und drei kopierbaren Farbvorlagen.
-
 - Lokale Lucide-Symbole fuer Leistungsuebersicht, Bankverbindung und
   Adresse/E-Mail/Telefon im Mailfooter; alle Mail-Symbole ueber
   `branding.mail_icons_enabled` abschaltbar; privater Vorrang ueber
   `mail.icons_enabled` in `config/invoice.yaml` fuer automatische Deployments.
-
 - Gemeinsamer Python-Einstieg fuer bestehende CLI und optionale Windmill-Flows.
 - Optionale SMTP-Ressourcen und begrenzter OpenBao-KV-v2-Abruf mit kurzlebigen
   AppRole-Sitzungen, HTTPS-Pruefung und anschliessendem Token-Widerruf.
@@ -61,7 +60,6 @@ Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgef�
 - Strukturierte Laufzaehler fuer die Flow-Ergebnisanzeige.
 - Optionaler Archivpfad `archive_directory` bei der Windmill-Kundenanlage,
   der als `archive.directory` in Vorschau und Kundendatei uebernommen wird.
-
 - Blau-weisses Rich-Terminalbanner beim interaktiven Programmstart, mit
   kompakter Darstellung in schmalen Terminals und ohne Ausgabe bei Cronlaeufen
   oder umgeleiteter Standardausgabe.

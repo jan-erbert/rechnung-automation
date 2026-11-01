@@ -1,0 +1,15 @@
+site_name: Rechnung-Automation
+site_description: Handbuch für Installation, Abrechnung und Betrieb
+repo_url: https://git.jecloud.de/adminjan/rechnung-automation
+edit_uri: src/branch/main/docs/
+plugins:
+  - techdocs-core
+nav:
+  - Überblick: index.md
+  - Installation: installation.md
+  - Konfiguration: konfiguration.md
+  - Kunden und Abrechnung: kunden.md
+  - Betrieb und Fehler: betrieb.md
+  - ZUGFeRD: zugferd.md
+  - Windmill: windmill.md
+  - Entwicklung und Releases: entwicklung.md

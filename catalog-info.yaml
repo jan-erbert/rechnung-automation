@@ -1,0 +1,23 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: adminjan-rechnung-automation
+  title: rechnung-automation
+  description: Python-Tool für Rechnungserstellung, Archivierung und SMTP-Versand mit optionaler Windmill-Anbindung.
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    backstage.io/source-location: url:https://git.jecloud.de/adminjan/rechnung-automation/src/branch/main/
+  tags:
+    - python
+    - invoicing
+    - windmill
+  links:
+    - url: https://git.jecloud.de/adminjan/rechnung-automation
+      title: Forgejo
+    - url: https://github.com/jan-erbert/rechnung-automation
+      title: GitHub
+spec:
+  type: repository
+  lifecycle: production
+  owner: user:default/adminjan
+  system: local-applications
