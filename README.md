@@ -61,7 +61,9 @@ Der [Betriebsleitfaden](docs/betrieb.md) erklärt Vorschau, Zeitplanung und Fehl
 ## Handbuch
 
 Das vollständige Handbuch liegt versioniert unter [docs/](docs/index.md).
-Es ist zugleich die Quelle für Backstage TechDocs und die beiden Projekt-Wikis.
+Es ist zugleich die Quelle für Backstage TechDocs und die beiden Projekt-Wikis:
+[GitHub-Wiki](https://github.com/jan-erbert/rechnung-automation/wiki) ·
+[Forgejo-Wiki](https://git.jecloud.de/adminjan/rechnung-automation/wiki).
 
 | Thema | Inhalt |
 | --- | --- |

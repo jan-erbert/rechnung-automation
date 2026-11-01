@@ -29,8 +29,8 @@ Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgef�
 
 ### Added
 
-- Versioniertes Handbuch unter `docs/`, mit TechDocs-Navigation und eigener
-  Backstage-Katalogdatei für den bestehenden Repository-Eintrag.
+- Versioniertes Handbuch unter `docs/`, mit TechDocs-Navigation für die
+  bestehende automatische Backstage-Erkennung.
 - Lokaler Wiki-Export aus denselben Handbuchseiten mit Verweisen für alte Wiki-URLs;
   die Veröffentlichung der Wiki-Repositories bleibt ein gesonderter Schritt.
 - Optionale ZUGFeRD-Ausgabe im Profil EN 16931, ohne Java, mit lokalem XSD-/

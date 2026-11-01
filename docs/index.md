@@ -40,7 +40,7 @@ Release ist **1.4.1**; spätere Änderungen sind im
 | `customers/`, `hours/`, `data/` | Private Kunden, Stunden und Versandzustände |
 | `config/invoice.yaml`, `config/notifications.yaml`, `.env` | Private Konfiguration |
 | `backup/`, `logs/`, konfigurierte Archive | Laufdaten und Sicherungen |
-| `docs/`, `mkdocs.yml`, `catalog-info.yaml` | Handbuch und Backstage-Anbindung |
+| `docs/`, `mkdocs.yml` | Handbuch und Backstage-Anbindung |
 
 Die HTML-Dokumentation und die Wikis werden aus `docs/` erzeugt; sie sind kein
 zusätzliches Rechnungssystem. Eigene NAS-Pfade, Zugänge und konkrete Zeitpläne

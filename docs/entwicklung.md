@@ -78,23 +78,16 @@ ist der Einstieg; zusätzliche Wegweiser verlinken auf das Handbuch. Inhalte nur
 an ihrer maßgeblichen Stelle pflegen. Beispiele bleiben fiktiv und müssen zu
 aktuellen Feldern, CLI-Schaltern und den mitgelieferten Vorlagen passen.
 
-`mkdocs.yml` enthält die Navigation für Backstage TechDocs. Der Katalogeintrag
-in `catalog-info.yaml` verknüpft das Projekt mit dieser Dokumentation. Eine
-Änderung erzeugt keinen Rechnungszeitplan. Der Dokumentationsdienst baut und
-veröffentlicht HTML-Seiten getrennt vom Python-Rechnungslauf.
+`mkdocs.yml` enthält die Navigation für Backstage TechDocs. Der bestehende
+JE-Backstage-Katalog erkennt das Repository und seine Dokumentation automatisch;
+eine eigene `catalog-info.yaml` ist dafür nicht erforderlich. Backstage liest
+`docs/` aus dem freigegebenen Main-Stand. Es liest nicht die separaten Wiki-Repositories.
 
-Für eine lokale HTML-Vorschau in einer **separaten virtuellen Doku-Umgebung**
-das TechDocs-Plugin installieren; dies ist keine Abhängigkeit der Rechnungsanwendung:
-
-```bash
-python -m pip install mkdocs-techdocs-core==1.7.1
-python -m mkdocs build --strict
-python -m mkdocs serve
-```
-
-Die letzten beiden Befehle im Repository-Root ausführen. Der Build liegt unter
-`site/` und wird nicht versioniert; `serve` zeigt die lokale Vorschau an.
-Backstage baut dieselben Quellen mit seiner eigenen vorbereiteten Laufzeit.
+Für einen lokalen Build in einer separaten Doku-Umgebung wird das Plugin
+`mkdocs-techdocs-core==1.7.1` benötigt. Im Repository-Root prüft
+`python -m mkdocs build --strict` die Dokumentation. Dies ist keine Abhängigkeit
+der Rechnungsanwendung und veröffentlicht nichts. Die normale Ansicht erfolgt
+über die Plattform-Wikis beziehungsweise Backstage.
 
 Die Wikis von Forgejo und GitHub sind jeweils eigene Git-Repositories. Ein
 normaler Push zu den beiden Code-Remotes aktualisiert diese Wikis nicht.
@@ -120,6 +113,9 @@ committen/pushen; den `.git`-Ordner der Wikis erhalten. Das Werkzeug erzeugt auc
 Wegweiser für alte Seitenadressen. Anschließend Hauptseiten, Navigation und
 Quelllinks auf beiden Plattformen prüfen. Inhalte ausschließlich unter `docs/` pflegen;
 ein Dokumentationsentwurf ist keine Freigabe zur Veröffentlichung.
+Es werden keine automatischen Push-Hooks oder CI-Veröffentlichungen eingerichtet.
+Eine freigegebene Dokumentationsaktualisierung kann unabhängig von einem neuen
+Software-Release veröffentlicht werden.
 
 ## Release vorbereiten und freigeben
 
