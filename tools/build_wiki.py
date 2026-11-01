@@ -204,7 +204,9 @@ def build_wiki(
             or path.is_symlink()
             or not path.resolve().is_relative_to(source_root)
         ):
-            raise ValueError(f"Dokumentationsquelle fehlt oder ist ein Symlink: {source}")
+            raise ValueError(
+                f"Dokumentationsquelle fehlt oder ist ein Symlink: {source}"
+            )
         text = rewrite_markdown(
             path.read_text(encoding="utf-8"),
             source,
