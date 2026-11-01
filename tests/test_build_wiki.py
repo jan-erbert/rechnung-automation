@@ -135,7 +135,9 @@ def test_images_and_directory_links_use_repository_routes(source):
         "https://github.com/example/tool",
         "main",
     )
-    assert "https://github.com/example/tool/raw/main/assets/sample%20image.png" in result
+    assert (
+        "https://github.com/example/tool/raw/main/assets/sample%20image.png" in result
+    )
     assert "https://github.com/example/tool/tree/main/assets" in result
 
 

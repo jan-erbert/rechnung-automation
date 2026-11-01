@@ -192,8 +192,7 @@ def build_wiki(
     repository_base(repository_url, source_ref, ref_type)
     source_root = source_root.resolve()
     if output_dir.is_symlink() or (
-        output_dir.exists()
-        and (not output_dir.is_dir() or any(output_dir.iterdir()))
+        output_dir.exists() and (not output_dir.is_dir() or any(output_dir.iterdir()))
     ):
         raise FileExistsError("Der Ausgabeordner muss neu oder vollständig leer sein.")
 
