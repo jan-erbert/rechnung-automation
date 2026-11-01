@@ -6,6 +6,8 @@ Alle signifikanten Änderungen dieses Projekts werden in diesem Dokument aufgef�
 
 ### Changed
 
+- PDF-Footer gibt den konfigurierten Finanzamtsnamen ohne doppeltes festes „Finanzamt:“-Präfix aus.
+
 - SMTP prüft Zertifikate und Hostnamen bei STARTTLS und implizitem TLS ausdrücklich vor Anmeldung und Versand.
 
 - Kundenkontakte verwenden getrennte Felder fuer Vorname, Nachname und
